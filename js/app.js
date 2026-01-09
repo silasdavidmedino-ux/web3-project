@@ -21,8 +21,11 @@ const AppState = {
     '7': 32, '8': 32, '9': 32, '10': 128, 'A': 32
   },
 
-  // Initial counts for reset
-  initialCounts: {},
+  // Initial counts for reset (8 decks default)
+  initialCounts: {
+    '2': 32, '3': 32, '4': 32, '5': 32, '6': 32,
+    '7': 32, '8': 32, '9': 32, '10': 128, 'A': 32
+  },
 
   // Cards seen per rank
   rankSeen: {

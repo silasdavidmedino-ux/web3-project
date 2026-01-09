@@ -6,9 +6,9 @@
  * Provides offline capability and caching for the PWA
  */
 
-const CACHE_NAME = 'bj-engine-v3.7.0';
-const STATIC_CACHE = 'bj-static-v3.7.0';
-const DYNAMIC_CACHE = 'bj-dynamic-v3.7.0';
+const CACHE_NAME = 'bj-engine-v3.7.1';
+const STATIC_CACHE = 'bj-static-v3.7.1';
+const DYNAMIC_CACHE = 'bj-dynamic-v3.7.1';
 
 // Assets to cache on install
 const STATIC_ASSETS = [
