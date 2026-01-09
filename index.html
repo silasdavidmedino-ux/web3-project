@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="description" content="BJ Probability Engine - Professional Blackjack Analysis">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BJ Engine">
+
+  <title>BJ Probability Engine v1.3</title>
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32x32.png">
+  <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Top Navigation Bar -->
+  <nav class="top-nav">
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-tab="game">Game</button>
+      <button class="nav-tab" data-tab="config">Config</button>
+      <button class="nav-tab" data-tab="rooms">Rooms</button>
+      <button class="nav-tab" data-tab="players">Players</button>
+      <button class="nav-tab" data-tab="spotters">Spotters</button>
+      <button class="nav-tab" data-tab="history">Game History</button>
+      <button class="nav-tab" data-tab="analytics">Analytics</button>
+      <button class="nav-tab text-danger" id="btnClearCache">Clear Cache</button>
+    </div>
+    <div class="nav-center">
+      <div class="table-indicator">
+        <span class="table-icon">🎰</span>
+        <span>Table 1</span>
+        <button class="btn-close-table">×</button>
+      </div>
+    </div>
+    <div class="nav-right">
+      <button class="btn-status btn-control">
+        <span class="status-dot"></span>
+        You have control
+      </button>
+      <button class="btn-status btn-disconnect">Disconnect</button>
+    </div>
+  </nav>
+
+  <!-- Main Game Area -->
+  <main class="game-area">
+    <!-- Left Stats Panel -->
+    <div class="stats-left">
+      <div class="count-box running-count">
+        <span id="runningCount" class="count-value">0</span>
+        <span class="count-label">RUNNING<br>COUNT</span>
+      </div>
+      <div class="count-box true-count">
+        <span id="trueCount" class="count-value">0.00</span>
+        <span class="count-label">TRUE<br>COUNT</span>
+      </div>
+
+      <!-- Formula Info Button -->
+      <button class="btn-formula-info" id="btnFormulaInfo">
+        <span>?</span>
+        Formulas & Strategy
+      </button>
+
+      <!-- Dealer's Cards This Round -->
+      <div class="dealer-cards-panel">
+        <div class="dealer-cards-header">DEALER</div>
+        <div class="dealer-cards-display" id="dealerCardsLeft">
+          <span class="no-cards">—</span>
+        </div>
+        <div class="dealer-total" id="dealerTotal">0</div>
+      </div>
+
+      <!-- Dealer Cards History -->
+      <div class="dealer-history-panel">
+        <div class="dealer-history-header">
+          <span>HISTORY</span>
+          <span class="round-count" id="roundCount">0</span>
+        </div>
+        <div class="dealer-history-list" id="dealerHistoryList">
+          <div class="no-history">No rounds yet</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Stats Panel - Card Tracking -->
+    <div class="stats-right">
+      <div class="stat-boxes">
+        <div class="stat-box aces-box">
+          <span id="acesLeft" class="stat-value">32</span>
+          <span class="stat-label">Aces Left</span>
+        </div>
+        <div class="stat-box pairs-box">
+          <span id="pairsCount" class="stat-value">0</span>
+          <span class="stat-label">Pairs</span>
+        </div>
+        <div class="stat-box cards-box">
+          <span id="cardsSeen" class="stat-value">0/416</span>
+          <span class="stat-label">Cards Seen</span>
+        </div>
+      </div>
+      <div class="rank-table">
+        <div class="rank-header">
+          <span>Rank</span>
+          <span>Seen</span>
+          <span>Left</span>
+          <span>% Left</span>
+        </div>
+        <div class="rank-row tens-row">
+          <span class="rank-label">10</span>
+          <span id="seen10" class="rank-seen">0</span>
+          <span id="left10" class="rank-left">128</span>
+          <span id="pct10" class="rank-pct">100</span>
+        </div>
+        <div class="rank-row">
+          <span class="rank-label">2</span>
+          <span id="seen2" class="rank-seen">0</span>
+          <span id="left2" class="rank-left">32</span>
+          <span id="pct2" class="rank-pct">100</span>
+        </div>
+        <div class="rank-row">
+          <span class="rank-label">3</span>
+          <span id="seen3" class="rank-seen">0</span>
+          <span id="left3" class="rank-left">32</span>
+          <span id="pct3" class="rank-pct">100</span>
+        </div>
+        <div class="rank-row">
+          <span class="rank-label">4</span>
+          <span id="seen4" class="rank-seen">0</span>
+          <span id="left4" class="rank-left">32</span>
+          <span id="pct4" class="rank-pct">100</span>
+        </div>
+        <div class="rank-row">
+          <span class="rank-label">5</span>
+          <span id="seen5" class="rank-seen">0</span>
+          <span id="left5" class="rank-left">32</span>
+          <span id="pct5" class="rank-pct">100</span>
+        </div>
+        <div class="rank-row">
+          <span class="rank-label">6</span>
+          <span id="seen6" class="rank-seen">0</span>
+          <span id="left6" class="rank-left">32</span>
+          <span id="pct6" class="rank-pct">100</span>
+        </div>
+        <div class="rank-row">
+          <span class="rank-label">7</span>
+          <span id="seen7" class="rank-seen">0</span>
+          <span id="left7" class="rank-left">32</span>
+          <span id="pct7" class="rank-pct">100</span>
+        </div>
+        <div class="rank-row">
+          <span class="rank-label">8</span>
+          <span id="seen8" class="rank-seen">0</span>
+          <span id="left8" class="rank-left">32</span>
+          <span id="pct8" class="rank-pct">100</span>
+        </div>
+        <div class="rank-row">
+          <span class="rank-label">9</span>
+          <span id="seen9" class="rank-seen">0</span>
+          <span id="left9" class="rank-left">32</span>
+          <span id="pct9" class="rank-pct">100</span>
+        </div>
+        <div class="rank-row">
+          <span class="rank-label">A</span>
+          <span id="seenA" class="rank-seen">0</span>
+          <span id="leftA" class="rank-left">32</span>
+          <span id="pctA" class="rank-pct">100</span>
+        </div>
+      </div>
+
+      <!-- Bead Road Section -->
+      <div class="bead-road-section">
+        <div class="bead-road-header">
+          <span>Bead Road</span>
+          <button class="btn-clear-beads" onclick="clearBeadRoad()" title="Clear">×</button>
+        </div>
+        <div class="bead-road-grid" id="beadRoadGrid">
+          <!-- Beads will be added dynamically -->
+        </div>
+        <div class="bead-road-legend">
+          <span class="legend-item"><span class="bead-dot red"></span>2-6</span>
+          <span class="legend-item"><span class="bead-dot blue"></span>7-9</span>
+          <span class="legend-item"><span class="bead-dot green"></span>10-A</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table Layout -->
+    <div class="table-layout">
+      <!-- Casino Blackjack Table -->
+      <div class="casino-table">
+        <span class="casino-name">Disruptor Casino</span>
+        <span class="casino-table-text">BLACKJACK PAYS 3 TO 2</span>
+        <div class="insurance-line"></div>
+        <span class="insurance-text">INSURANCE PAYS 2 TO 1</span>
+
+        <!-- Dealer Position -->
+        <div class="dealer-area">
+          <div class="dealer-box" id="dealerBox">
+            <span class="position-label">DEALER</span>
+            <span class="position-badge" id="dealerBadge">0</span>
+            <div class="position-cards" id="dealerCards"></div>
+            <span class="position-hint">Click to activate</span>
+          </div>
+        </div>
+
+        <!-- Player Positions - 8 Seats -->
+      <div class="players-row">
+        <div class="player-box" data-seat="8" id="player8">
+          <div class="player-header">
+            <span class="player-dot"></span>
+            <span class="position-label">PLAYER 8</span>
+            <span class="position-badge">0</span>
+            <label class="decision-toggle" title="Toggle decisions">
+              <input type="checkbox" class="decision-toggle-input" data-player="8">
+              <span class="decision-toggle-slider"></span>
+            </label>
+          </div>
+          <div class="position-cards"></div>
+          <div class="decision-panel" data-player="8">
+            <button class="decision-btn stay" onclick="recordDecision(8, 'STAY')">S</button>
+            <button class="decision-btn hit" onclick="recordDecision(8, 'HIT')">H</button>
+            <button class="decision-btn split" onclick="recordDecision(8, 'SPLIT')">P</button>
+            <button class="decision-btn double" onclick="recordDecision(8, 'DBL')">D</button>
+          </div>
+          <span class="position-hint">Click to activate</span>
+        </div>
+        <div class="player-box" data-seat="7" id="player7">
+          <div class="player-header">
+            <span class="player-dot"></span>
+            <span class="position-label">PLAYER 7</span>
+            <span class="position-badge">0</span>
+            <label class="decision-toggle" title="Toggle decisions">
+              <input type="checkbox" class="decision-toggle-input" data-player="7">
+              <span class="decision-toggle-slider"></span>
+            </label>
+          </div>
+          <div class="position-cards"></div>
+          <div class="decision-panel" data-player="7">
+            <button class="decision-btn stay" onclick="recordDecision(7, 'STAY')">S</button>
+            <button class="decision-btn hit" onclick="recordDecision(7, 'HIT')">H</button>
+            <button class="decision-btn split" onclick="recordDecision(7, 'SPLIT')">P</button>
+            <button class="decision-btn double" onclick="recordDecision(7, 'DBL')">D</button>
+          </div>
+          <span class="position-hint">Click to activate</span>
+        </div>
+        <div class="player-box" data-seat="6" id="player6">
+          <div class="player-header">
+            <span class="player-dot"></span>
+            <span class="position-label">PLAYER 6</span>
+            <span class="position-badge">0</span>
+            <label class="decision-toggle" title="Toggle decisions">
+              <input type="checkbox" class="decision-toggle-input" data-player="6">
+              <span class="decision-toggle-slider"></span>
+            </label>
+          </div>
+          <div class="position-cards"></div>
+          <div class="decision-panel" data-player="6">
+            <button class="decision-btn stay" onclick="recordDecision(6, 'STAY')">S</button>
+            <button class="decision-btn hit" onclick="recordDecision(6, 'HIT')">H</button>
+            <button class="decision-btn split" onclick="recordDecision(6, 'SPLIT')">P</button>
+            <button class="decision-btn double" onclick="recordDecision(6, 'DBL')">D</button>
+          </div>
+          <span class="position-hint">Click to activate</span>
+        </div>
+        <div class="player-box" data-seat="5" id="player5">
+          <div class="player-header">
+            <span class="player-dot"></span>
+            <span class="position-label">PLAYER 5</span>
+            <span class="position-badge">0</span>
+            <label class="decision-toggle" title="Toggle decisions">
+              <input type="checkbox" class="decision-toggle-input" data-player="5">
+              <span class="decision-toggle-slider"></span>
+            </label>
+          </div>
+          <div class="position-cards"></div>
+          <div class="decision-panel" data-player="5">
+            <button class="decision-btn stay" onclick="recordDecision(5, 'STAY')">S</button>
+            <button class="decision-btn hit" onclick="recordDecision(5, 'HIT')">H</button>
+            <button class="decision-btn split" onclick="recordDecision(5, 'SPLIT')">P</button>
+            <button class="decision-btn double" onclick="recordDecision(5, 'DBL')">D</button>
+          </div>
+          <span class="position-hint">Click to activate</span>
+        </div>
+        <div class="player-box" data-seat="4" id="player4">
+          <div class="player-header">
+            <span class="player-dot"></span>
+            <span class="position-label">PLAYER 4</span>
+            <span class="position-badge">0</span>
+            <label class="decision-toggle" title="Toggle decisions">
+              <input type="checkbox" class="decision-toggle-input" data-player="4">
+              <span class="decision-toggle-slider"></span>
+            </label>
+          </div>
+          <div class="position-cards"></div>
+          <div class="decision-panel" data-player="4">
+            <button class="decision-btn stay" onclick="recordDecision(4, 'STAY')">S</button>
+            <button class="decision-btn hit" onclick="recordDecision(4, 'HIT')">H</button>
+            <button class="decision-btn split" onclick="recordDecision(4, 'SPLIT')">P</button>
+            <button class="decision-btn double" onclick="recordDecision(4, 'DBL')">D</button>
+          </div>
+          <span class="position-hint">Click to activate</span>
+        </div>
+        <div class="player-box" data-seat="3" id="player3">
+          <div class="player-header">
+            <span class="player-dot"></span>
+            <span class="position-label">PLAYER 3</span>
+            <span class="position-badge">0</span>
+            <label class="decision-toggle" title="Toggle decisions">
+              <input type="checkbox" class="decision-toggle-input" data-player="3">
+              <span class="decision-toggle-slider"></span>
+            </label>
+          </div>
+          <div class="position-cards"></div>
+          <div class="decision-panel" data-player="3">
+            <button class="decision-btn stay" onclick="recordDecision(3, 'STAY')">S</button>
+            <button class="decision-btn hit" onclick="recordDecision(3, 'HIT')">H</button>
+            <button class="decision-btn split" onclick="recordDecision(3, 'SPLIT')">P</button>
+            <button class="decision-btn double" onclick="recordDecision(3, 'DBL')">D</button>
+          </div>
+          <span class="position-hint">Click to activate</span>
+        </div>
+        <div class="player-box" data-seat="2" id="player2">
+          <div class="player-header">
+            <span class="player-dot"></span>
+            <span class="position-label">PLAYER 2</span>
+            <span class="position-badge">0</span>
+            <label class="decision-toggle" title="Toggle decisions">
+              <input type="checkbox" class="decision-toggle-input" data-player="2">
+              <span class="decision-toggle-slider"></span>
+            </label>
+          </div>
+          <div class="position-cards"></div>
+          <div class="decision-panel" data-player="2">
+            <button class="decision-btn stay" onclick="recordDecision(2, 'STAY')">S</button>
+            <button class="decision-btn hit" onclick="recordDecision(2, 'HIT')">H</button>
+            <button class="decision-btn split" onclick="recordDecision(2, 'SPLIT')">P</button>
+            <button class="decision-btn double" onclick="recordDecision(2, 'DBL')">D</button>
+          </div>
+          <span class="position-hint">Click to activate</span>
+        </div>
+        <div class="player-box active" data-seat="1" id="player1">
+          <div class="player-header">
+            <span class="player-dot"></span>
+            <span class="position-label">PLAYER 1</span>
+            <span class="position-badge">0</span>
+            <label class="decision-toggle" title="Toggle decisions">
+              <input type="checkbox" class="decision-toggle-input" data-player="1">
+              <span class="decision-toggle-slider"></span>
+            </label>
+          </div>
+          <div class="position-cards"></div>
+          <div class="decision-panel" data-player="1">
+            <button class="decision-btn stay" onclick="recordDecision(1, 'STAY')">S</button>
+            <button class="decision-btn hit" onclick="recordDecision(1, 'HIT')">H</button>
+            <button class="decision-btn split" onclick="recordDecision(1, 'SPLIT')">P</button>
+            <button class="decision-btn double" onclick="recordDecision(1, 'DBL')">D</button>
+          </div>
+          <span class="position-hint">Click to activate</span>
+        </div>
+      </div>
+      </div> <!-- End Casino Table -->
+
+      <!-- Bet Controls -->
+      <div class="bet-controls">
+        <label class="toggle-control">
+          <span>Time To Bet</span>
+          <input type="checkbox" id="timeToBet">
+          <span class="toggle-slider"></span>
+        </label>
+        <label class="toggle-control">
+          <span>Lock Bet</span>
+          <input type="checkbox" id="lockBet">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- Card Input Grid -->
+      <div class="card-input-area">
+        <button class="btn-reset-round" id="btnResetRound">
+          Reset<br>Round
+        </button>
+
+        <div class="card-grid">
+          <div class="card-row">
+            <button class="card-btn low" data-card="2">2</button>
+            <button class="card-btn low" data-card="3">3</button>
+            <button class="card-btn low" data-card="4">4</button>
+            <button class="card-btn low" data-card="5">5</button>
+            <button class="card-btn low" data-card="6">6</button>
+            <button class="card-btn neutral" data-card="7">7</button>
+          </div>
+          <div class="card-row">
+            <button class="card-btn neutral" data-card="8">8</button>
+            <button class="card-btn neutral" data-card="9">9</button>
+            <button class="card-btn high" data-card="10">10</button>
+            <button class="card-btn high" data-card="J">J</button>
+            <button class="card-btn high" data-card="Q">Q</button>
+            <button class="card-btn high" data-card="K">K</button>
+            <button class="card-btn high" data-card="A">A</button>
+          </div>
+        </div>
+
+        <button class="btn-undo" id="btnUndo">
+          Undo<br>(U)
+        </button>
+      </div>
+
+      <!-- Game Controls -->
+      <div class="game-controls">
+        <div class="control-item">
+          <label>Players</label>
+          <select id="numPlayers">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7" selected>7</option>
+            <option value="8">8</option>
+          </select>
+        </div>
+        <div class="control-item">
+          <label>Dice rank</label>
+          <select id="diceRank">
+            <option value="none">(none)</option>
+            <option value="A">A</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="J">J</option>
+            <option value="Q">Q</option>
+            <option value="K">K</option>
+          </select>
+        </div>
+        <div class="control-item dice-mapping">
+          <label>Dice mapping</label>
+          <select id="diceMapping">
+            <option value="standard">A=1, 2-10=pip, J/Q/K=10</option>
+            <option value="hilo">A=-1, 2-6=+1, 7-9=0, 10-K=-1</option>
+            <option value="custom">Custom mapping</option>
+          </select>
+        </div>
+        <button class="btn-apply" id="btnApplySettings">Apply</button>
+        <button class="btn-history" id="btnHistory" onclick="showHistoryPanel()">HISTORY</button>
+        <button class="btn-simulate-rt" id="btnSimulateRT" onclick="startRealtimeSimulation(100)">LIVE SIM</button>
+        <button class="btn-simulate-shoe" id="btnSimulateShoe" onclick="simulateOneShoe()">1 SHOE</button>
+        <button class="btn-full-sim" id="btnFullSim" onclick="runFullEngineSimulation()">FULL SIM</button>
+        <button class="btn-end-game" id="btnEndGame">END GAME</button>
+      </div>
+    </div>
+
+    <!-- Composition Metrics Panel -->
+    <div class="metrics-panel">
+      <div class="metrics-header">
+        <span class="metrics-icon">≡</span>
+        <span>Composition Metrics</span>
+        <span class="metrics-status" id="metricsStatus">ACTIVE</span>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <div class="metric-row">
+            <span class="metric-label">P(WIN):</span>
+            <span id="pWin" class="metric-value">42.0%</span>
+          </div>
+          <span class="metric-desc">Est. round win probability</span>
+        </div>
+        <div class="metric-box">
+          <div class="metric-row">
+            <span class="metric-label">EV:</span>
+            <span id="evValue" class="metric-value">-6.52%</span>
+          </div>
+          <span class="metric-desc">Expected value per unit bet</span>
+        </div>
+        <div class="metric-box">
+          <div class="metric-row">
+            <span class="metric-label">S-SCORE:</span>
+            <span id="sScore" class="metric-value">0.0000</span>
+          </div>
+          <span class="metric-desc">Tens + aces vs baseline</span>
+        </div>
+        <div class="metric-box">
+          <div class="metric-row">
+            <span class="metric-label">PENETRATION:</span>
+            <span id="penetration" class="metric-value">0.0%</span>
+          </div>
+          <span class="metric-desc" id="penDesc">0 / 8 decks seen</span>
+        </div>
+        <div class="metric-box">
+          <div class="metric-row">
+            <span class="metric-label">P(TENS):</span>
+            <span id="pTens" class="metric-value">30.8%</span>
+          </div>
+          <span class="metric-desc">Draw 10, J, Q, or K</span>
+        </div>
+        <div class="metric-box">
+          <div class="metric-row">
+            <span class="metric-label">P(ACES):</span>
+            <span id="pAces" class="metric-value">7.7%</span>
+          </div>
+          <span class="metric-desc">Draw an Ace</span>
+        </div>
+        <div class="metric-box">
+          <div class="metric-row">
+            <span class="metric-label">P(7-A):</span>
+            <span id="p7A" class="metric-value">61.5%</span>
+          </div>
+          <span class="metric-desc">Draw 7 through Ace</span>
+        </div>
+        <div class="metric-box">
+          <div class="metric-row">
+            <span class="metric-label">COMP BIAS:</span>
+            <span id="compBias" class="metric-value status-inactive">Inactive</span>
+          </div>
+          <span class="metric-desc">4+ decks & S≠0.012</span>
+        </div>
+      </div>
+
+      <!-- Additional Probability Engines -->
+      <div class="metrics-grid mt-10">
+        <div class="metric-box highlight">
+          <div class="metric-row">
+            <span class="metric-label">ANY PAIR:</span>
+            <span id="anyPairProb" class="metric-value">7.47%</span>
+          </div>
+          <span class="metric-desc">P(Pair on first 2 cards)</span>
+        </div>
+        <div class="metric-box highlight">
+          <div class="metric-row">
+            <span class="metric-label">PAIR EV:</span>
+            <span id="anyPairEV" class="metric-value">-0.029</span>
+          </div>
+          <span class="metric-desc">Expected value @ 12:1</span>
+        </div>
+        <div class="metric-box">
+          <div class="metric-row">
+            <span class="metric-label">SEAT ADJ:</span>
+            <span id="seatAdj" class="metric-value">1.0000</span>
+          </div>
+          <span class="metric-desc">Seat position multiplier</span>
+        </div>
+        <div class="metric-box">
+          <div class="metric-row">
+            <span class="metric-label">WINDOW:</span>
+            <span id="windowDecision" class="metric-value decision-neutral">—</span>
+          </div>
+          <span class="metric-desc">BET / NO_BET decision</span>
+        </div>
+        <div class="metric-box">
+          <div class="metric-row">
+            <span class="metric-label">SCORE:</span>
+            <span id="windowScore" class="metric-value">50</span>
+          </div>
+          <span class="metric-desc">Window detector score</span>
+        </div>
+        <div class="metric-box">
+          <div class="metric-row">
+            <span class="metric-label">KELLY:</span>
+            <span id="kellyFrac" class="metric-value">0.50</span>
+          </div>
+          <span class="metric-desc">Recommended bet fraction</span>
+        </div>
+        <div class="metric-box">
+          <div class="metric-row">
+            <span class="metric-label">21+3 EV:</span>
+            <span id="t21p3EV" class="metric-value">-0.034</span>
+          </div>
+          <span class="metric-desc">Three-card poker side bet</span>
+        </div>
+        <div class="metric-box">
+          <div class="metric-row">
+            <span class="metric-label">TEMPORAL:</span>
+            <span id="temporalRec" class="metric-value">STAY</span>
+          </div>
+          <span class="metric-desc">Table recommendation</span>
+        </div>
+      </div>
+
+      <div class="metrics-footer">
+        <span><strong>S-Score:</strong> Composition edge proxy</span>
+        <span><strong>Deep Pen:</strong> 4+ decks for surrender bias</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- Config Page (hidden by default) -->
+  <div id="configPage" class="full-page-panel" style="display: none;">
+    <div class="config-page-content">
+      <div class="config-page-header">
+        <h2 class="config-title">Manage Configurations</h2>
+        <button class="btn-create-config" id="btnCreateConfig">+ Create New Config</button>
+      </div>
+
+      <div class="config-section-label">Existing Configurations (<span id="configCount">2</span>)</div>
+
+      <div class="config-cards-container" id="configCardsContainer">
+        <!-- Config cards will be rendered here by JavaScript -->
+      </div>
+
+      <!-- Current Room Configuration -->
+      <div class="current-room-config">
+        <div class="room-config-header">Current Room Configuration</div>
+        <div class="room-config-body">
+          <span>Active Config: <strong id="activeConfigName">Default</strong></span>
+          <span class="room-config-note">All users in this room use the same configuration.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Players Page (hidden by default) -->
+  <div id="playersPage" class="full-page-panel" style="display: none;">
+    <div class="players-page-content">
+      <div class="players-page-header">
+        <h1 class="players-title">Players Management</h1>
+        <p class="players-subtitle">View and manage players in the current session</p>
+      </div>
+
+      <!-- Current Session Info -->
+      <div class="session-info-card">
+        <div class="session-info-row">
+          <span class="session-label">Current Room:</span>
+          <span class="session-value" id="currentRoomName">Not Connected</span>
+        </div>
+        <div class="session-info-row">
+          <span class="session-label">Your Name:</span>
+          <span class="session-value" id="currentPlayerName">—</span>
+        </div>
+        <div class="session-info-row">
+          <span class="session-label">Status:</span>
+          <span class="session-value status-badge" id="playerStatus">Offline</span>
+        </div>
+      </div>
+
+      <!-- Players List -->
+      <div class="players-list-section">
+        <div class="players-list-header">
+          <h2>Players in Room</h2>
+          <span class="player-count-badge" id="playerCountBadge">0</span>
+        </div>
+        <div class="players-list" id="playersList">
+          <!-- Players will be rendered here -->
+        </div>
+      </div>
+
+      <!-- Player Seats -->
+      <div class="player-seats-section">
+        <h2>Seat Assignments</h2>
+        <div class="seats-grid" id="seatsGrid">
+          <!-- Seats will be rendered here -->
+        </div>
+      </div>
+
+      <!-- Player Stats -->
+      <div class="player-stats-section">
+        <h2>Session Statistics</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-card-value" id="statRoundsPlayed">0</span>
+            <span class="stat-card-label">Rounds Played</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card-value" id="statPairsWon">0</span>
+            <span class="stat-card-label">Pairs Won</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card-value" id="statCardsDealt">0</span>
+            <span class="stat-card-label">Cards Dealt</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card-value" id="statTimeInSession">0m</span>
+            <span class="stat-card-label">Time in Session</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rooms Page (hidden by default) -->
+  <div id="roomsPage" class="full-page-panel" style="display: none;">
+    <div class="rooms-page-content">
+      <div class="rooms-header">
+        <h1 class="rooms-title">Casino Table Rooms</h1>
+        <p class="rooms-subtitle">Join a table to play with other players in real-time</p>
+      </div>
+
+      <!-- Your Name Input -->
+      <div class="name-input-section">
+        <label>Your Name:</label>
+        <input type="text" id="playerName" class="player-name-input" placeholder="Enter your name..." value="Player">
+      </div>
+
+      <!-- Available Rooms -->
+      <div class="rooms-section">
+        <div class="rooms-section-header">
+          <h2>Available Rooms</h2>
+          <button class="btn-refresh-rooms" id="btnRefreshRooms">
+            <span class="refresh-icon">↻</span> Refresh
+          </button>
+        </div>
+
+        <div class="rooms-grid" id="roomsGrid">
+          <!-- Room cards will be rendered here by JavaScript -->
+        </div>
+      </div>
+
+      <!-- How It Works -->
+      <div class="how-it-works">
+        <h3>How It Works</h3>
+        <ol>
+          <li>Choose a table room to join</li>
+          <li>One player controls the game at a time</li>
+          <li>Click "Take Over" to request control</li>
+          <li>All players see the same game state in real-time</li>
+          <li>Practice card counting together!</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create/Edit Config Modal -->
+  <div id="configModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content config-modal">
+      <div class="modal-header">
+        <h3 id="configModalTitle">Create New Configuration</h3>
+        <button class="btn-close-modal" id="btnCloseConfigModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="config-form">
+          <div class="form-group">
+            <label>Configuration Name</label>
+            <input type="text" id="configName" placeholder="Enter config name...">
+          </div>
+
+          <div class="form-section-title">Table Rules</div>
+          <div class="form-row">
+            <label>Decks:</label>
+            <select id="cfgDecks">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="4">4</option>
+              <option value="6">6</option>
+              <option value="8" selected>8</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Dealer Hits S17:</label>
+            <select id="cfgDealerHitsS17">
+              <option value="no" selected>No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Double After Split:</label>
+            <select id="cfgDoubleAfterSplit">
+              <option value="no" selected>No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Surrender:</label>
+            <select id="cfgSurrender">
+              <option value="no" selected>No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+
+          <div class="form-section-title">Strategy Options</div>
+          <div class="form-row">
+            <label>Illustrious 18:</label>
+            <select id="cfgIllustrious18">
+              <option value="enabled" selected>Enabled</option>
+              <option value="disabled">Disabled</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Fab 4:</label>
+            <select id="cfgFab4">
+              <option value="enabled" selected>Enabled</option>
+              <option value="disabled">Disabled</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Split Any Tens:</label>
+            <select id="cfgSplitAnyTens">
+              <option value="disabled" selected>Disabled</option>
+              <option value="enabled">Enabled</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Multi-Split:</label>
+            <select id="cfgMultiSplit">
+              <option value="disabled" selected>Disabled</option>
+              <option value="enabled">Enabled</option>
+            </select>
+          </div>
+
+          <div class="form-section-title">Betting Limits</div>
+          <div class="form-row">
+            <label>Max Pooled Bet:</label>
+            <input type="number" id="cfgMaxPooledBet" value="50000" min="100" max="1000000" step="100">
+          </div>
+
+          <div class="form-section-title">Advanced</div>
+          <div class="form-row">
+            <label>Enabled Strategies:</label>
+            <select id="cfgEnabledStrategies">
+              <option value="none">None</option>
+              <option value="quant_ev">Quant EV</option>
+              <option value="basic">Basic Strategy</option>
+              <option value="hi_lo">Hi-Lo Count</option>
+              <option value="full">Full Suite</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" id="btnCancelConfig">Cancel</button>
+        <button class="btn-save" id="btnSaveConfig">Save Configuration</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formula Information Modal -->
+  <div id="formulaModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content formula-modal">
+      <div class="modal-header">
+        <h3>Probability Engine - Formulas & Strategy</h3>
+        <button class="btn-close-modal" id="btnCloseFormulaModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="formula-tabs">
+          <button class="formula-tab active" data-tab="hilo">Hi-Lo Count</button>
+          <button class="formula-tab" data-tab="truecount">True Count</button>
+          <button class="formula-tab" data-tab="basic">Basic Strategy</button>
+          <button class="formula-tab" data-tab="illustrious">Illustrious 18</button>
+          <button class="formula-tab" data-tab="fab4">Fab 4</button>
+          <button class="formula-tab" data-tab="advantage">Player Advantage</button>
+        </div>
+        <div class="formula-content">
+          <!-- Hi-Lo Count Section -->
+          <div class="formula-section active" id="section-hilo">
+            <div class="formula-title">
+              <span class="formula-title-icon">+/-</span>
+              Hi-Lo Card Counting System
+            </div>
+            <p class="formula-text">
+              The Hi-Lo system is the most widely used card counting method in blackjack. Developed by Harvey Dubner in 1963, it assigns point values to cards to track the ratio of high to low cards remaining in the deck.
+            </p>
+
+            <h4 class="formula-subtitle">Card Values</h4>
+            <table class="formula-table">
+              <tr>
+                <th>Cards</th>
+                <th>Value</th>
+                <th>Significance</th>
+              </tr>
+              <tr>
+                <td>2, 3, 4, 5, 6</td>
+                <td style="color: #22c55e; font-weight: bold;">+1</td>
+                <td>Low cards favor dealer (dealer must hit to 17)</td>
+              </tr>
+              <tr>
+                <td>7, 8, 9</td>
+                <td style="color: #eab308; font-weight: bold;">0</td>
+                <td>Neutral - minimal impact on odds</td>
+              </tr>
+              <tr>
+                <td>10, J, Q, K, A</td>
+                <td style="color: #ef4444; font-weight: bold;">-1</td>
+                <td>High cards favor player (blackjacks, doubles)</td>
+              </tr>
+            </table>
+
+            <div class="formula-box">
+              <div class="formula-label">Running Count Formula</div>
+              <code>Running Count = Sum of all card values dealt</code>
+            </div>
+
+            <div class="formula-highlight">
+              <strong>Key Insight:</strong> A positive count means more high cards remain, giving the player an edge. A negative count means more low cards remain, favoring the dealer.
+            </div>
+
+            <h4 class="formula-subtitle">Why It Works</h4>
+            <p class="formula-text">
+              High cards (10s, Aces) benefit players because:
+            </p>
+            <ul class="formula-text" style="margin-left: 20px;">
+              <li>Blackjacks pay 3:2 (player advantage)</li>
+              <li>Better odds on double downs</li>
+              <li>Dealer more likely to bust when hitting</li>
+              <li>Insurance becomes profitable at high counts</li>
+            </ul>
+          </div>
+
+          <!-- True Count Section -->
+          <div class="formula-section" id="section-truecount">
+            <div class="formula-title">
+              <span class="formula-title-icon">TC</span>
+              True Count Calculation
+            </div>
+            <p class="formula-text">
+              The True Count normalizes the Running Count based on how many decks remain to be dealt. This gives a more accurate measure of the player's advantage regardless of penetration.
+            </p>
+
+            <div class="formula-box">
+              <div class="formula-label">True Count Formula</div>
+              <code>True Count = Running Count / Decks Remaining</code>
+            </div>
+
+            <h4 class="formula-subtitle">Example Calculation</h4>
+            <table class="formula-table">
+              <tr>
+                <th>Scenario</th>
+                <th>Running Count</th>
+                <th>Decks Left</th>
+                <th>True Count</th>
+              </tr>
+              <tr>
+                <td>Early in shoe</td>
+                <td>+6</td>
+                <td>6 decks</td>
+                <td>+1.0</td>
+              </tr>
+              <tr>
+                <td>Mid shoe</td>
+                <td>+6</td>
+                <td>3 decks</td>
+                <td>+2.0</td>
+              </tr>
+              <tr>
+                <td>Late in shoe</td>
+                <td>+6</td>
+                <td>1.5 decks</td>
+                <td>+4.0</td>
+              </tr>
+            </table>
+
+            <div class="formula-highlight">
+              <strong>Advantage Correlation:</strong> Each +1 True Count increases player advantage by approximately 0.5%. At TC +2, the player has roughly a 1% edge over the house.
+            </div>
+
+            <h4 class="formula-subtitle">Betting Correlation</h4>
+            <table class="formula-table">
+              <tr>
+                <th>True Count</th>
+                <th>Player Edge</th>
+                <th>Recommended Bet</th>
+              </tr>
+              <tr>
+                <td>TC &le; 0</td>
+                <td>House edge</td>
+                <td>Minimum bet</td>
+              </tr>
+              <tr>
+                <td>TC +1</td>
+                <td>~0% (break even)</td>
+                <td>1-2 units</td>
+              </tr>
+              <tr>
+                <td>TC +2</td>
+                <td>~0.5-1%</td>
+                <td>2-4 units</td>
+              </tr>
+              <tr>
+                <td>TC +3</td>
+                <td>~1-1.5%</td>
+                <td>4-8 units</td>
+              </tr>
+              <tr>
+                <td>TC +4+</td>
+                <td>~1.5-2%+</td>
+                <td>8-16 units</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Basic Strategy Section -->
+          <div class="formula-section" id="section-basic">
+            <div class="formula-title">
+              <span class="formula-title-icon">BS</span>
+              Basic Strategy Matrix
+            </div>
+            <p class="formula-text">
+              Basic Strategy is the mathematically optimal way to play every hand based solely on your cards and the dealer's upcard. It reduces the house edge to approximately 0.5% when followed perfectly.
+            </p>
+
+            <h4 class="formula-subtitle">Decision Priority</h4>
+            <table class="formula-table">
+              <tr>
+                <th>Priority</th>
+                <th>Decision</th>
+                <th>When to Consider</th>
+              </tr>
+              <tr>
+                <td>1</td>
+                <td style="color: #a855f7; font-weight: bold;">SURRENDER (R)</td>
+                <td>16 vs 9/10/A, 15 vs 10 (if allowed)</td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td style="color: #f59e0b; font-weight: bold;">SPLIT (P)</td>
+                <td>Pairs - Always split A-A, 8-8; Never split 10-10, 5-5</td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td style="color: #ef4444; font-weight: bold;">DOUBLE (D)</td>
+                <td>11 vs 2-10, 10 vs 2-9, Soft 13-17 vs 5-6</td>
+              </tr>
+              <tr>
+                <td>4</td>
+                <td style="color: #22c55e; font-weight: bold;">HIT (H) / STAND (S)</td>
+                <td>All remaining situations</td>
+              </tr>
+            </table>
+
+            <h4 class="formula-subtitle">Hard Totals Quick Reference</h4>
+            <div class="formula-highlight">
+              <strong>Hard 17+:</strong> Always Stand<br>
+              <strong>Hard 13-16:</strong> Stand vs 2-6, Hit vs 7-A<br>
+              <strong>Hard 12:</strong> Stand vs 4-6, Hit vs 2-3 and 7-A<br>
+              <strong>Hard 11:</strong> Always Double (Hit vs A in some rules)<br>
+              <strong>Hard 10:</strong> Double vs 2-9, Hit vs 10-A<br>
+              <strong>Hard 9:</strong> Double vs 3-6, Hit otherwise<br>
+              <strong>Hard 8 or less:</strong> Always Hit
+            </div>
+
+            <h4 class="formula-subtitle">Soft Totals Quick Reference</h4>
+            <div class="formula-highlight">
+              <strong>Soft 20 (A-9):</strong> Always Stand<br>
+              <strong>Soft 19 (A-8):</strong> Stand (Double vs 6 in some variants)<br>
+              <strong>Soft 18 (A-7):</strong> Stand vs 2,7,8; Double vs 3-6; Hit vs 9-A<br>
+              <strong>Soft 17 (A-6):</strong> Double vs 3-6, Hit otherwise<br>
+              <strong>Soft 13-16:</strong> Double vs 5-6, Hit otherwise
+            </div>
+          </div>
+
+          <!-- Illustrious 18 Section -->
+          <div class="formula-section" id="section-illustrious">
+            <div class="formula-title">
+              <span class="formula-title-icon">I18</span>
+              Illustrious 18 Deviations
+            </div>
+            <p class="formula-text">
+              The Illustrious 18 are the most valuable index plays that deviate from Basic Strategy based on the True Count. Developed by Don Schlesinger, these 18 plays capture approximately 80% of the gain available from using indices.
+            </p>
+
+            <h4 class="formula-subtitle">Top 18 Index Plays (Ranked by Value)</h4>
+            <table class="formula-table">
+              <tr>
+                <th>#</th>
+                <th>Hand</th>
+                <th>Dealer</th>
+                <th>Index</th>
+                <th>Deviation</th>
+              </tr>
+              <tr>
+                <td>1</td>
+                <td>Insurance</td>
+                <td>A</td>
+                <td>TC +3</td>
+                <td>Take insurance when TC >= +3</td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td>16</td>
+                <td>10</td>
+                <td>TC 0</td>
+                <td>Stand at TC >= 0 (normally hit)</td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td>15</td>
+                <td>10</td>
+                <td>TC +4</td>
+                <td>Stand at TC >= +4</td>
+              </tr>
+              <tr>
+                <td>4</td>
+                <td>10,10</td>
+                <td>5</td>
+                <td>TC +5</td>
+                <td>Split tens at TC >= +5</td>
+              </tr>
+              <tr>
+                <td>5</td>
+                <td>10,10</td>
+                <td>6</td>
+                <td>TC +4</td>
+                <td>Split tens at TC >= +4</td>
+              </tr>
+              <tr>
+                <td>6</td>
+                <td>10</td>
+                <td>10</td>
+                <td>TC +4</td>
+                <td>Double at TC >= +4</td>
+              </tr>
+              <tr>
+                <td>7</td>
+                <td>12</td>
+                <td>3</td>
+                <td>TC +2</td>
+                <td>Stand at TC >= +2</td>
+              </tr>
+              <tr>
+                <td>8</td>
+                <td>12</td>
+                <td>2</td>
+                <td>TC +3</td>
+                <td>Stand at TC >= +3</td>
+              </tr>
+              <tr>
+                <td>9</td>
+                <td>11</td>
+                <td>A</td>
+                <td>TC +1</td>
+                <td>Double at TC >= +1</td>
+              </tr>
+              <tr>
+                <td>10</td>
+                <td>9</td>
+                <td>2</td>
+                <td>TC +1</td>
+                <td>Double at TC >= +1</td>
+              </tr>
+            </table>
+
+            <div class="formula-highlight">
+              <strong>Reading the Index:</strong> When the True Count reaches or exceeds the index number, deviate from Basic Strategy. For example, with 16 vs 10, Basic Strategy says Hit. But at TC >= 0, you should Stand instead.
+            </div>
+          </div>
+
+          <!-- Fab 4 Section -->
+          <div class="formula-section" id="section-fab4">
+            <div class="formula-title">
+              <span class="formula-title-icon">F4</span>
+              Fab 4 Surrender Indices
+            </div>
+            <p class="formula-text">
+              The Fab 4 are the four most important surrender indices when late surrender is available. These plays are highly valuable because surrender saves half your bet in situations with very poor odds.
+            </p>
+
+            <h4 class="formula-subtitle">The Four Key Surrender Plays</h4>
+            <table class="formula-table">
+              <tr>
+                <th>Hand</th>
+                <th>vs Dealer</th>
+                <th>Index</th>
+                <th>Action</th>
+              </tr>
+              <tr>
+                <td style="font-weight: bold;">14</td>
+                <td>10</td>
+                <td>TC +3</td>
+                <td>Surrender at TC >= +3</td>
+              </tr>
+              <tr>
+                <td style="font-weight: bold;">15</td>
+                <td>10</td>
+                <td>TC 0</td>
+                <td>Surrender at TC >= 0 (always)</td>
+              </tr>
+              <tr>
+                <td style="font-weight: bold;">15</td>
+                <td>A</td>
+                <td>TC +1</td>
+                <td>Surrender at TC >= +1</td>
+              </tr>
+              <tr>
+                <td style="font-weight: bold;">15</td>
+                <td>9</td>
+                <td>TC +2</td>
+                <td>Surrender at TC >= +2</td>
+              </tr>
+            </table>
+
+            <h4 class="formula-subtitle">Why Surrender Matters</h4>
+            <div class="formula-highlight">
+              <strong>Expected Value:</strong> When you surrender, you lose exactly 50% of your bet. If your expected loss by playing the hand exceeds 50%, surrender is the mathematically correct play.
+            </div>
+
+            <p class="formula-text">
+              At high True Counts, the deck is rich in 10s, making the dealer more likely to have a pat hand (17-21) and more likely to make 20 or 21 specifically. Your stiff hands (14-16) become even more dangerous to hit.
+            </p>
+
+            <div class="formula-box">
+              <div class="formula-label">Surrender Break-Even</div>
+              <code>Surrender when: Win% &lt; 25% (or Loss% &gt; 75%)</code>
+            </div>
+          </div>
+
+          <!-- Player Advantage Section -->
+          <div class="formula-section" id="section-advantage">
+            <div class="formula-title">
+              <span class="formula-title-icon">%</span>
+              Player Advantage Calculation
+            </div>
+            <p class="formula-text">
+              Understanding your edge helps make optimal betting decisions. The player's advantage shifts based on the True Count, game rules, and penetration.
+            </p>
+
+            <div class="formula-box">
+              <div class="formula-label">Player Advantage Formula</div>
+              <code>Advantage = Base Edge + (True Count x 0.5%)</code>
+            </div>
+
+            <h4 class="formula-subtitle">Base House Edge by Rules</h4>
+            <table class="formula-table">
+              <tr>
+                <th>Rule Variation</th>
+                <th>Effect on Edge</th>
+              </tr>
+              <tr>
+                <td>8 decks vs 1 deck</td>
+                <td>+0.6% house edge</td>
+              </tr>
+              <tr>
+                <td>Dealer hits soft 17</td>
+                <td>+0.2% house edge</td>
+              </tr>
+              <tr>
+                <td>No double after split</td>
+                <td>+0.14% house edge</td>
+              </tr>
+              <tr>
+                <td>No surrender</td>
+                <td>+0.08% house edge</td>
+              </tr>
+              <tr>
+                <td>Blackjack pays 6:5</td>
+                <td>+1.4% house edge</td>
+              </tr>
+            </table>
+
+            <h4 class="formula-subtitle">Advantage Visualization</h4>
+            <div class="advantage-meter">
+              <span>-2%</span>
+              <div class="advantage-bar">
+                <div class="advantage-marker" style="left: 50%;"></div>
+              </div>
+              <span>+2%</span>
+            </div>
+            <div class="advantage-labels">
+              <span>House Edge</span>
+              <span>Neutral</span>
+              <span>Player Edge</span>
+            </div>
+
+            <div class="formula-highlight">
+              <strong>Kelly Criterion:</strong> Bet a percentage of your bankroll equal to your edge divided by the variance. For blackjack, a simplified approach is: Bet Units = True Count - 1 (for TC > 1).
+            </div>
+
+            <h4 class="formula-subtitle">Expected Value Per Hand</h4>
+            <p class="formula-text">
+              With a 1% edge and $100 average bet:<br>
+              <strong>EV = $100 x 1% = $1.00 per hand</strong><br><br>
+              At 100 hands/hour: <strong>$100/hour expected profit</strong>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game History Modal -->
+  <div id="historyModal" class="modal-overlay history-modal" onclick="if(event.target === this) hideHistoryPanel()">
+    <div class="modal-content history-modal-content">
+      <div class="modal-header">
+        <h2>Game History & Analytics</h2>
+        <button class="btn-close-modal" onclick="hideHistoryPanel()">&times;</button>
+      </div>
+      <div class="modal-body history-body">
+        <!-- Statistics Grid -->
+        <div class="hist-stats-grid">
+          <div class="hist-stat-box">
+            <span class="hist-stat-label">Rounds</span>
+            <span class="hist-stat-value" id="histRounds">0</span>
+          </div>
+          <div class="hist-stat-box">
+            <span class="hist-stat-label">Wins</span>
+            <span class="hist-stat-value green" id="histWins">0</span>
+          </div>
+          <div class="hist-stat-box">
+            <span class="hist-stat-label">Losses</span>
+            <span class="hist-stat-value red" id="histLosses">0</span>
+          </div>
+          <div class="hist-stat-box">
+            <span class="hist-stat-label">Win Rate</span>
+            <span class="hist-stat-value" id="histWinRate">0%</span>
+          </div>
+          <div class="hist-stat-box">
+            <span class="hist-stat-label">Dealer Busts</span>
+            <span class="hist-stat-value green" id="histDealerBusts">0</span>
+          </div>
+          <div class="hist-stat-box">
+            <span class="hist-stat-label">D. Bust Rate</span>
+            <span class="hist-stat-value" id="histDealerBustRate">0%</span>
+          </div>
+          <div class="hist-stat-box">
+            <span class="hist-stat-label">Player Busts</span>
+            <span class="hist-stat-value red" id="histPlayerBusts">0</span>
+          </div>
+          <div class="hist-stat-box">
+            <span class="hist-stat-label">Blackjacks</span>
+            <span class="hist-stat-value gold" id="histBlackjacks">0</span>
+          </div>
+          <div class="hist-stat-box">
+            <span class="hist-stat-label">Splits</span>
+            <span class="hist-stat-value" id="histSplits">0</span>
+          </div>
+          <div class="hist-stat-box">
+            <span class="hist-stat-label">Doubles</span>
+            <span class="hist-stat-value" id="histDoubles">0</span>
+          </div>
+          <div class="hist-stat-box">
+            <span class="hist-stat-label">Duration</span>
+            <span class="hist-stat-value" id="histDuration">0 min</span>
+          </div>
+        </div>
+
+        <!-- Alerts Section -->
+        <div class="hist-section">
+          <h3 class="hist-section-title">Alerts & Patterns</h3>
+          <div class="hist-alerts-list" id="histAlertsList">
+            <div class="hist-alert-item">No alerts yet</div>
+          </div>
+        </div>
+
+        <!-- Recent Rounds Section -->
+        <div class="hist-section">
+          <h3 class="hist-section-title">Recent Rounds</h3>
+          <div class="hist-rounds-list" id="histRoundsList">
+            <div class="hist-round-item">No rounds recorded</div>
+          </div>
+        </div>
+
+        <!-- Export Section -->
+        <div class="hist-export-section">
+          <h3 class="hist-section-title">Export History</h3>
+          <div class="hist-export-buttons">
+            <button class="btn-export" onclick="exportGameHistory('json')">
+              Export JSON
+            </button>
+            <button class="btn-export" onclick="exportGameHistory('csv')">
+              Export CSV
+            </button>
+            <button class="btn-export btn-export-report" onclick="exportGameHistory('report')">
+              Export Report
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="js/app.js"></script>
+</body>
+</html>
