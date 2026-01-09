@@ -458,6 +458,72 @@
         <button class="btn-full-sim" id="btnFullSim" onclick="runFullEngineSimulation()">FULL SIM</button>
         <button class="btn-end-game" id="btnEndGame">END GAME</button>
       </div>
+
+      <!-- Advanced Tools Toolbar -->
+      <div class="advanced-tools-section">
+        <div class="tools-header">
+          <span class="tools-icon">⚡</span>
+          <span>Advanced Tools</span>
+        </div>
+        <div class="tools-grid">
+          <button class="btn-tool" onclick="showHandAnalyzer()">
+            <span class="tool-icon">🎯</span>
+            <span class="tool-label">Hand Analyzer</span>
+          </button>
+          <button class="btn-tool" onclick="showRiskOfRuinCalculator()">
+            <span class="tool-icon">📉</span>
+            <span class="tool-label">Risk of Ruin</span>
+          </button>
+          <button class="btn-tool" onclick="showVarianceCalculator()">
+            <span class="tool-icon">📊</span>
+            <span class="tool-label">Variance Calc</span>
+          </button>
+          <button class="btn-tool" onclick="startTrainingMode()">
+            <span class="tool-icon">🎓</span>
+            <span class="tool-label">Training Mode</span>
+          </button>
+          <button class="btn-tool" onclick="showSessionTrackerPanel()">
+            <span class="tool-icon">💰</span>
+            <span class="tool-label">Session Tracker</span>
+          </button>
+          <button class="btn-tool" onclick="showBetSpreadOptimizer()">
+            <span class="tool-icon">📈</span>
+            <span class="tool-label">Bet Optimizer</span>
+          </button>
+          <button class="btn-tool" onclick="showCountSystemsPanel()">
+            <span class="tool-icon">🔢</span>
+            <span class="tool-label">Count Systems</span>
+          </button>
+          <button class="btn-tool" onclick="showAceSequencer()">
+            <span class="tool-icon">🃏</span>
+            <span class="tool-label">Ace Sequencing</span>
+          </button>
+          <button class="btn-tool" onclick="showHeatIndexPanel()">
+            <span class="tool-icon">🔥</span>
+            <span class="tool-label">Heat Index</span>
+          </button>
+          <button class="btn-tool" onclick="showWongingSignals()">
+            <span class="tool-icon">🚦</span>
+            <span class="tool-label">Wonging</span>
+          </button>
+          <button class="btn-tool" onclick="showShoeReplay()">
+            <span class="tool-icon">🔄</span>
+            <span class="tool-label">Shoe Replay</span>
+          </button>
+          <button class="btn-tool" id="btnThemeToggle" onclick="toggleTheme()">
+            <span class="tool-icon">🌙</span>
+            <span class="tool-label">Dark/Light</span>
+          </button>
+          <button class="btn-tool" id="btnAudioToggle" onclick="toggleAudio()">
+            <span class="tool-icon">🔊</span>
+            <span class="tool-label">Audio Alerts</span>
+          </button>
+          <button class="btn-tool" id="btnTouchMode" onclick="toggleMobileTouchMode()">
+            <span class="tool-icon">👆</span>
+            <span class="tool-label">Touch Mode</span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Composition Metrics Panel -->
@@ -1360,6 +1426,494 @@
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hand Analyzer Modal -->
+  <div id="handAnalyzerModal" class="modal-overlay" onclick="if(event.target === this) closeHandAnalyzer()">
+    <div class="modal-content analyzer-modal">
+      <div class="modal-header">
+        <h2>Hand Analyzer</h2>
+        <button class="btn-close-modal" onclick="closeHandAnalyzer()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="analyzer-inputs">
+          <div class="input-group">
+            <label>Player Hand (e.g., "10,6" or "A,7")</label>
+            <input type="text" id="analyzerPlayerHand" placeholder="Enter cards...">
+          </div>
+          <div class="input-group">
+            <label>Dealer Upcard</label>
+            <select id="analyzerDealerCard">
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+              <option value="9">9</option>
+              <option value="10">10</option>
+              <option value="A">A</option>
+            </select>
+          </div>
+          <button class="btn-analyze" onclick="runHandAnalysis()">Analyze Hand</button>
+        </div>
+        <div id="analyzerResults" class="analyzer-results">
+          <div class="result-placeholder">Enter a hand to see EV analysis</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Risk of Ruin Modal -->
+  <div id="rorModal" class="modal-overlay" onclick="if(event.target === this) closeRoRCalculator()">
+    <div class="modal-content ror-modal">
+      <div class="modal-header">
+        <h2>Risk of Ruin Calculator</h2>
+        <button class="btn-close-modal" onclick="closeRoRCalculator()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="ror-inputs">
+          <div class="input-row">
+            <label>Bankroll ($)</label>
+            <input type="number" id="rorBankroll" value="10000" min="100">
+          </div>
+          <div class="input-row">
+            <label>Bet Unit ($)</label>
+            <input type="number" id="rorBetUnit" value="100" min="1">
+          </div>
+          <div class="input-row">
+            <label>Player Advantage (%)</label>
+            <input type="number" id="rorAdvantage" value="1.0" step="0.1">
+          </div>
+          <div class="input-row">
+            <label>Std Deviation</label>
+            <input type="number" id="rorStdDev" value="1.15" step="0.01">
+          </div>
+          <button class="btn-calculate" onclick="calculateRoR()">Calculate Risk</button>
+        </div>
+        <div id="rorResults" class="ror-results"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Variance Calculator Modal -->
+  <div id="varianceModal" class="modal-overlay" onclick="if(event.target === this) closeVarianceCalculator()">
+    <div class="modal-content variance-modal">
+      <div class="modal-header">
+        <h2>Variance Calculator</h2>
+        <button class="btn-close-modal" onclick="closeVarianceCalculator()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="variance-inputs">
+          <div class="input-row">
+            <label>Number of Hands</label>
+            <input type="number" id="varHands" value="1000" min="1">
+          </div>
+          <div class="input-row">
+            <label>Bet Size ($)</label>
+            <input type="number" id="varBetSize" value="100" min="1">
+          </div>
+          <div class="input-row">
+            <label>Player Advantage (%)</label>
+            <input type="number" id="varAdvantage" value="1.0" step="0.1">
+          </div>
+          <button class="btn-calculate" onclick="calculateVariance()">Calculate Variance</button>
+        </div>
+        <div id="varianceResults" class="variance-results"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Training Mode Modal -->
+  <div id="trainingModal" class="modal-overlay" onclick="if(event.target === this) closeTrainingMode()">
+    <div class="modal-content training-modal">
+      <div class="modal-header">
+        <h2>Training Mode</h2>
+        <button class="btn-close-modal" onclick="closeTrainingMode()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="training-stats">
+          <div class="stat-item">
+            <span class="stat-label">Score</span>
+            <span id="trainingScore" class="stat-value">0/0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Streak</span>
+            <span id="trainingStreak" class="stat-value">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Accuracy</span>
+            <span id="trainingAccuracy" class="stat-value">0%</span>
+          </div>
+        </div>
+        <div id="trainingHand" class="training-hand">
+          <div class="training-scenario">
+            <div class="dealer-card-display">
+              <span class="card-label">Dealer Shows</span>
+              <span id="trainingDealer" class="big-card">?</span>
+            </div>
+            <div class="player-hand-display">
+              <span class="card-label">Your Hand</span>
+              <span id="trainingPlayer" class="big-hand">? + ?</span>
+              <span id="trainingTotal" class="hand-total">(0)</span>
+            </div>
+            <div id="trainingTC" class="training-tc">TC: 0</div>
+          </div>
+        </div>
+        <div class="training-options">
+          <button class="btn-training-option" onclick="checkTrainingAnswer('H')">HIT</button>
+          <button class="btn-training-option" onclick="checkTrainingAnswer('S')">STAND</button>
+          <button class="btn-training-option" onclick="checkTrainingAnswer('D')">DOUBLE</button>
+          <button class="btn-training-option" onclick="checkTrainingAnswer('P')">SPLIT</button>
+          <button class="btn-training-option" onclick="checkTrainingAnswer('R')">SURRENDER</button>
+        </div>
+        <div id="trainingFeedback" class="training-feedback"></div>
+        <button class="btn-next-hand" onclick="generateTrainingHand()">Next Hand</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Session Tracker Modal -->
+  <div id="sessionTrackerModal" class="modal-overlay" onclick="if(event.target === this) closeSessionTracker()">
+    <div class="modal-content session-modal">
+      <div class="modal-header">
+        <h2>Session Bankroll Tracker</h2>
+        <button class="btn-close-modal" onclick="closeSessionTracker()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="session-bankroll-display">
+          <div class="bankroll-main">
+            <span class="bankroll-label">Current Bankroll</span>
+            <span id="sessionCurrentBankroll" class="bankroll-value">$1,000</span>
+          </div>
+          <div class="bankroll-change" id="sessionPnL">+$0 (0%)</div>
+        </div>
+        <div class="session-stats-grid">
+          <div class="session-stat">
+            <span class="stat-label">Starting</span>
+            <span id="sessionStartBankroll" class="stat-value">$1,000</span>
+          </div>
+          <div class="session-stat">
+            <span class="stat-label">Peak</span>
+            <span id="sessionPeak" class="stat-value">$1,000</span>
+          </div>
+          <div class="session-stat">
+            <span class="stat-label">Lowest</span>
+            <span id="sessionLowest" class="stat-value">$1,000</span>
+          </div>
+          <div class="session-stat">
+            <span class="stat-label">Hands</span>
+            <span id="sessionHands" class="stat-value">0</span>
+          </div>
+          <div class="session-stat">
+            <span class="stat-label">Win Rate</span>
+            <span id="sessionWinRate" class="stat-value">0%</span>
+          </div>
+          <div class="session-stat">
+            <span class="stat-label">Duration</span>
+            <span id="sessionDuration" class="stat-value">0:00</span>
+          </div>
+        </div>
+        <div class="session-controls">
+          <div class="input-row">
+            <label>Set Bankroll ($)</label>
+            <input type="number" id="sessionBankrollInput" value="1000" min="0">
+            <button onclick="updateSessionBankroll()">Update</button>
+          </div>
+          <div class="session-buttons">
+            <button class="btn-session" onclick="resetSession()">Reset Session</button>
+            <button class="btn-session" onclick="exportSessionData()">Export Data</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bet Spread Optimizer Modal -->
+  <div id="betOptimizerModal" class="modal-overlay" onclick="if(event.target === this) closeBetOptimizer()">
+    <div class="modal-content optimizer-modal">
+      <div class="modal-header">
+        <h2>Bet Spread Optimizer</h2>
+        <button class="btn-close-modal" onclick="closeBetOptimizer()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="optimizer-inputs">
+          <div class="input-row">
+            <label>Bankroll ($)</label>
+            <input type="number" id="optBankroll" value="10000" min="100">
+          </div>
+          <div class="input-row">
+            <label>Min Bet ($)</label>
+            <input type="number" id="optMinBet" value="25" min="1">
+          </div>
+          <div class="input-row">
+            <label>Max Spread</label>
+            <select id="optMaxSpread">
+              <option value="4">1-4</option>
+              <option value="8" selected>1-8</option>
+              <option value="12">1-12</option>
+              <option value="16">1-16</option>
+            </select>
+          </div>
+          <div class="input-row">
+            <label>Risk Tolerance</label>
+            <select id="optRiskLevel">
+              <option value="conservative">Conservative</option>
+              <option value="moderate" selected>Moderate</option>
+              <option value="aggressive">Aggressive</option>
+            </select>
+          </div>
+          <button class="btn-calculate" onclick="optimizeBetSpread()">Optimize Spread</button>
+        </div>
+        <div id="optimizerResults" class="optimizer-results"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Count Systems Modal -->
+  <div id="countSystemsModal" class="modal-overlay" onclick="if(event.target === this) closeCountSystems()">
+    <div class="modal-content counts-modal">
+      <div class="modal-header">
+        <h2>Multi-Count Systems</h2>
+        <button class="btn-close-modal" onclick="closeCountSystems()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="count-systems-grid">
+          <div class="count-system-card">
+            <div class="system-name">Hi-Lo</div>
+            <div class="system-counts">
+              <span id="countHiLo" class="system-rc">RC: 0</span>
+              <span id="countHiLoTC" class="system-tc">TC: 0.00</span>
+            </div>
+            <div class="system-tags">A=-1, 2-6=+1, 7-9=0, T=-1</div>
+          </div>
+          <div class="count-system-card">
+            <div class="system-name">Omega II</div>
+            <div class="system-counts">
+              <span id="countOmega" class="system-rc">RC: 0</span>
+              <span id="countOmegaTC" class="system-tc">TC: 0.00</span>
+            </div>
+            <div class="system-tags">Level 2, Balanced</div>
+          </div>
+          <div class="count-system-card">
+            <div class="system-name">Hi-Opt II</div>
+            <div class="system-counts">
+              <span id="countHiOpt" class="system-rc">RC: 0</span>
+              <span id="countHiOptTC" class="system-tc">TC: 0.00</span>
+            </div>
+            <div class="system-tags">Level 2, +Ace side count</div>
+          </div>
+          <div class="count-system-card">
+            <div class="system-name">Zen Count</div>
+            <div class="system-counts">
+              <span id="countZen" class="system-rc">RC: 0</span>
+              <span id="countZenTC" class="system-tc">TC: 0.00</span>
+            </div>
+            <div class="system-tags">Level 2, Balanced</div>
+          </div>
+          <div class="count-system-card">
+            <div class="system-name">Wong Halves</div>
+            <div class="system-counts">
+              <span id="countWong" class="system-rc">RC: 0</span>
+              <span id="countWongTC" class="system-tc">TC: 0.00</span>
+            </div>
+            <div class="system-tags">Level 3, Fractional</div>
+          </div>
+        </div>
+        <div class="count-legend">
+          <h4>Card Values Reference</h4>
+          <table class="count-table">
+            <tr>
+              <th>Card</th><th>Hi-Lo</th><th>Omega II</th><th>Hi-Opt II</th><th>Zen</th><th>Wong</th>
+            </tr>
+            <tr><td>2</td><td>+1</td><td>+1</td><td>+1</td><td>+1</td><td>+0.5</td></tr>
+            <tr><td>3</td><td>+1</td><td>+1</td><td>+1</td><td>+1</td><td>+1</td></tr>
+            <tr><td>4</td><td>+1</td><td>+2</td><td>+2</td><td>+2</td><td>+1</td></tr>
+            <tr><td>5</td><td>+1</td><td>+2</td><td>+2</td><td>+2</td><td>+1.5</td></tr>
+            <tr><td>6</td><td>+1</td><td>+2</td><td>+1</td><td>+2</td><td>+1</td></tr>
+            <tr><td>7</td><td>0</td><td>+1</td><td>+1</td><td>+1</td><td>+0.5</td></tr>
+            <tr><td>8</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+            <tr><td>9</td><td>0</td><td>-1</td><td>0</td><td>0</td><td>-0.5</td></tr>
+            <tr><td>10</td><td>-1</td><td>-2</td><td>-2</td><td>-2</td><td>-1</td></tr>
+            <tr><td>A</td><td>-1</td><td>0</td><td>0</td><td>-1</td><td>-1</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ace Sequencing Modal -->
+  <div id="aceSequencerModal" class="modal-overlay" onclick="if(event.target === this) closeAceSequencer()">
+    <div class="modal-content ace-modal">
+      <div class="modal-header">
+        <h2>Ace Sequencing Tracker</h2>
+        <button class="btn-close-modal" onclick="closeAceSequencer()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="ace-stats">
+          <div class="ace-stat">
+            <span class="stat-label">Aces Remaining</span>
+            <span id="acesRemaining" class="stat-value">32</span>
+          </div>
+          <div class="ace-stat">
+            <span class="stat-label">Expected per Deck</span>
+            <span id="aceExpected" class="stat-value">4.0</span>
+          </div>
+          <div class="ace-stat">
+            <span class="stat-label">Ace Richness</span>
+            <span id="aceRichness" class="stat-value">1.00x</span>
+          </div>
+        </div>
+        <div class="ace-sequence">
+          <h4>Recent Ace Appearances</h4>
+          <div id="aceSequenceList" class="sequence-list">
+            <span class="no-data">No aces tracked yet</span>
+          </div>
+        </div>
+        <div class="ace-prediction">
+          <h4>Ace Probability Next Hand</h4>
+          <div id="aceProbability" class="probability-display">7.7%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Heat Index Modal -->
+  <div id="heatIndexModal" class="modal-overlay" onclick="if(event.target === this) closeHeatIndex()">
+    <div class="modal-content heat-modal">
+      <div class="modal-header">
+        <h2>Heat Index & Camouflage</h2>
+        <button class="btn-close-modal" onclick="closeHeatIndex()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="heat-meter">
+          <div class="heat-label">Current Heat Level</div>
+          <div class="heat-bar-container">
+            <div id="heatBar" class="heat-bar" style="width: 20%"></div>
+          </div>
+          <div class="heat-scale">
+            <span>Cool</span>
+            <span>Warm</span>
+            <span>Hot</span>
+            <span>Burning</span>
+          </div>
+        </div>
+        <div class="heat-factors">
+          <h4>Heat Factors</h4>
+          <div id="heatFactorsList" class="factors-list">
+            <div class="factor-item">
+              <span class="factor-name">Bet Spread</span>
+              <span id="heatSpread" class="factor-value">1:1 (Low)</span>
+            </div>
+            <div class="factor-item">
+              <span class="factor-name">Session Duration</span>
+              <span id="heatDuration" class="factor-value">0 min</span>
+            </div>
+            <div class="factor-item">
+              <span class="factor-name">Win Rate</span>
+              <span id="heatWinRate" class="factor-value">Normal</span>
+            </div>
+          </div>
+        </div>
+        <div class="camouflage-tips">
+          <h4>Camouflage Recommendations</h4>
+          <ul id="camoTipsList">
+            <li>Vary bet sizes slightly even at the same count</li>
+            <li>Occasionally make "wrong" plays at low stakes</li>
+            <li>Take breaks and change tables periodically</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wonging Signals Modal -->
+  <div id="wongingModal" class="modal-overlay" onclick="if(event.target === this) closeWonging()">
+    <div class="modal-content wonging-modal">
+      <div class="modal-header">
+        <h2>Wonging Entry/Exit Signals</h2>
+        <button class="btn-close-modal" onclick="closeWonging()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="wonging-status">
+          <div id="wongingSignal" class="signal-display signal-neutral">
+            <span class="signal-icon">⏸</span>
+            <span class="signal-text">NEUTRAL</span>
+          </div>
+        </div>
+        <div class="wonging-settings">
+          <div class="input-row">
+            <label>Entry TC Threshold</label>
+            <input type="number" id="wongEntry" value="2" min="0" step="0.5">
+          </div>
+          <div class="input-row">
+            <label>Exit TC Threshold</label>
+            <input type="number" id="wongExit" value="0" step="0.5">
+          </div>
+          <button onclick="updateWongingSettings()">Update Settings</button>
+        </div>
+        <div class="wonging-stats">
+          <h4>Session Statistics</h4>
+          <div class="wong-stat">
+            <span>Entry Opportunities</span>
+            <span id="wongEntries">0</span>
+          </div>
+          <div class="wong-stat">
+            <span>Exit Signals</span>
+            <span id="wongExits">0</span>
+          </div>
+          <div class="wong-stat">
+            <span>Current TC</span>
+            <span id="wongCurrentTC">0.00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shoe Replay Modal -->
+  <div id="shoeReplayModal" class="modal-overlay" onclick="if(event.target === this) closeShoeReplay()">
+    <div class="modal-content replay-modal">
+      <div class="modal-header">
+        <h2>Shoe Replay</h2>
+        <button class="btn-close-modal" onclick="closeShoeReplay()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="replay-controls">
+          <button class="btn-replay" onclick="replayPrevRound()">⏮ Prev</button>
+          <button class="btn-replay" onclick="toggleReplayPause()">⏯ Play/Pause</button>
+          <button class="btn-replay" onclick="replayNextRound()">Next ⏭</button>
+        </div>
+        <div class="replay-progress">
+          <span id="replayRoundNum">Round 0</span>
+          <input type="range" id="replaySlider" min="0" max="100" value="0" onchange="seekReplay(this.value)">
+          <span id="replayTotalRounds">of 0</span>
+        </div>
+        <div class="replay-display">
+          <div class="replay-hand">
+            <span class="replay-label">Dealer</span>
+            <span id="replayDealer" class="replay-cards">-</span>
+          </div>
+          <div class="replay-hand">
+            <span class="replay-label">Player</span>
+            <span id="replayPlayer" class="replay-cards">-</span>
+          </div>
+          <div class="replay-info">
+            <span id="replayDecision">-</span>
+            <span id="replayOutcome">-</span>
+            <span id="replayTC">TC: 0</span>
+          </div>
+        </div>
+        <div class="replay-list">
+          <h4>Saved Shoes</h4>
+          <div id="savedShoesList" class="shoes-list">
+            <span class="no-data">No saved shoes</span>
+          </div>
+        </div>
+        <button class="btn-save-shoe" onclick="saveCurrentShoe()">Save Current Shoe</button>
       </div>
     </div>
   </div>

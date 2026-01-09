@@ -4333,3 +4333,1136 @@ body {
 .unified-decision.compact .ud-bet-action {
   font-size: 9px;
 }
+
+/* ============================================
+   Advanced Tools Section
+   ============================================ */
+.advanced-tools-section {
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: var(--radius-lg);
+}
+
+.tools-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-purple);
+  margin-bottom: 12px;
+}
+
+.tools-icon {
+  font-size: 16px;
+}
+
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+.btn-tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-tool:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-tool:active {
+  transform: translateY(0);
+}
+
+.tool-icon {
+  font-size: 20px;
+}
+
+.tool-label {
+  font-size: 10px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.btn-tool.active {
+  background: rgba(139, 92, 246, 0.3);
+  border-color: var(--accent-purple);
+}
+
+/* ============================================
+   Generic Modal Styles for New Features
+   ============================================ */
+.analyzer-modal,
+.ror-modal,
+.variance-modal,
+.training-modal,
+.session-modal,
+.optimizer-modal,
+.counts-modal,
+.ace-modal,
+.heat-modal,
+.wonging-modal,
+.replay-modal {
+  max-width: 500px;
+  width: 90%;
+}
+
+/* Input Styles */
+.input-group {
+  margin-bottom: 16px;
+}
+
+.input-group label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.input-group input,
+.input-group select {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.input-group input:focus,
+.input-group select:focus {
+  border-color: var(--accent-purple);
+  outline: none;
+}
+
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.input-row label {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.input-row input,
+.input-row select {
+  flex: 1;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.input-row button {
+  padding: 8px 16px;
+  background: var(--accent-purple);
+  border: none;
+  border-radius: var(--radius-md);
+  color: white;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.input-row button:hover {
+  background: var(--accent-purple-dark);
+}
+
+/* Action Buttons */
+.btn-analyze,
+.btn-calculate {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, var(--accent-purple), #7c3aed);
+  border: none;
+  border-radius: var(--radius-md);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-analyze:hover,
+.btn-calculate:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+}
+
+/* ============================================
+   Hand Analyzer Modal
+   ============================================ */
+.analyzer-inputs {
+  margin-bottom: 20px;
+}
+
+.analyzer-results {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  min-height: 200px;
+}
+
+.result-placeholder {
+  color: var(--text-muted);
+  text-align: center;
+  padding: 40px;
+}
+
+.ev-result-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.ev-result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+}
+
+.ev-action {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.ev-value {
+  font-family: 'SF Mono', monospace;
+  font-size: 14px;
+}
+
+.ev-value.best {
+  color: var(--accent-green);
+  font-weight: 700;
+}
+
+.ev-value.negative {
+  color: var(--accent-red);
+}
+
+.ev-recommendation {
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+/* ============================================
+   Risk of Ruin Modal
+   ============================================ */
+.ror-inputs {
+  margin-bottom: 20px;
+}
+
+.ror-results {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.ror-main-result {
+  text-align: center;
+  padding: 20px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+
+.ror-percentage {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--accent-red);
+}
+
+.ror-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.ror-details {
+  display: grid;
+  gap: 8px;
+}
+
+.ror-detail-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================
+   Variance Calculator Modal
+   ============================================ */
+.variance-inputs {
+  margin-bottom: 20px;
+}
+
+.variance-results {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.variance-chart {
+  height: 150px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.variance-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.variance-stat {
+  text-align: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+}
+
+.variance-stat .label {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.variance-stat .value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ============================================
+   Training Mode Modal
+   ============================================ */
+.training-stats {
+  display: flex;
+  justify-content: space-around;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-item .stat-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.stat-item .stat-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.training-hand {
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+}
+
+.training-scenario {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.dealer-card-display,
+.player-hand-display {
+  text-align: center;
+}
+
+.card-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.big-card {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--accent-cyan);
+}
+
+.big-hand {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.hand-total {
+  display: block;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.training-tc {
+  font-size: 14px;
+  padding: 6px 12px;
+  background: rgba(139, 92, 246, 0.2);
+  border-radius: var(--radius-md);
+  color: var(--accent-purple);
+}
+
+.training-options {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.btn-training-option {
+  padding: 12px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-training-option:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: var(--accent-purple);
+}
+
+.btn-training-option.correct {
+  background: rgba(34, 197, 94, 0.3);
+  border-color: var(--accent-green);
+}
+
+.btn-training-option.wrong {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: var(--accent-red);
+}
+
+.training-feedback {
+  min-height: 40px;
+  padding: 12px;
+  text-align: center;
+  border-radius: var(--radius-md);
+}
+
+.training-feedback.correct {
+  background: rgba(34, 197, 94, 0.2);
+  color: var(--accent-green);
+}
+
+.training-feedback.wrong {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--accent-red);
+}
+
+.btn-next-hand {
+  width: 100%;
+  padding: 12px;
+  background: var(--accent-cyan);
+  border: none;
+  border-radius: var(--radius-md);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 16px;
+}
+
+.btn-next-hand:hover {
+  background: #0ea5e9;
+}
+
+/* ============================================
+   Session Tracker Modal
+   ============================================ */
+.session-bankroll-display {
+  text-align: center;
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2));
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+}
+
+.bankroll-main {
+  margin-bottom: 8px;
+}
+
+.bankroll-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.bankroll-value {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.bankroll-change {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.bankroll-change.positive {
+  color: var(--accent-green);
+}
+
+.bankroll-change.negative {
+  color: var(--accent-red);
+}
+
+.session-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.session-stat {
+  text-align: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-sm);
+}
+
+.session-stat .stat-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.session-stat .stat-value {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.session-controls {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.session-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.btn-session {
+  flex: 1;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.btn-session:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================
+   Bet Spread Optimizer Modal
+   ============================================ */
+.optimizer-inputs {
+  margin-bottom: 20px;
+}
+
+.optimizer-results {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.spread-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+}
+
+.spread-table th,
+.spread-table td {
+  padding: 10px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.spread-table th {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.spread-table td {
+  font-family: 'SF Mono', monospace;
+}
+
+.spread-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================
+   Count Systems Modal
+   ============================================ */
+.count-systems-grid {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.count-system-card {
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+}
+
+.system-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.system-counts {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.system-rc {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.system-tc {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent-purple);
+}
+
+.system-tags {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.count-legend {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.count-legend h4 {
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.count-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.count-table th,
+.count-table td {
+  padding: 6px 8px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.count-table th {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* ============================================
+   Ace Sequencing Modal
+   ============================================ */
+.ace-stats {
+  display: flex;
+  justify-content: space-around;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+}
+
+.ace-stat {
+  text-align: center;
+}
+
+.ace-stat .stat-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.ace-stat .stat-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent-red);
+}
+
+.ace-sequence {
+  margin-bottom: 20px;
+}
+
+.ace-sequence h4 {
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.sequence-list {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  min-height: 60px;
+}
+
+.sequence-item {
+  padding: 6px 10px;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.no-data {
+  color: var(--text-muted);
+}
+
+.ace-prediction {
+  text-align: center;
+}
+
+.ace-prediction h4 {
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.probability-display {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--accent-purple);
+}
+
+/* ============================================
+   Heat Index Modal
+   ============================================ */
+.heat-meter {
+  text-align: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+}
+
+.heat-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.heat-bar-container {
+  height: 24px;
+  background: linear-gradient(to right, #22c55e, #fbbf24, #f97316, #ef4444);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.heat-bar {
+  height: 100%;
+  background: rgba(255, 255, 255, 0.3);
+  transition: width 0.5s ease;
+}
+
+.heat-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.heat-factors {
+  margin-bottom: 20px;
+}
+
+.heat-factors h4 {
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.factors-list {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.factor-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.factor-item:last-child {
+  border-bottom: none;
+}
+
+.factor-name {
+  color: var(--text-secondary);
+}
+
+.factor-value {
+  font-weight: 600;
+}
+
+.camouflage-tips {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.camouflage-tips h4 {
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.camouflage-tips ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.camouflage-tips li {
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   Wonging Signals Modal
+   ============================================ */
+.wonging-status {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.signal-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 40px;
+  border-radius: var(--radius-lg);
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.signal-display.signal-neutral {
+  background: rgba(107, 114, 128, 0.2);
+  border: 2px solid #6b7280;
+  color: #9ca3af;
+}
+
+.signal-display.signal-enter {
+  background: rgba(34, 197, 94, 0.2);
+  border: 2px solid #22c55e;
+  color: #22c55e;
+  animation: pulse-green 1.5s infinite;
+}
+
+.signal-display.signal-exit {
+  background: rgba(239, 68, 68, 0.2);
+  border: 2px solid #ef4444;
+  color: #ef4444;
+  animation: pulse-red 1.5s infinite;
+}
+
+.signal-icon {
+  font-size: 28px;
+}
+
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+  50% { box-shadow: 0 0 0 15px rgba(34, 197, 94, 0); }
+}
+
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+}
+
+.wonging-settings {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.wonging-settings button {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.wonging-stats {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.wonging-stats h4 {
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.wong-stat {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.wong-stat:last-child {
+  border-bottom: none;
+}
+
+/* ============================================
+   Shoe Replay Modal
+   ============================================ */
+.replay-controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.btn-replay {
+  padding: 10px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-replay:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: var(--accent-purple);
+}
+
+.replay-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.replay-progress input[type="range"] {
+  flex: 1;
+  height: 6px;
+  -webkit-appearance: none;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.replay-progress input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--accent-purple);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.replay-display {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.replay-hand {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.replay-label {
+  color: var(--text-secondary);
+}
+
+.replay-cards {
+  font-family: 'SF Mono', monospace;
+  font-weight: 600;
+}
+
+.replay-info {
+  display: flex;
+  justify-content: space-around;
+  padding-top: 12px;
+  font-size: 13px;
+}
+
+.replay-list {
+  margin-bottom: 16px;
+}
+
+.replay-list h4 {
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.shoes-list {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.shoe-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+
+.shoe-item:hover {
+  background: rgba(139, 92, 246, 0.1);
+}
+
+.btn-save-shoe {
+  width: 100%;
+  padding: 12px;
+  background: var(--accent-cyan);
+  border: none;
+  border-radius: var(--radius-md);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-save-shoe:hover {
+  background: #0ea5e9;
+}
+
+/* ============================================
+   Theme Toggle (Light Mode Support)
+   ============================================ */
+body.light-theme {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #e2e8f0;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --border-color: #cbd5e1;
+}
+
+body.light-theme .modal-content {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+body.light-theme .settings-panel,
+body.light-theme .metrics-panel,
+body.light-theme .stats-left,
+body.light-theme .stats-right {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: #e2e8f0;
+}
+
+/* ============================================
+   Mobile Touch Mode
+   ============================================ */
+body.touch-mode .btn-tool {
+  padding: 16px 12px;
+}
+
+body.touch-mode .btn-training-option {
+  padding: 16px;
+  font-size: 14px;
+}
+
+body.touch-mode .card-btn {
+  min-height: 60px;
+  font-size: 18px;
+}
+
+body.touch-mode .input-row input,
+body.touch-mode .input-row select,
+body.touch-mode .input-group input,
+body.touch-mode .input-group select {
+  padding: 14px;
+  font-size: 16px;
+}
+
+/* ============================================
+   Audio Toggle Button State
+   ============================================ */
+#btnAudioToggle.muted .tool-icon::after {
+  content: '';
+  position: absolute;
+  width: 2px;
+  height: 24px;
+  background: var(--accent-red);
+  transform: rotate(45deg);
+}

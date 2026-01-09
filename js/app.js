@@ -163,6 +163,117 @@ const AppState = {
       lowCardClusters: []
     },
     alerts: []
+  },
+
+  // ============================================
+  // NEW FEATURES STATE
+  // ============================================
+
+  // Session Bankroll Tracker
+  sessionTracker: {
+    startingBankroll: 1000,
+    currentBankroll: 1000,
+    sessionStart: null,
+    handsPlayed: 0,
+    peakBankroll: 1000,
+    lowestBankroll: 1000,
+    biggestWin: 0,
+    biggestLoss: 0,
+    currentStreak: 0,
+    longestWinStreak: 0,
+    longestLoseStreak: 0,
+    goals: {
+      profitTarget: 200,
+      lossLimit: 300,
+      timeLimit: 120, // minutes
+      handsLimit: 200
+    }
+  },
+
+  // Training Mode
+  trainingMode: {
+    enabled: false,
+    totalQuestions: 0,
+    correctAnswers: 0,
+    streakCorrect: 0,
+    bestStreak: 0,
+    mistakes: [],
+    focusAreas: [], // e.g., ['soft17', 'pairs', 'surrender']
+    difficulty: 'normal', // 'easy', 'normal', 'hard'
+    showHints: true
+  },
+
+  // Multi-Count Systems
+  countSystems: {
+    active: 'hilo', // Current active system
+    counts: {
+      hilo: 0,
+      omega2: 0,
+      hiopt2: 0,
+      zen: 0,
+      wong: 0
+    },
+    // Count values per rank for each system
+    systems: {
+      hilo:   { '2': 1, '3': 1, '4': 1, '5': 1, '6': 1, '7': 0, '8': 0, '9': 0, '10': -1, 'A': -1 },
+      omega2: { '2': 1, '3': 1, '4': 2, '5': 2, '6': 2, '7': 1, '8': 0, '9': -1, '10': -2, 'A': 0 },
+      hiopt2: { '2': 1, '3': 1, '4': 2, '5': 2, '6': 1, '7': 1, '8': 0, '9': 0, '10': -2, 'A': 0 },
+      zen:    { '2': 1, '3': 1, '4': 2, '5': 2, '6': 2, '7': 1, '8': 0, '9': 0, '10': -2, 'A': -1 },
+      wong:   { '2': 0.5, '3': 1, '4': 1, '5': 1.5, '6': 1, '7': 0.5, '8': 0, '9': -0.5, '10': -1, 'A': -1 }
+    }
+  },
+
+  // Audio Settings
+  audioSettings: {
+    enabled: true,
+    volume: 0.5,
+    alerts: {
+      positiveTc: true,
+      deviation: true,
+      betIncrease: true,
+      wonging: true,
+      shuffle: true
+    }
+  },
+
+  // Theme
+  theme: 'dark', // 'dark' or 'light'
+
+  // Ace Sequencing
+  aceTracker: {
+    enabled: false,
+    acePositions: [], // Positions in shoe where aces appeared
+    keyCards: [], // Cards that appeared before aces
+    predictions: []
+  },
+
+  // Shoe Replay
+  shoeReplay: {
+    recording: false,
+    currentShoe: [],
+    savedShoes: [],
+    playbackIndex: 0
+  },
+
+  // Heat Index
+  heatIndex: {
+    level: 0, // 0-100
+    factors: {
+      bigBets: 0,
+      winStreak: 0,
+      betVariation: 0,
+      playTime: 0
+    },
+    lastBets: []
+  },
+
+  // Wonging
+  wonging: {
+    enabled: true,
+    entryTc: 1,
+    exitTc: -1,
+    currentlyIn: true,
+    handsWonged: 0
   }
 };
 
@@ -4919,10 +5030,1599 @@ function showToast(message, type = 'info') {
 }
 
 // ============================================
+// HAND ANALYZER
+// ============================================
+function analyzeHand(playerCards, dealerUpcard) {
+  const playerTotal = calculateHandTotal(playerCards);
+  const isSoft = playerCards.includes('A') && playerTotal <= 21;
+  const isPair = playerCards.length === 2 && getCardValue(playerCards[0]) === getCardValue(playerCards[1]);
+  const dealerVal = getCardValue(dealerUpcard);
+
+  // Calculate EV for each action
+  const evs = {
+    stand: calculateStandEV(playerTotal, dealerVal),
+    hit: calculateHitEV(playerTotal, dealerVal, isSoft),
+    double: playerCards.length === 2 ? calculateDoubleEV(playerTotal, dealerVal) : null,
+    split: isPair ? calculateSplitEV(playerCards[0], dealerVal) : null,
+    surrender: playerCards.length === 2 ? -0.5 : null
+  };
+
+  // Find best action
+  let bestAction = 'stand';
+  let bestEV = evs.stand;
+  for (const [action, ev] of Object.entries(evs)) {
+    if (ev !== null && ev > bestEV) {
+      bestEV = ev;
+      bestAction = action;
+    }
+  }
+
+  return {
+    playerTotal,
+    isSoft,
+    isPair,
+    dealerUpcard,
+    evs,
+    bestAction,
+    bestEV,
+    advantage: (bestEV * 100).toFixed(3) + '%'
+  };
+}
+
+function calculateStandEV(playerTotal, dealerUpcard) {
+  // Simplified EV calculation based on dealer bust probabilities
+  const dealerBustProb = getDealerBustProbability(dealerUpcard);
+  if (playerTotal > 21) return -1;
+  if (playerTotal === 21) return 0.9;
+
+  // Estimate based on dealer upcard strength
+  const dealerStrength = dealerUpcard >= 7 ? 0.6 : 0.4;
+  const winProb = dealerBustProb + (1 - dealerBustProb) * (playerTotal > 17 ? 0.4 : 0.2);
+
+  return winProb - (1 - winProb - 0.08);
+}
+
+function calculateHitEV(playerTotal, dealerUpcard, isSoft) {
+  if (playerTotal >= 21) return -1;
+
+  const bustProb = isSoft ? 0 : getBustProbability(playerTotal);
+  const improveProb = 1 - bustProb;
+
+  // Simplified: if we improve, estimate new EV
+  const avgImprovedTotal = Math.min(21, playerTotal + 4);
+  const improvedEV = calculateStandEV(avgImprovedTotal, dealerUpcard);
+
+  return -bustProb + improveProb * improvedEV * 0.8;
+}
+
+function calculateDoubleEV(playerTotal, dealerUpcard) {
+  const hitEV = calculateHitEV(playerTotal, dealerUpcard, false);
+  return hitEV * 1.8; // Approximate double value
+}
+
+function calculateSplitEV(card, dealerUpcard) {
+  const cardVal = getCardValue(card);
+  // Aces and 8s are always good splits
+  if (card === 'A') return 0.4;
+  if (cardVal === 8) return 0.3;
+  if (cardVal === 10) return -0.1; // Don't split tens
+  return calculateHitEV(cardVal * 2, dealerUpcard, false) * 0.9;
+}
+
+function getBustProbability(total) {
+  if (total <= 11) return 0;
+  if (total === 12) return 0.31;
+  if (total === 13) return 0.39;
+  if (total === 14) return 0.56;
+  if (total === 15) return 0.58;
+  if (total === 16) return 0.62;
+  if (total >= 17) return 0.69;
+  return 0;
+}
+
+function getDealerBustProbability(upcard) {
+  const bustProbs = {
+    2: 0.3536, 3: 0.3746, 4: 0.4025, 5: 0.4193, 6: 0.4236,
+    7: 0.2599, 8: 0.2386, 9: 0.2306, 10: 0.2143, 'A': 0.1165
+  };
+  return bustProbs[upcard] || 0.25;
+}
+
+function showHandAnalyzer() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'handAnalyzerModal';
+  modal.innerHTML = `
+    <div class="modal-content analyzer-modal">
+      <div class="modal-header">
+        <h3>Hand Analyzer</h3>
+        <button class="modal-close" onclick="closeModal('handAnalyzerModal')">&times;</button>
+      </div>
+      <div class="analyzer-inputs">
+        <div class="input-group">
+          <label>Player Cards:</label>
+          <div class="card-select">
+            <select id="analyzerCard1">
+              ${['A','2','3','4','5','6','7','8','9','10','J','Q','K'].map(c => `<option value="${c}">${c}</option>`).join('')}
+            </select>
+            <select id="analyzerCard2">
+              ${['A','2','3','4','5','6','7','8','9','10','J','Q','K'].map(c => `<option value="${c}">${c}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="input-group">
+          <label>Dealer Upcard:</label>
+          <select id="analyzerDealer">
+            ${['A','2','3','4','5','6','7','8','9','10'].map(c => `<option value="${c}">${c}</option>`).join('')}
+          </select>
+        </div>
+        <button class="btn-analyze" onclick="runHandAnalysis()">ANALYZE</button>
+      </div>
+      <div class="analyzer-results" id="analyzerResults"></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function runHandAnalysis() {
+  const card1 = document.getElementById('analyzerCard1').value;
+  const card2 = document.getElementById('analyzerCard2').value;
+  const dealer = document.getElementById('analyzerDealer').value;
+
+  const result = analyzeHand([card1, card2], dealer);
+
+  document.getElementById('analyzerResults').innerHTML = `
+    <div class="result-summary">
+      <div class="result-hand">
+        <span class="hand-cards">${card1} ${card2}</span> vs <span class="dealer-card">${dealer}</span>
+        <span class="hand-total">Total: ${result.playerTotal}${result.isSoft ? ' (Soft)' : ''}${result.isPair ? ' (Pair)' : ''}</span>
+      </div>
+      <div class="best-action ${result.bestAction}">
+        <span class="action-label">BEST ACTION:</span>
+        <span class="action-value">${result.bestAction.toUpperCase()}</span>
+        <span class="action-ev">EV: ${(result.bestEV * 100).toFixed(2)}%</span>
+      </div>
+    </div>
+    <div class="ev-breakdown">
+      <h4>EV by Action:</h4>
+      <div class="ev-row ${result.bestAction === 'stand' ? 'best' : ''}">
+        <span>STAND</span><span>${(result.evs.stand * 100).toFixed(2)}%</span>
+      </div>
+      <div class="ev-row ${result.bestAction === 'hit' ? 'best' : ''}">
+        <span>HIT</span><span>${(result.evs.hit * 100).toFixed(2)}%</span>
+      </div>
+      ${result.evs.double !== null ? `<div class="ev-row ${result.bestAction === 'double' ? 'best' : ''}">
+        <span>DOUBLE</span><span>${(result.evs.double * 100).toFixed(2)}%</span>
+      </div>` : ''}
+      ${result.evs.split !== null ? `<div class="ev-row ${result.bestAction === 'split' ? 'best' : ''}">
+        <span>SPLIT</span><span>${(result.evs.split * 100).toFixed(2)}%</span>
+      </div>` : ''}
+      ${result.evs.surrender !== null ? `<div class="ev-row ${result.bestAction === 'surrender' ? 'best' : ''}">
+        <span>SURRENDER</span><span>${(result.evs.surrender * 100).toFixed(2)}%</span>
+      </div>` : ''}
+    </div>
+  `;
+}
+
+// ============================================
+// MULTI-COUNT SYSTEMS
+// ============================================
+function updateAllCounts(card) {
+  const rank = card === 'J' || card === 'Q' || card === 'K' ? '10' : card;
+
+  for (const system in AppState.countSystems.systems) {
+    const values = AppState.countSystems.systems[system];
+    AppState.countSystems.counts[system] += values[rank] || 0;
+  }
+}
+
+function resetAllCounts() {
+  for (const system in AppState.countSystems.counts) {
+    AppState.countSystems.counts[system] = 0;
+  }
+}
+
+function getTrueCountForSystem(system) {
+  const decksRemaining = (AppState.totalCards - AppState.cardsDealt) / 52;
+  if (decksRemaining <= 0) return 0;
+  return AppState.countSystems.counts[system] / decksRemaining;
+}
+
+function showCountSystemsPanel() {
+  const panel = document.getElementById('countSystemsPanel');
+  if (panel) {
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    updateCountSystemsDisplay();
+  }
+}
+
+function updateCountSystemsDisplay() {
+  const container = document.getElementById('countSystemsGrid');
+  if (!container) return;
+
+  const decksRemaining = (AppState.totalCards - AppState.cardsDealt) / 52;
+
+  container.innerHTML = Object.entries(AppState.countSystems.counts).map(([system, rc]) => {
+    const tc = decksRemaining > 0 ? (rc / decksRemaining).toFixed(2) : '0.00';
+    const isActive = system === AppState.countSystems.active;
+    return `
+      <div class="count-system-box ${isActive ? 'active' : ''}" onclick="setActiveCountSystem('${system}')">
+        <div class="system-name">${system.toUpperCase()}</div>
+        <div class="system-rc">RC: ${rc}</div>
+        <div class="system-tc">TC: ${tc}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function setActiveCountSystem(system) {
+  AppState.countSystems.active = system;
+  updateCountSystemsDisplay();
+  showToast(`Active count system: ${system.toUpperCase()}`, 'info');
+}
+
+// ============================================
+// RISK OF RUIN CALCULATOR
+// ============================================
+function calculateRiskOfRuin(bankroll, betUnit, advantage, stdDev = 1.15) {
+  // N0 formula: (stdDev / advantage)^2
+  const n0 = Math.pow(stdDev / (advantage / 100), 2);
+
+  // Risk of Ruin formula: e^(-2 * advantage * bankroll / (stdDev^2 * betUnit))
+  const exponent = -2 * (advantage / 100) * (bankroll / betUnit) / Math.pow(stdDev, 2);
+  const ror = Math.exp(exponent);
+
+  // Kelly optimal bet
+  const kellyBet = (advantage / 100) / Math.pow(stdDev, 2) * bankroll;
+
+  // Hands to double bankroll (on average)
+  const handsToDouble = bankroll / (betUnit * (advantage / 100));
+
+  return {
+    riskOfRuin: (ror * 100).toFixed(4) + '%',
+    n0: Math.round(n0),
+    kellyBet: kellyBet.toFixed(2),
+    kellyFraction: ((kellyBet / bankroll) * 100).toFixed(2) + '%',
+    handsToDouble: Math.round(handsToDouble),
+    expectedHourly: (betUnit * (advantage / 100) * 100).toFixed(2) // assuming 100 hands/hour
+  };
+}
+
+function showRiskOfRuinCalculator() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'rorModal';
+  modal.innerHTML = `
+    <div class="modal-content ror-modal">
+      <div class="modal-header">
+        <h3>Risk of Ruin Calculator</h3>
+        <button class="modal-close" onclick="closeModal('rorModal')">&times;</button>
+      </div>
+      <div class="ror-inputs">
+        <div class="input-row">
+          <label>Bankroll ($):</label>
+          <input type="number" id="rorBankroll" value="10000" min="100">
+        </div>
+        <div class="input-row">
+          <label>Bet Unit ($):</label>
+          <input type="number" id="rorBetUnit" value="25" min="1">
+        </div>
+        <div class="input-row">
+          <label>Advantage (%):</label>
+          <input type="number" id="rorAdvantage" value="1.0" step="0.1" min="0.1">
+        </div>
+        <div class="input-row">
+          <label>Std Deviation:</label>
+          <input type="number" id="rorStdDev" value="1.15" step="0.05">
+        </div>
+        <button class="btn-calculate" onclick="runRorCalculation()">CALCULATE</button>
+      </div>
+      <div class="ror-results" id="rorResults"></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function runRorCalculation() {
+  const bankroll = parseFloat(document.getElementById('rorBankroll').value);
+  const betUnit = parseFloat(document.getElementById('rorBetUnit').value);
+  const advantage = parseFloat(document.getElementById('rorAdvantage').value);
+  const stdDev = parseFloat(document.getElementById('rorStdDev').value);
+
+  const result = calculateRiskOfRuin(bankroll, betUnit, advantage, stdDev);
+
+  document.getElementById('rorResults').innerHTML = `
+    <div class="ror-result-grid">
+      <div class="ror-stat">
+        <span class="ror-label">Risk of Ruin</span>
+        <span class="ror-value danger">${result.riskOfRuin}</span>
+      </div>
+      <div class="ror-stat">
+        <span class="ror-label">N0 (Break-even hands)</span>
+        <span class="ror-value">${result.n0.toLocaleString()}</span>
+      </div>
+      <div class="ror-stat">
+        <span class="ror-label">Kelly Optimal Bet</span>
+        <span class="ror-value">$${result.kellyBet}</span>
+      </div>
+      <div class="ror-stat">
+        <span class="ror-label">Kelly Fraction</span>
+        <span class="ror-value">${result.kellyFraction}</span>
+      </div>
+      <div class="ror-stat">
+        <span class="ror-label">Hands to Double</span>
+        <span class="ror-value">${result.handsToDouble.toLocaleString()}</span>
+      </div>
+      <div class="ror-stat">
+        <span class="ror-label">Expected Hourly</span>
+        <span class="ror-value success">$${result.expectedHourly}</span>
+      </div>
+    </div>
+    <div class="ror-advice">
+      <p><strong>Bet Spread Ratio:</strong> ${Math.round(bankroll / betUnit)}:1</p>
+      <p><strong>Recommended:</strong> ${parseFloat(result.riskOfRuin) < 5 ? 'Safe betting level' : parseFloat(result.riskOfRuin) < 15 ? 'Moderate risk - consider smaller bets' : 'High risk - reduce bet size significantly'}</p>
+    </div>
+  `;
+}
+
+// ============================================
+// VARIANCE CALCULATOR
+// ============================================
+function calculateVariance(hands, betUnit, advantage) {
+  const stdDev = 1.15;
+  const ev = hands * betUnit * (advantage / 100);
+  const variance = hands * Math.pow(betUnit * stdDev, 2);
+  const sd = Math.sqrt(variance);
+
+  // Confidence intervals
+  const ci68 = { low: ev - sd, high: ev + sd };
+  const ci95 = { low: ev - 2 * sd, high: ev + 2 * sd };
+  const ci99 = { low: ev - 3 * sd, high: ev + 3 * sd };
+
+  return { ev, sd, variance, ci68, ci95, ci99 };
+}
+
+function showVarianceCalculator() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'varianceModal';
+  modal.innerHTML = `
+    <div class="modal-content variance-modal">
+      <div class="modal-header">
+        <h3>Variance Calculator</h3>
+        <button class="modal-close" onclick="closeModal('varianceModal')">&times;</button>
+      </div>
+      <div class="variance-inputs">
+        <div class="input-row">
+          <label>Number of Hands:</label>
+          <input type="number" id="varHands" value="1000" min="1">
+        </div>
+        <div class="input-row">
+          <label>Average Bet ($):</label>
+          <input type="number" id="varBet" value="50" min="1">
+        </div>
+        <div class="input-row">
+          <label>Advantage (%):</label>
+          <input type="number" id="varAdvantage" value="1.0" step="0.1">
+        </div>
+        <button class="btn-calculate" onclick="runVarianceCalculation()">CALCULATE</button>
+      </div>
+      <div class="variance-results" id="varianceResults"></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function runVarianceCalculation() {
+  const hands = parseInt(document.getElementById('varHands').value);
+  const bet = parseFloat(document.getElementById('varBet').value);
+  const advantage = parseFloat(document.getElementById('varAdvantage').value);
+
+  const result = calculateVariance(hands, bet, advantage);
+
+  document.getElementById('varianceResults').innerHTML = `
+    <div class="variance-result-grid">
+      <div class="var-stat">
+        <span class="var-label">Expected Value</span>
+        <span class="var-value ${result.ev >= 0 ? 'success' : 'danger'}">$${result.ev.toFixed(2)}</span>
+      </div>
+      <div class="var-stat">
+        <span class="var-label">Standard Deviation</span>
+        <span class="var-value">$${result.sd.toFixed(2)}</span>
+      </div>
+      <div class="var-stat full-width">
+        <span class="var-label">68% Confidence (1 SD)</span>
+        <span class="var-range">$${result.ci68.low.toFixed(0)} to $${result.ci68.high.toFixed(0)}</span>
+      </div>
+      <div class="var-stat full-width">
+        <span class="var-label">95% Confidence (2 SD)</span>
+        <span class="var-range">$${result.ci95.low.toFixed(0)} to $${result.ci95.high.toFixed(0)}</span>
+      </div>
+      <div class="var-stat full-width">
+        <span class="var-label">99% Confidence (3 SD)</span>
+        <span class="var-range">$${result.ci99.low.toFixed(0)} to $${result.ci99.high.toFixed(0)}</span>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================
+// TRAINING MODE
+// ============================================
+function startTrainingMode() {
+  AppState.trainingMode.enabled = true;
+  AppState.trainingMode.totalQuestions = 0;
+  AppState.trainingMode.correctAnswers = 0;
+  AppState.trainingMode.streakCorrect = 0;
+  AppState.trainingMode.mistakes = [];
+
+  showTrainingModal();
+  generateTrainingHand();
+}
+
+function showTrainingModal() {
+  let modal = document.getElementById('trainingModal');
+  if (modal) {
+    modal.style.display = 'flex';
+    return;
+  }
+
+  modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'trainingModal';
+  modal.innerHTML = `
+    <div class="modal-content training-modal">
+      <div class="modal-header">
+        <h3>Training Mode</h3>
+        <div class="training-stats">
+          <span id="trainingScore">0/0</span>
+          <span id="trainingAccuracy">0%</span>
+          <span id="trainingStreak">Streak: 0</span>
+        </div>
+        <button class="modal-close" onclick="endTrainingMode()">&times;</button>
+      </div>
+      <div class="training-hand" id="trainingHand"></div>
+      <div class="training-actions" id="trainingActions"></div>
+      <div class="training-feedback" id="trainingFeedback"></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function generateTrainingHand() {
+  const cards = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+  const card1 = cards[Math.floor(Math.random() * cards.length)];
+  const card2 = cards[Math.floor(Math.random() * cards.length)];
+  const dealer = cards[Math.floor(Math.random() * 10)]; // 2-A
+
+  const playerTotal = calculateHandTotal([card1, card2]);
+  const isPair = getCardValue(card1) === getCardValue(card2);
+  const isSoft = (card1 === 'A' || card2 === 'A') && playerTotal <= 21;
+
+  // Store current hand for checking
+  AppState.trainingMode.currentHand = { card1, card2, dealer, playerTotal, isPair, isSoft };
+
+  document.getElementById('trainingHand').innerHTML = `
+    <div class="training-dealer">
+      <span class="label">Dealer</span>
+      <span class="card">${dealer}</span>
+    </div>
+    <div class="training-player">
+      <span class="label">Your Hand</span>
+      <div class="cards">
+        <span class="card">${card1}</span>
+        <span class="card">${card2}</span>
+      </div>
+      <span class="total">${playerTotal}${isSoft ? ' (Soft)' : ''}${isPair ? ' (Pair)' : ''}</span>
+    </div>
+  `;
+
+  // Generate action buttons
+  let actions = ['HIT', 'STAND'];
+  actions.push('DOUBLE');
+  if (isPair) actions.push('SPLIT');
+  actions.push('SURRENDER');
+
+  document.getElementById('trainingActions').innerHTML = actions.map(action =>
+    `<button class="training-btn ${action.toLowerCase()}" onclick="checkTrainingAnswer('${action}')">${action}</button>`
+  ).join('');
+
+  document.getElementById('trainingFeedback').innerHTML = '';
+}
+
+function checkTrainingAnswer(answer) {
+  const hand = AppState.trainingMode.currentHand;
+  const correctAction = getCorrectBasicStrategyAction(hand.card1, hand.card2, hand.dealer);
+
+  AppState.trainingMode.totalQuestions++;
+
+  const isCorrect = answer === correctAction;
+  if (isCorrect) {
+    AppState.trainingMode.correctAnswers++;
+    AppState.trainingMode.streakCorrect++;
+    if (AppState.trainingMode.streakCorrect > AppState.trainingMode.bestStreak) {
+      AppState.trainingMode.bestStreak = AppState.trainingMode.streakCorrect;
+    }
+    playAudioAlert('correct');
+  } else {
+    AppState.trainingMode.streakCorrect = 0;
+    AppState.trainingMode.mistakes.push({
+      hand: `${hand.card1},${hand.card2} vs ${hand.dealer}`,
+      yourAnswer: answer,
+      correct: correctAction
+    });
+    playAudioAlert('incorrect');
+  }
+
+  // Update stats
+  document.getElementById('trainingScore').textContent =
+    `${AppState.trainingMode.correctAnswers}/${AppState.trainingMode.totalQuestions}`;
+  document.getElementById('trainingAccuracy').textContent =
+    `${((AppState.trainingMode.correctAnswers / AppState.trainingMode.totalQuestions) * 100).toFixed(1)}%`;
+  document.getElementById('trainingStreak').textContent =
+    `Streak: ${AppState.trainingMode.streakCorrect}`;
+
+  // Show feedback
+  document.getElementById('trainingFeedback').innerHTML = `
+    <div class="feedback ${isCorrect ? 'correct' : 'incorrect'}">
+      ${isCorrect ? 'CORRECT!' : `INCORRECT - Correct answer: ${correctAction}`}
+    </div>
+  `;
+
+  // Highlight buttons
+  document.querySelectorAll('.training-btn').forEach(btn => {
+    if (btn.textContent === correctAction) btn.classList.add('correct-answer');
+    if (btn.textContent === answer && !isCorrect) btn.classList.add('wrong-answer');
+  });
+
+  // Next hand after delay
+  setTimeout(generateTrainingHand, 1500);
+}
+
+function getCorrectBasicStrategyAction(card1, card2, dealer) {
+  const total = calculateHandTotal([card1, card2]);
+  const dealerVal = getCardValue(dealer);
+  const isPair = getCardValue(card1) === getCardValue(card2);
+  const isSoft = (card1 === 'A' || card2 === 'A') && total <= 21;
+
+  // Simplified basic strategy
+  if (isPair) {
+    if (card1 === 'A' || getCardValue(card1) === 8) return 'SPLIT';
+    if (getCardValue(card1) === 10) return 'STAND';
+    if (getCardValue(card1) === 9 && dealerVal !== 7 && dealerVal < 10) return 'SPLIT';
+  }
+
+  if (isSoft) {
+    if (total >= 19) return 'STAND';
+    if (total === 18 && dealerVal >= 9) return 'HIT';
+    if (total === 18) return 'STAND';
+    if (total >= 13 && total <= 17 && dealerVal >= 4 && dealerVal <= 6) return 'DOUBLE';
+    return 'HIT';
+  }
+
+  // Hard totals
+  if (total >= 17) return 'STAND';
+  if (total >= 13 && total <= 16 && dealerVal <= 6) return 'STAND';
+  if (total === 12 && dealerVal >= 4 && dealerVal <= 6) return 'STAND';
+  if (total === 11) return 'DOUBLE';
+  if (total === 10 && dealerVal <= 9) return 'DOUBLE';
+  if (total === 9 && dealerVal >= 3 && dealerVal <= 6) return 'DOUBLE';
+  if (total === 16 && dealerVal >= 9) return 'SURRENDER';
+  if (total === 15 && dealerVal === 10) return 'SURRENDER';
+
+  return 'HIT';
+}
+
+function endTrainingMode() {
+  AppState.trainingMode.enabled = false;
+  const modal = document.getElementById('trainingModal');
+  if (modal) modal.style.display = 'none';
+
+  showToast(`Training complete: ${AppState.trainingMode.correctAnswers}/${AppState.trainingMode.totalQuestions} correct`, 'info');
+}
+
+// ============================================
+// SESSION BANKROLL TRACKER
+// ============================================
+function initSessionTracker(startingBankroll = 1000) {
+  AppState.sessionTracker = {
+    ...AppState.sessionTracker,
+    startingBankroll,
+    currentBankroll: startingBankroll,
+    sessionStart: new Date(),
+    handsPlayed: 0,
+    peakBankroll: startingBankroll,
+    lowestBankroll: startingBankroll,
+    biggestWin: 0,
+    biggestLoss: 0,
+    currentStreak: 0,
+    longestWinStreak: 0,
+    longestLoseStreak: 0
+  };
+  updateSessionDisplay();
+}
+
+function updateSessionBankroll(result, amount) {
+  const tracker = AppState.sessionTracker;
+  tracker.handsPlayed++;
+
+  if (result === 'win') {
+    tracker.currentBankroll += amount;
+    tracker.currentStreak = tracker.currentStreak > 0 ? tracker.currentStreak + 1 : 1;
+    if (tracker.currentStreak > tracker.longestWinStreak) {
+      tracker.longestWinStreak = tracker.currentStreak;
+    }
+    if (amount > tracker.biggestWin) tracker.biggestWin = amount;
+  } else if (result === 'loss') {
+    tracker.currentBankroll -= amount;
+    tracker.currentStreak = tracker.currentStreak < 0 ? tracker.currentStreak - 1 : -1;
+    if (Math.abs(tracker.currentStreak) > tracker.longestLoseStreak) {
+      tracker.longestLoseStreak = Math.abs(tracker.currentStreak);
+    }
+    if (amount > tracker.biggestLoss) tracker.biggestLoss = amount;
+  }
+
+  if (tracker.currentBankroll > tracker.peakBankroll) {
+    tracker.peakBankroll = tracker.currentBankroll;
+  }
+  if (tracker.currentBankroll < tracker.lowestBankroll) {
+    tracker.lowestBankroll = tracker.currentBankroll;
+  }
+
+  // Check goals
+  checkSessionGoals();
+  updateSessionDisplay();
+}
+
+function checkSessionGoals() {
+  const tracker = AppState.sessionTracker;
+  const profit = tracker.currentBankroll - tracker.startingBankroll;
+  const elapsed = (new Date() - tracker.sessionStart) / 60000; // minutes
+
+  if (profit >= tracker.goals.profitTarget) {
+    playAudioAlert('goal');
+    showToast(`Profit target reached: $${profit.toFixed(0)}!`, 'success');
+  }
+
+  if (profit <= -tracker.goals.lossLimit) {
+    playAudioAlert('warning');
+    showToast(`Loss limit reached: $${Math.abs(profit).toFixed(0)}`, 'danger');
+  }
+
+  if (elapsed >= tracker.goals.timeLimit) {
+    showToast(`Time limit reached: ${Math.round(elapsed)} minutes`, 'warning');
+  }
+
+  if (tracker.handsPlayed >= tracker.goals.handsLimit) {
+    showToast(`Hands limit reached: ${tracker.handsPlayed}`, 'warning');
+  }
+}
+
+function updateSessionDisplay() {
+  const tracker = AppState.sessionTracker;
+  const profit = tracker.currentBankroll - tracker.startingBankroll;
+  const elapsed = tracker.sessionStart ? (new Date() - tracker.sessionStart) / 3600000 : 0; // hours
+  const hourlyRate = elapsed > 0 ? profit / elapsed : 0;
+
+  const container = document.getElementById('sessionTrackerDisplay');
+  if (container) {
+    container.innerHTML = `
+      <div class="session-stat">
+        <span class="label">Bankroll</span>
+        <span class="value">$${tracker.currentBankroll.toFixed(0)}</span>
+      </div>
+      <div class="session-stat ${profit >= 0 ? 'positive' : 'negative'}">
+        <span class="label">Profit/Loss</span>
+        <span class="value">${profit >= 0 ? '+' : ''}$${profit.toFixed(0)}</span>
+      </div>
+      <div class="session-stat">
+        <span class="label">$/Hour</span>
+        <span class="value ${hourlyRate >= 0 ? 'positive' : 'negative'}">${hourlyRate >= 0 ? '+' : ''}$${hourlyRate.toFixed(0)}</span>
+      </div>
+      <div class="session-stat">
+        <span class="label">Hands</span>
+        <span class="value">${tracker.handsPlayed}</span>
+      </div>
+    `;
+  }
+}
+
+function showSessionTrackerPanel() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'sessionModal';
+
+  const tracker = AppState.sessionTracker;
+  const profit = tracker.currentBankroll - tracker.startingBankroll;
+  const elapsed = tracker.sessionStart ? (new Date() - tracker.sessionStart) / 60000 : 0;
+
+  modal.innerHTML = `
+    <div class="modal-content session-modal">
+      <div class="modal-header">
+        <h3>Session Tracker</h3>
+        <button class="modal-close" onclick="closeModal('sessionModal')">&times;</button>
+      </div>
+      <div class="session-details">
+        <div class="session-main">
+          <div class="bankroll-display">
+            <span class="label">Current Bankroll</span>
+            <span class="amount">$${tracker.currentBankroll.toFixed(0)}</span>
+            <span class="profit ${profit >= 0 ? 'positive' : 'negative'}">${profit >= 0 ? '+' : ''}$${profit.toFixed(0)}</span>
+          </div>
+        </div>
+        <div class="session-stats-grid">
+          <div class="stat-box"><span class="label">Starting</span><span class="value">$${tracker.startingBankroll}</span></div>
+          <div class="stat-box"><span class="label">Peak</span><span class="value">$${tracker.peakBankroll}</span></div>
+          <div class="stat-box"><span class="label">Lowest</span><span class="value">$${tracker.lowestBankroll}</span></div>
+          <div class="stat-box"><span class="label">Hands</span><span class="value">${tracker.handsPlayed}</span></div>
+          <div class="stat-box"><span class="label">Biggest Win</span><span class="value positive">+$${tracker.biggestWin}</span></div>
+          <div class="stat-box"><span class="label">Biggest Loss</span><span class="value negative">-$${tracker.biggestLoss}</span></div>
+          <div class="stat-box"><span class="label">Win Streak</span><span class="value">${tracker.longestWinStreak}</span></div>
+          <div class="stat-box"><span class="label">Lose Streak</span><span class="value">${tracker.longestLoseStreak}</span></div>
+          <div class="stat-box"><span class="label">Time</span><span class="value">${Math.round(elapsed)} min</span></div>
+        </div>
+        <div class="session-goals">
+          <h4>Session Goals</h4>
+          <div class="goal-inputs">
+            <div class="goal-row">
+              <label>Profit Target:</label>
+              <input type="number" id="goalProfit" value="${tracker.goals.profitTarget}" onchange="updateGoal('profitTarget', this.value)">
+            </div>
+            <div class="goal-row">
+              <label>Loss Limit:</label>
+              <input type="number" id="goalLoss" value="${tracker.goals.lossLimit}" onchange="updateGoal('lossLimit', this.value)">
+            </div>
+            <div class="goal-row">
+              <label>Time Limit (min):</label>
+              <input type="number" id="goalTime" value="${tracker.goals.timeLimit}" onchange="updateGoal('timeLimit', this.value)">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function updateGoal(goal, value) {
+  AppState.sessionTracker.goals[goal] = parseFloat(value);
+}
+
+// ============================================
+// BET SPREAD OPTIMIZER
+// ============================================
+function calculateOptimalBetSpread(bankroll, minBet, advantage, ror_target = 5) {
+  const spreads = [];
+
+  for (let spread = 4; spread <= 20; spread += 2) {
+    const maxBet = minBet * spread;
+    const avgBet = minBet * (1 + spread) / 2;
+    const ror = calculateRiskOfRuin(bankroll, avgBet, advantage).riskOfRuin;
+
+    spreads.push({
+      spread: `1:${spread}`,
+      minBet,
+      maxBet,
+      avgBet: avgBet.toFixed(0),
+      ror: parseFloat(ror),
+      recommended: parseFloat(ror) <= ror_target && parseFloat(ror) > ror_target - 3
+    });
+  }
+
+  return spreads;
+}
+
+function showBetSpreadOptimizer() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'betSpreadModal';
+  modal.innerHTML = `
+    <div class="modal-content betspread-modal">
+      <div class="modal-header">
+        <h3>Bet Spread Optimizer</h3>
+        <button class="modal-close" onclick="closeModal('betSpreadModal')">&times;</button>
+      </div>
+      <div class="betspread-inputs">
+        <div class="input-row">
+          <label>Bankroll ($):</label>
+          <input type="number" id="bsoBankroll" value="10000" min="100">
+        </div>
+        <div class="input-row">
+          <label>Min Bet ($):</label>
+          <input type="number" id="bsoMinBet" value="25" min="1">
+        </div>
+        <div class="input-row">
+          <label>Advantage (%):</label>
+          <input type="number" id="bsoAdvantage" value="1.0" step="0.1">
+        </div>
+        <div class="input-row">
+          <label>Target RoR (%):</label>
+          <input type="number" id="bsoRor" value="5" step="1" min="1" max="20">
+        </div>
+        <button class="btn-calculate" onclick="runBetSpreadCalculation()">OPTIMIZE</button>
+      </div>
+      <div class="betspread-results" id="betSpreadResults"></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function runBetSpreadCalculation() {
+  const bankroll = parseFloat(document.getElementById('bsoBankroll').value);
+  const minBet = parseFloat(document.getElementById('bsoMinBet').value);
+  const advantage = parseFloat(document.getElementById('bsoAdvantage').value);
+  const rorTarget = parseFloat(document.getElementById('bsoRor').value);
+
+  const spreads = calculateOptimalBetSpread(bankroll, minBet, advantage, rorTarget);
+
+  document.getElementById('betSpreadResults').innerHTML = `
+    <table class="spread-table">
+      <thead>
+        <tr>
+          <th>Spread</th>
+          <th>Min</th>
+          <th>Max</th>
+          <th>Avg Bet</th>
+          <th>RoR</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${spreads.map(s => `
+          <tr class="${s.recommended ? 'recommended' : ''} ${s.ror > rorTarget * 2 ? 'danger' : ''}">
+            <td>${s.spread}</td>
+            <td>$${s.minBet}</td>
+            <td>$${s.maxBet}</td>
+            <td>$${s.avgBet}</td>
+            <td>${s.ror.toFixed(2)}%</td>
+            <td>${s.recommended ? 'RECOMMENDED' : ''}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+// ============================================
+// AUDIO ALERTS
+// ============================================
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+function playAudioAlert(type) {
+  if (!AppState.audioSettings.enabled) return;
+
+  const frequencies = {
+    positiveTc: [523, 659, 784], // C-E-G chord (happy)
+    deviation: [440, 554, 659],  // A-C#-E (alert)
+    betIncrease: [392, 494, 587], // G-B-D
+    wonging: [349, 440, 523],    // F-A-C
+    shuffle: [262, 330, 392],    // C-E-G low
+    correct: [523, 659],         // Success
+    incorrect: [311, 233],       // Fail
+    goal: [523, 659, 784, 1047], // Big win
+    warning: [233, 175]          // Warning
+  };
+
+  const freqs = frequencies[type] || [440];
+  const vol = AppState.audioSettings.volume;
+
+  freqs.forEach((freq, i) => {
+    setTimeout(() => {
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      gain.gain.value = vol * 0.3;
+      gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+
+      osc.start();
+      osc.stop(audioContext.currentTime + 0.2);
+    }, i * 100);
+  });
+}
+
+function toggleAudio() {
+  AppState.audioSettings.enabled = !AppState.audioSettings.enabled;
+  showToast(`Audio ${AppState.audioSettings.enabled ? 'enabled' : 'disabled'}`, 'info');
+  updateAudioButton();
+}
+
+function updateAudioButton() {
+  const btn = document.getElementById('btnAudio');
+  if (btn) {
+    btn.textContent = AppState.audioSettings.enabled ? 'SOUND ON' : 'SOUND OFF';
+    btn.classList.toggle('muted', !AppState.audioSettings.enabled);
+  }
+}
+
+// ============================================
+// ACE SEQUENCING
+// ============================================
+function trackAce(position) {
+  if (!AppState.aceTracker.enabled) return;
+
+  AppState.aceTracker.acePositions.push(position);
+
+  // Track the card that appeared before the ace
+  if (AppState.shoeReplay.currentShoe.length >= 2) {
+    const keyCard = AppState.shoeReplay.currentShoe[AppState.shoeReplay.currentShoe.length - 2];
+    AppState.aceTracker.keyCards.push({ keyCard, acePosition: position });
+  }
+}
+
+function predictAces() {
+  // Analyze patterns to predict ace locations
+  const predictions = [];
+  const tracker = AppState.aceTracker;
+
+  if (tracker.keyCards.length < 2) return predictions;
+
+  // Simple prediction based on key card patterns
+  const lastKeyCard = tracker.keyCards[tracker.keyCards.length - 1];
+  predictions.push({
+    confidence: 'low',
+    message: `Last ace followed ${lastKeyCard.keyCard}`
+  });
+
+  return predictions;
+}
+
+function toggleAceTracker() {
+  AppState.aceTracker.enabled = !AppState.aceTracker.enabled;
+  showToast(`Ace sequencing ${AppState.aceTracker.enabled ? 'enabled' : 'disabled'}`, 'info');
+}
+
+// ============================================
+// HEAT INDEX
+// ============================================
+function updateHeatIndex(betAmount, won) {
+  const heat = AppState.heatIndex;
+
+  heat.lastBets.push({ amount: betAmount, won, time: Date.now() });
+  if (heat.lastBets.length > 20) heat.lastBets.shift();
+
+  // Calculate heat factors
+  const avgBet = heat.lastBets.reduce((s, b) => s + b.amount, 0) / heat.lastBets.length;
+  const maxBet = Math.max(...heat.lastBets.map(b => b.amount));
+  const betVariation = maxBet / avgBet;
+
+  const recentWins = heat.lastBets.slice(-10).filter(b => b.won).length;
+  const winStreak = recentWins > 6 ? (recentWins - 6) * 10 : 0;
+
+  heat.factors.bigBets = betAmount > avgBet * 3 ? 20 : betAmount > avgBet * 2 ? 10 : 0;
+  heat.factors.winStreak = winStreak;
+  heat.factors.betVariation = betVariation > 8 ? 30 : betVariation > 5 ? 15 : 0;
+
+  // Calculate total heat
+  heat.level = Math.min(100, heat.factors.bigBets + heat.factors.winStreak + heat.factors.betVariation);
+
+  updateHeatDisplay();
+}
+
+function updateHeatDisplay() {
+  const container = document.getElementById('heatIndexDisplay');
+  if (!container) return;
+
+  const heat = AppState.heatIndex;
+  const color = heat.level < 30 ? '#22c55e' : heat.level < 60 ? '#f59e0b' : '#ef4444';
+  const advice = heat.level < 30 ? 'Safe' : heat.level < 60 ? 'Caution' : 'Cool off!';
+
+  container.innerHTML = `
+    <div class="heat-meter">
+      <div class="heat-bar" style="width: ${heat.level}%; background: ${color}"></div>
+    </div>
+    <div class="heat-label">${heat.level}% - ${advice}</div>
+  `;
+}
+
+function getCamouflageAdvice() {
+  const heat = AppState.heatIndex.level;
+
+  if (heat < 30) return 'Playing normally - no camouflage needed';
+  if (heat < 50) return 'Consider making a "bad" play occasionally';
+  if (heat < 70) return 'Reduce bet spread, take some breaks';
+  return 'High heat! Consider leaving soon, wong out, or sit out hands';
+}
+
+// ============================================
+// WONGING
+// ============================================
+function checkWongingSignal() {
+  const tc = getTrueCount();
+  const wonging = AppState.wonging;
+
+  if (!wonging.enabled) return null;
+
+  if (!wonging.currentlyIn && tc >= wonging.entryTc) {
+    return { action: 'ENTER', tc, message: `TC ${tc.toFixed(1)} >= ${wonging.entryTc} - Enter table!` };
+  }
+
+  if (wonging.currentlyIn && tc <= wonging.exitTc) {
+    return { action: 'EXIT', tc, message: `TC ${tc.toFixed(1)} <= ${wonging.exitTc} - Wong out!` };
+  }
+
+  return null;
+}
+
+function updateWongingStatus(entering) {
+  AppState.wonging.currentlyIn = entering;
+  if (!entering) AppState.wonging.handsWonged++;
+  updateWongingDisplay();
+}
+
+function updateWongingDisplay() {
+  const container = document.getElementById('wongingDisplay');
+  if (!container) return;
+
+  const signal = checkWongingSignal();
+  const wonging = AppState.wonging;
+
+  container.innerHTML = `
+    <div class="wonging-status ${wonging.currentlyIn ? 'in' : 'out'}">
+      ${wonging.currentlyIn ? 'IN GAME' : 'WONGED OUT'}
+    </div>
+    ${signal ? `<div class="wonging-signal ${signal.action.toLowerCase()}">${signal.message}</div>` : ''}
+    <div class="wonging-stats">Entry: TC ${wonging.entryTc} | Exit: TC ${wonging.exitTc}</div>
+  `;
+
+  if (signal) {
+    playAudioAlert('wonging');
+  }
+}
+
+// ============================================
+// THEME TOGGLE
+// ============================================
+function toggleTheme() {
+  AppState.theme = AppState.theme === 'dark' ? 'light' : 'dark';
+  document.body.classList.toggle('light-theme', AppState.theme === 'light');
+  localStorage.setItem('bjTheme', AppState.theme);
+  showToast(`Theme: ${AppState.theme}`, 'info');
+}
+
+function loadTheme() {
+  const saved = localStorage.getItem('bjTheme');
+  if (saved) {
+    AppState.theme = saved;
+    document.body.classList.toggle('light-theme', AppState.theme === 'light');
+  }
+}
+
+// ============================================
+// SHOE REPLAY
+// ============================================
+function startShoeRecording() {
+  AppState.shoeReplay.recording = true;
+  AppState.shoeReplay.currentShoe = [];
+  showToast('Recording shoe...', 'info');
+}
+
+function stopShoeRecording() {
+  AppState.shoeReplay.recording = false;
+  AppState.shoeReplay.savedShoes.push([...AppState.shoeReplay.currentShoe]);
+  showToast(`Shoe saved (${AppState.shoeReplay.currentShoe.length} cards)`, 'success');
+}
+
+function recordCard(card) {
+  if (AppState.shoeReplay.recording) {
+    AppState.shoeReplay.currentShoe.push(card);
+  }
+}
+
+function replayShoe(index) {
+  if (index >= AppState.shoeReplay.savedShoes.length) return;
+
+  const shoe = AppState.shoeReplay.savedShoes[index];
+  AppState.shoeReplay.playbackIndex = 0;
+
+  showToast(`Replaying shoe ${index + 1} (${shoe.length} cards)`, 'info');
+  // Implementation would step through cards
+}
+
+// ============================================
+// MOBILE TOUCH MODE
+// ============================================
+function initMobileMode() {
+  if ('ontouchstart' in window) {
+    document.body.classList.add('touch-mode');
+
+    // Add swipe gestures
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    document.addEventListener('touchstart', e => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    });
+
+    document.addEventListener('touchend', e => {
+      const deltaX = e.changedTouches[0].clientX - touchStartX;
+      const deltaY = e.changedTouches[0].clientY - touchStartY;
+
+      if (Math.abs(deltaX) > 100 && Math.abs(deltaX) > Math.abs(deltaY)) {
+        if (deltaX > 0) {
+          handleUndo(); // Swipe right = undo
+        } else {
+          handleResetRound(); // Swipe left = reset round
+        }
+      }
+    });
+  }
+}
+
+// ============================================
+// MODAL UTILITIES
+// ============================================
+function closeModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.remove();
+}
+
+function getCardValue(card) {
+  if (card === 'A') return 11;
+  if (['K', 'Q', 'J', '10'].includes(card)) return 10;
+  return parseInt(card) || 0;
+}
+
+// ============================================
+// MODAL SHOW/CLOSE FUNCTIONS
+// ============================================
+
+// Hand Analyzer
+function closeHandAnalyzer() {
+  document.getElementById('handAnalyzerModal').style.display = 'none';
+}
+
+function runHandAnalysis() {
+  const handInput = document.getElementById('analyzerPlayerHand').value;
+  const dealerCard = document.getElementById('analyzerDealerCard').value;
+
+  if (!handInput) {
+    showToast('Please enter a player hand', 'error');
+    return;
+  }
+
+  const cards = handInput.split(',').map(c => c.trim().toUpperCase());
+  const result = analyzeHand(cards, dealerCard);
+
+  const resultsDiv = document.getElementById('analyzerResults');
+  resultsDiv.innerHTML = `
+    <div class="ev-result-grid">
+      <div class="ev-result-item">
+        <span class="ev-action">STAND</span>
+        <span class="ev-value ${result.standEV >= 0 ? 'best' : 'negative'}">${(result.standEV * 100).toFixed(2)}%</span>
+      </div>
+      <div class="ev-result-item">
+        <span class="ev-action">HIT</span>
+        <span class="ev-value ${result.hitEV >= 0 ? 'best' : 'negative'}">${(result.hitEV * 100).toFixed(2)}%</span>
+      </div>
+      <div class="ev-result-item">
+        <span class="ev-action">DOUBLE</span>
+        <span class="ev-value ${result.doubleEV >= 0 ? 'best' : 'negative'}">${(result.doubleEV * 100).toFixed(2)}%</span>
+      </div>
+      ${result.canSplit ? `
+      <div class="ev-result-item">
+        <span class="ev-action">SPLIT</span>
+        <span class="ev-value ${result.splitEV >= 0 ? 'best' : 'negative'}">${(result.splitEV * 100).toFixed(2)}%</span>
+      </div>` : ''}
+    </div>
+    <div class="ev-recommendation">
+      <strong>Optimal Play:</strong> ${result.optimalAction} (EV: ${(result.optimalEV * 100).toFixed(2)}%)
+    </div>
+  `;
+}
+
+// Risk of Ruin Calculator
+function closeRoRCalculator() {
+  document.getElementById('rorModal').style.display = 'none';
+}
+
+function calculateRoR() {
+  const bankroll = parseFloat(document.getElementById('rorBankroll').value);
+  const betUnit = parseFloat(document.getElementById('rorBetUnit').value);
+  const advantage = parseFloat(document.getElementById('rorAdvantage').value) / 100;
+  const stdDev = parseFloat(document.getElementById('rorStdDev').value);
+
+  const result = calculateRiskOfRuin(bankroll, betUnit, advantage, stdDev);
+
+  const resultsDiv = document.getElementById('rorResults');
+  resultsDiv.innerHTML = `
+    <div class="ror-main-result">
+      <div class="ror-percentage">${(result.riskOfRuin * 100).toFixed(1)}%</div>
+      <div class="ror-label">Risk of Ruin</div>
+    </div>
+    <div class="ror-details">
+      <div class="ror-detail-item">
+        <span>Bet Units in Bankroll</span>
+        <span>${result.betUnits.toFixed(0)}</span>
+      </div>
+      <div class="ror-detail-item">
+        <span>Kelly Fraction</span>
+        <span>${(result.kelly * 100).toFixed(2)}%</span>
+      </div>
+      <div class="ror-detail-item">
+        <span>Optimal Bet Size</span>
+        <span>$${result.optimalBet.toFixed(0)}</span>
+      </div>
+      <div class="ror-detail-item">
+        <span>Required Bankroll (2% RoR)</span>
+        <span>$${result.requiredFor2Percent.toFixed(0)}</span>
+      </div>
+    </div>
+  `;
+}
+
+// Variance Calculator
+function closeVarianceCalculator() {
+  document.getElementById('varianceModal').style.display = 'none';
+}
+
+function calculateVariance() {
+  const hands = parseInt(document.getElementById('varHands').value);
+  const betSize = parseFloat(document.getElementById('varBetSize').value);
+  const advantage = parseFloat(document.getElementById('varAdvantage').value) / 100;
+
+  const result = calculateVarianceStats(hands, betSize, advantage);
+
+  const resultsDiv = document.getElementById('varianceResults');
+  resultsDiv.innerHTML = `
+    <div class="variance-chart">Confidence Interval Visualization</div>
+    <div class="variance-stats">
+      <div class="variance-stat">
+        <div class="label">Expected Value</div>
+        <div class="value" style="color: ${result.expectedValue >= 0 ? '#22c55e' : '#ef4444'}">$${result.expectedValue.toFixed(0)}</div>
+      </div>
+      <div class="variance-stat">
+        <div class="label">Std Deviation</div>
+        <div class="value">$${result.stdDev.toFixed(0)}</div>
+      </div>
+      <div class="variance-stat">
+        <div class="label">68% Range</div>
+        <div class="value">$${result.range68Low.toFixed(0)} to $${result.range68High.toFixed(0)}</div>
+      </div>
+      <div class="variance-stat">
+        <div class="label">95% Range</div>
+        <div class="value">$${result.range95Low.toFixed(0)} to $${result.range95High.toFixed(0)}</div>
+      </div>
+    </div>
+  `;
+}
+
+// Training Mode
+function closeTrainingMode() {
+  document.getElementById('trainingModal').style.display = 'none';
+  AppState.trainingMode.active = false;
+}
+
+function showTrainingModal() {
+  document.getElementById('trainingModal').style.display = 'flex';
+  generateTrainingHand();
+}
+
+// Session Tracker
+function closeSessionTracker() {
+  document.getElementById('sessionTrackerModal').style.display = 'none';
+}
+
+function updateSessionBankroll() {
+  const newBankroll = parseFloat(document.getElementById('sessionBankrollInput').value);
+  if (newBankroll >= 0) {
+    AppState.sessionTracker.currentBankroll = newBankroll;
+    if (newBankroll > AppState.sessionTracker.peakBankroll) {
+      AppState.sessionTracker.peakBankroll = newBankroll;
+    }
+    if (newBankroll < AppState.sessionTracker.lowestBankroll) {
+      AppState.sessionTracker.lowestBankroll = newBankroll;
+    }
+    updateSessionDisplay();
+    showToast('Bankroll updated', 'success');
+  }
+}
+
+function resetSession() {
+  AppState.sessionTracker.startingBankroll = AppState.sessionTracker.currentBankroll;
+  AppState.sessionTracker.peakBankroll = AppState.sessionTracker.currentBankroll;
+  AppState.sessionTracker.lowestBankroll = AppState.sessionTracker.currentBankroll;
+  AppState.sessionTracker.handsPlayed = 0;
+  AppState.sessionTracker.sessionStart = Date.now();
+  updateSessionDisplay();
+  showToast('Session reset', 'info');
+}
+
+function exportSessionData() {
+  const data = {
+    ...AppState.sessionTracker,
+    exportedAt: new Date().toISOString()
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `session-${Date.now()}.json`;
+  a.click();
+  showToast('Session data exported', 'success');
+}
+
+function updateSessionDisplay() {
+  const st = AppState.sessionTracker;
+  document.getElementById('sessionCurrentBankroll').textContent = `$${st.currentBankroll.toLocaleString()}`;
+  document.getElementById('sessionStartBankroll').textContent = `$${st.startingBankroll.toLocaleString()}`;
+  document.getElementById('sessionPeak').textContent = `$${st.peakBankroll.toLocaleString()}`;
+  document.getElementById('sessionLowest').textContent = `$${st.lowestBankroll.toLocaleString()}`;
+  document.getElementById('sessionHands').textContent = st.handsPlayed;
+
+  const pnl = st.currentBankroll - st.startingBankroll;
+  const pnlPct = st.startingBankroll > 0 ? (pnl / st.startingBankroll * 100).toFixed(1) : 0;
+  const pnlEl = document.getElementById('sessionPnL');
+  pnlEl.textContent = `${pnl >= 0 ? '+' : ''}$${pnl.toLocaleString()} (${pnlPct}%)`;
+  pnlEl.className = `bankroll-change ${pnl >= 0 ? 'positive' : 'negative'}`;
+
+  if (st.sessionStart) {
+    const mins = Math.floor((Date.now() - st.sessionStart) / 60000);
+    document.getElementById('sessionDuration').textContent = `${Math.floor(mins/60)}:${(mins%60).toString().padStart(2,'0')}`;
+  }
+}
+
+// Bet Spread Optimizer
+function closeBetOptimizer() {
+  document.getElementById('betOptimizerModal').style.display = 'none';
+}
+
+function optimizeBetSpread() {
+  const bankroll = parseFloat(document.getElementById('optBankroll').value);
+  const minBet = parseFloat(document.getElementById('optMinBet').value);
+  const maxSpread = parseInt(document.getElementById('optMaxSpread').value);
+  const riskLevel = document.getElementById('optRiskLevel').value;
+
+  const result = calculateOptimalSpread(bankroll, minBet, maxSpread, riskLevel);
+
+  const resultsDiv = document.getElementById('optimizerResults');
+  resultsDiv.innerHTML = `
+    <table class="spread-table">
+      <tr><th>True Count</th><th>Bet Units</th><th>Bet Size</th></tr>
+      ${result.spread.map(s => `
+        <tr>
+          <td>${s.tc >= 0 ? '+' : ''}${s.tc}</td>
+          <td>${s.units}</td>
+          <td>$${s.amount}</td>
+        </tr>
+      `).join('')}
+    </table>
+    <div class="spread-note">
+      <strong>Risk Level:</strong> ${riskLevel}<br>
+      <strong>Expected Hourly Rate:</strong> $${result.hourlyRate.toFixed(0)}/hr<br>
+      <strong>Risk of Ruin:</strong> ${(result.ror * 100).toFixed(1)}%
+    </div>
+  `;
+}
+
+// Count Systems
+function closeCountSystems() {
+  document.getElementById('countSystemsModal').style.display = 'none';
+}
+
+function updateCountSystemsDisplay() {
+  const cs = AppState.countSystems;
+  const decksRemaining = Math.max(0.5, (AppState.totalCards - AppState.cardsSeen) / 52);
+
+  document.getElementById('countHiLo').textContent = `RC: ${cs.counts.hilo}`;
+  document.getElementById('countHiLoTC').textContent = `TC: ${(cs.counts.hilo / decksRemaining).toFixed(2)}`;
+  document.getElementById('countOmega').textContent = `RC: ${cs.counts.omega2}`;
+  document.getElementById('countOmegaTC').textContent = `TC: ${(cs.counts.omega2 / decksRemaining).toFixed(2)}`;
+  document.getElementById('countHiOpt').textContent = `RC: ${cs.counts.hiopt2}`;
+  document.getElementById('countHiOptTC').textContent = `TC: ${(cs.counts.hiopt2 / decksRemaining).toFixed(2)}`;
+  document.getElementById('countZen').textContent = `RC: ${cs.counts.zen}`;
+  document.getElementById('countZenTC').textContent = `TC: ${(cs.counts.zen / decksRemaining).toFixed(2)}`;
+  document.getElementById('countWong').textContent = `RC: ${cs.counts.wong.toFixed(1)}`;
+  document.getElementById('countWongTC').textContent = `TC: ${(cs.counts.wong / decksRemaining).toFixed(2)}`;
+}
+
+// Ace Sequencer
+function showAceSequencer() {
+  document.getElementById('aceSequencerModal').style.display = 'flex';
+  updateAceSequencerDisplay();
+}
+
+function closeAceSequencer() {
+  document.getElementById('aceSequencerModal').style.display = 'none';
+}
+
+function updateAceSequencerDisplay() {
+  const acesLeft = AppState.remainingCards['A'] || 0;
+  const totalAces = AppState.decks * 4;
+  const decksRemaining = Math.max(0.5, (AppState.totalCards - AppState.cardsSeen) / 52);
+  const expectedPerDeck = 4;
+  const aceRichness = (acesLeft / decksRemaining) / expectedPerDeck;
+  const aceProbability = (acesLeft / (AppState.totalCards - AppState.cardsSeen)) * 100;
+
+  document.getElementById('acesRemaining').textContent = acesLeft;
+  document.getElementById('aceExpected').textContent = (decksRemaining * 4).toFixed(1);
+  document.getElementById('aceRichness').textContent = `${aceRichness.toFixed(2)}x`;
+  document.getElementById('aceProbability').textContent = `${aceProbability.toFixed(1)}%`;
+
+  // Update sequence list
+  const sequenceList = document.getElementById('aceSequenceList');
+  if (AppState.aceTracker && AppState.aceTracker.sequence.length > 0) {
+    sequenceList.innerHTML = AppState.aceTracker.sequence.slice(-10).map((pos, i) =>
+      `<span class="sequence-item">Ace #${i+1} at card ${pos}</span>`
+    ).join('');
+  } else {
+    sequenceList.innerHTML = '<span class="no-data">No aces tracked yet</span>';
+  }
+}
+
+// Heat Index
+function showHeatIndexPanel() {
+  document.getElementById('heatIndexModal').style.display = 'flex';
+  updateHeatIndexDisplay();
+}
+
+function closeHeatIndex() {
+  document.getElementById('heatIndexModal').style.display = 'none';
+}
+
+function updateHeatIndexDisplay() {
+  const hi = AppState.heatIndex || { level: 20, factors: {} };
+
+  document.getElementById('heatBar').style.width = `${hi.level}%`;
+  document.getElementById('heatSpread').textContent = `1:${hi.factors.betSpread || 1} (${hi.factors.betSpread > 8 ? 'High' : 'Normal'})`;
+
+  if (AppState.sessionTracker.sessionStart) {
+    const mins = Math.floor((Date.now() - AppState.sessionTracker.sessionStart) / 60000);
+    document.getElementById('heatDuration').textContent = `${mins} min`;
+  }
+
+  // Update camouflage tips based on heat level
+  const tips = document.getElementById('camoTipsList');
+  if (hi.level > 60) {
+    tips.innerHTML = `
+      <li><strong>Warning:</strong> High heat detected - consider leaving</li>
+      <li>Reduce bet spread immediately</li>
+      <li>Make some intentional small mistakes</li>
+      <li>Take a bathroom break</li>
+    `;
+  } else if (hi.level > 40) {
+    tips.innerHTML = `
+      <li>Vary your bet timing - don't bet fast at high counts</li>
+      <li>Chat with dealer occasionally</li>
+      <li>Miss an index play once in a while at low stakes</li>
+    `;
+  }
+}
+
+// Wonging Signals
+function showWongingSignals() {
+  document.getElementById('wongingModal').style.display = 'flex';
+  updateWongingDisplay();
+}
+
+function closeWonging() {
+  document.getElementById('wongingModal').style.display = 'none';
+}
+
+function updateWongingSettings() {
+  const entry = parseFloat(document.getElementById('wongEntry').value);
+  const exit = parseFloat(document.getElementById('wongExit').value);
+
+  if (AppState.wonging) {
+    AppState.wonging.entryTC = entry;
+    AppState.wonging.exitTC = exit;
+    showToast('Wonging settings updated', 'success');
+    updateWongingDisplay();
+  }
+}
+
+function updateWongingDisplay() {
+  const tc = AppState.trueCount;
+  const wong = AppState.wonging || { entryTC: 2, exitTC: 0 };
+
+  document.getElementById('wongCurrentTC').textContent = tc.toFixed(2);
+
+  const signalEl = document.getElementById('wongingSignal');
+  if (tc >= wong.entryTC) {
+    signalEl.className = 'signal-display signal-enter';
+    signalEl.innerHTML = '<span class="signal-icon">▶</span><span class="signal-text">ENTER</span>';
+  } else if (tc <= wong.exitTC) {
+    signalEl.className = 'signal-display signal-exit';
+    signalEl.innerHTML = '<span class="signal-icon">◼</span><span class="signal-text">EXIT</span>';
+  } else {
+    signalEl.className = 'signal-display signal-neutral';
+    signalEl.innerHTML = '<span class="signal-icon">⏸</span><span class="signal-text">NEUTRAL</span>';
+  }
+}
+
+// Shoe Replay
+function showShoeReplay() {
+  document.getElementById('shoeReplayModal').style.display = 'flex';
+  updateShoeReplayDisplay();
+}
+
+function closeShoeReplay() {
+  document.getElementById('shoeReplayModal').style.display = 'none';
+}
+
+function replayPrevRound() {
+  if (AppState.shoeReplay.playbackIndex > 0) {
+    AppState.shoeReplay.playbackIndex--;
+    updateShoeReplayDisplay();
+  }
+}
+
+function replayNextRound() {
+  const maxIndex = (AppState.shoeReplay.currentShoe || []).length - 1;
+  if (AppState.shoeReplay.playbackIndex < maxIndex) {
+    AppState.shoeReplay.playbackIndex++;
+    updateShoeReplayDisplay();
+  }
+}
+
+function toggleReplayPause() {
+  AppState.shoeReplay.paused = !AppState.shoeReplay.paused;
+  showToast(AppState.shoeReplay.paused ? 'Replay paused' : 'Replay playing', 'info');
+}
+
+function seekReplay(value) {
+  const maxIndex = (AppState.shoeReplay.currentShoe || []).length - 1;
+  AppState.shoeReplay.playbackIndex = Math.floor((value / 100) * maxIndex);
+  updateShoeReplayDisplay();
+}
+
+function saveCurrentShoe() {
+  if (AppState.dealerHistory && AppState.dealerHistory.length > 0) {
+    AppState.shoeReplay.savedShoes.push({
+      rounds: [...AppState.dealerHistory],
+      savedAt: Date.now()
+    });
+    updateShoeReplayDisplay();
+    showToast('Shoe saved', 'success');
+  } else {
+    showToast('No shoe data to save', 'error');
+  }
+}
+
+function updateShoeReplayDisplay() {
+  const shoes = AppState.shoeReplay.savedShoes || [];
+  const list = document.getElementById('savedShoesList');
+
+  if (shoes.length > 0) {
+    list.innerHTML = shoes.map((shoe, i) => `
+      <div class="shoe-item" onclick="loadSavedShoe(${i})">
+        <span>Shoe ${i + 1}</span>
+        <span>${shoe.rounds ? shoe.rounds.length : 0} rounds</span>
+      </div>
+    `).join('');
+  } else {
+    list.innerHTML = '<span class="no-data">No saved shoes</span>';
+  }
+
+  document.getElementById('replayTotalRounds').textContent = `of ${shoes.length}`;
+}
+
+function loadSavedShoe(index) {
+  const shoe = AppState.shoeReplay.savedShoes[index];
+  if (shoe && shoe.rounds) {
+    AppState.shoeReplay.currentShoe = shoe.rounds;
+    AppState.shoeReplay.playbackIndex = 0;
+    showToast(`Loaded shoe ${index + 1}`, 'success');
+  }
+}
+
+// ============================================
 // Initialize on DOM Ready
 // ============================================
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', () => {
+    init();
+    loadTheme();
+    initMobileMode();
+  });
 } else {
   init();
+  loadTheme();
+  initMobileMode();
 }
