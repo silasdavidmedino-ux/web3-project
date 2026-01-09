@@ -453,7 +453,32 @@
         </div>
         <button class="btn-apply" id="btnApplySettings">Apply</button>
         <button class="btn-history" id="btnHistory" onclick="showHistoryPanel()">HISTORY</button>
-        <button class="btn-simulate-rt" id="btnSimulateRT" onclick="startRealtimeSimulation(100)">LIVE SIM</button>
+        <div class="sim-config-selector">
+          <div class="sim-config-item">
+            <label for="simDecksSelect">Decks:</label>
+            <select id="simDecksSelect">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="4">4</option>
+              <option value="8" selected>8</option>
+              <option value="16">16</option>
+              <option value="32">32</option>
+            </select>
+          </div>
+          <div class="sim-config-item">
+            <label for="simPlayersSelect">Players:</label>
+            <select id="simPlayersSelect" onchange="updateSimPlayerCount()">
+              <option value="1">1</option>
+              <option value="2" selected>2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-simulate-rt" id="btnSimulateRT" onclick="startSimWithConfig()">LIVE SIM</button>
         <button class="btn-simulate-shoe" id="btnSimulateShoe" onclick="simulateOneShoe()">1 SHOE</button>
         <button class="btn-full-sim" id="btnFullSim" onclick="runFullEngineSimulation()">FULL SIM</button>
         <button class="btn-end-game" id="btnEndGame">END GAME</button>
@@ -1366,7 +1391,7 @@
   </div>
 
   <!-- Hand Analyzer Modal -->
-  <div id="handAnalyzerModal" class="modal-overlay" onclick="if(event.target === this) closeHandAnalyzer()">
+  <div id="handAnalyzerModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeHandAnalyzer()">
     <div class="modal-content analyzer-modal">
       <div class="modal-header">
         <h2>Hand Analyzer</h2>
@@ -1403,7 +1428,7 @@
   </div>
 
   <!-- Risk of Ruin Modal -->
-  <div id="rorModal" class="modal-overlay" onclick="if(event.target === this) closeRoRCalculator()">
+  <div id="rorModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeRoRCalculator()">
     <div class="modal-content ror-modal">
       <div class="modal-header">
         <h2>Risk of Ruin Calculator</h2>
@@ -1435,7 +1460,7 @@
   </div>
 
   <!-- Variance Calculator Modal -->
-  <div id="varianceModal" class="modal-overlay" onclick="if(event.target === this) closeVarianceCalculator()">
+  <div id="varianceModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeVarianceCalculator()">
     <div class="modal-content variance-modal">
       <div class="modal-header">
         <h2>Variance Calculator</h2>
@@ -1463,7 +1488,7 @@
   </div>
 
   <!-- Training Mode Modal -->
-  <div id="trainingModal" class="modal-overlay" onclick="if(event.target === this) closeTrainingMode()">
+  <div id="trainingModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeTrainingMode()">
     <div class="modal-content training-modal">
       <div class="modal-header">
         <h2>Training Mode</h2>
@@ -1512,7 +1537,7 @@
   </div>
 
   <!-- Session Tracker Modal -->
-  <div id="sessionTrackerModal" class="modal-overlay" onclick="if(event.target === this) closeSessionTracker()">
+  <div id="sessionTrackerModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeSessionTracker()">
     <div class="modal-content session-modal">
       <div class="modal-header">
         <h2>Session Bankroll Tracker</h2>
@@ -1568,7 +1593,7 @@
   </div>
 
   <!-- Bet Spread Optimizer Modal -->
-  <div id="betOptimizerModal" class="modal-overlay" onclick="if(event.target === this) closeBetOptimizer()">
+  <div id="betOptimizerModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeBetOptimizer()">
     <div class="modal-content optimizer-modal">
       <div class="modal-header">
         <h2>Bet Spread Optimizer</h2>
@@ -1609,7 +1634,7 @@
   </div>
 
   <!-- Count Systems Modal -->
-  <div id="countSystemsModal" class="modal-overlay" onclick="if(event.target === this) closeCountSystems()">
+  <div id="countSystemsModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeCountSystems()">
     <div class="modal-content counts-modal">
       <div class="modal-header">
         <h2>Multi-Count Systems</h2>
@@ -1681,7 +1706,7 @@
   </div>
 
   <!-- Ace Sequencing Modal -->
-  <div id="aceSequencerModal" class="modal-overlay" onclick="if(event.target === this) closeAceSequencer()">
+  <div id="aceSequencerModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeAceSequencer()">
     <div class="modal-content ace-modal">
       <div class="modal-header">
         <h2>Ace Sequencing Tracker</h2>
@@ -1717,7 +1742,7 @@
   </div>
 
   <!-- Heat Index Modal -->
-  <div id="heatIndexModal" class="modal-overlay" onclick="if(event.target === this) closeHeatIndex()">
+  <div id="heatIndexModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeHeatIndex()">
     <div class="modal-content heat-modal">
       <div class="modal-header">
         <h2>Heat Index & Camouflage</h2>
@@ -1766,7 +1791,7 @@
   </div>
 
   <!-- Wonging Signals Modal -->
-  <div id="wongingModal" class="modal-overlay" onclick="if(event.target === this) closeWonging()">
+  <div id="wongingModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeWonging()">
     <div class="modal-content wonging-modal">
       <div class="modal-header">
         <h2>Wonging Entry/Exit Signals</h2>
@@ -1810,7 +1835,7 @@
   </div>
 
   <!-- Shoe Replay Modal -->
-  <div id="shoeReplayModal" class="modal-overlay" onclick="if(event.target === this) closeShoeReplay()">
+  <div id="shoeReplayModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeShoeReplay()">
     <div class="modal-content replay-modal">
       <div class="modal-header">
         <h2>Shoe Replay</h2>
@@ -1853,8 +1878,8 @@
     </div>
   </div>
 
-  <!-- Advanced Tools Panel (Fixed Lower Right) -->
-  <div class="advanced-tools-panel" id="advancedToolsPanel">
+  <!-- Advanced Tools Panel (Fixed Lower Right) - Collapsed by default -->
+  <div class="advanced-tools-panel collapsed" id="advancedToolsPanel">
     <div class="tools-header" onclick="toggleAdvancedTools()">
       <span class="tools-icon">⚡</span>
       <span>Advanced Tools</span>

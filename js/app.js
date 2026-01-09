@@ -284,8 +284,6 @@ const AppState = {
 // Initialize Application
 // ============================================
 function init() {
-  console.log('BJ Probability Engine v1.3 - Initializing...');
-
   // Store initial counts for reset
   AppState.initialCounts = JSON.parse(JSON.stringify(AppState.rankCounts));
 
@@ -306,8 +304,6 @@ function init() {
 
   // Initial calculations
   updateAll();
-
-  console.log('Application initialized');
 }
 
 // ============================================
@@ -3593,8 +3589,6 @@ function downloadFile(content, filename, mimeType) {
 // ============================================
 
 function simulateGames(numGames = 100) {
-  console.log(`Starting simulation of ${numGames} games...`);
-
   // Initialize fresh session for simulation
   initGameSession('Simulation Casino', 'Auto-Sim Table');
   resetShoe();
@@ -3624,7 +3618,6 @@ function simulateGames(numGames = 100) {
   // End session and generate analysis
   endGameSession();
 
-  console.log(`Simulation complete: ${gamesCompleted} games played`);
   showToast(`Simulation complete: ${gamesCompleted} games`, 'success');
 
   // Show history panel
@@ -3839,6 +3832,106 @@ async function showReshuffleAnimation() {
   });
 }
 
+// Simulation config
+let simPlayerCount = 2;
+
+function updateSimPlayerCount() {
+  const select = document.getElementById('simPlayersSelect');
+  if (select) {
+    simPlayerCount = parseInt(select.value) || 2;
+  }
+}
+
+function startSimWithConfig() {
+  const decksSelect = document.getElementById('simDecksSelect');
+  const playersSelect = document.getElementById('simPlayersSelect');
+
+  const totalDecks = parseInt(decksSelect?.value) || 8;
+  simPlayerCount = parseInt(playersSelect?.value) || 2;
+
+  // Calculate total cards to deal (75% penetration per shoe)
+  const cardsPerDeck = 52;
+  const totalCards = totalDecks * cardsPerDeck;
+  const cardsToPlay = Math.floor(totalCards * 0.75);
+
+  // Estimate rounds: ~6 cards per round per player on average
+  const avgCardsPerRound = (simPlayerCount * 2.5) + 3; // players + dealer
+  const estimatedRounds = Math.ceil(cardsToPlay / avgCardsPerRound);
+
+  showToast(`Starting ${totalDecks} deck sim (${simPlayerCount} players, ~${estimatedRounds} rounds)`, 'info');
+  startRealtimeSimulationByDecks(totalDecks);
+}
+
+async function startRealtimeSimulationByDecks(totalDecks = 8) {
+  if (realtimeSimRunning) {
+    showToast('Simulation already running', 'warning');
+    return;
+  }
+
+  realtimeSimRunning = true;
+  realtimeSimPaused = false;
+  simRoundCount = 0;
+
+  try {
+    showSimulationControls();
+    initGameSession('Simulation Casino', `${totalDecks}-Deck Simulation`);
+    resetShoe();
+    clearTableForSim();
+
+    await showCutCardAnimation();
+    await diceCardBurn(); // Dice card rule: 1 face-up + 2 burned
+
+    const targetCards = totalDecks * 52 * 0.75; // 75% of total decks
+    let totalCardsDealt = 0;
+    let shoeCount = 0;
+
+    while (totalCardsDealt < targetCards && realtimeSimRunning) {
+      // Handle pause
+      while (realtimeSimPaused && realtimeSimRunning) {
+        await delay(100);
+      }
+      if (!realtimeSimRunning) break;
+
+      // Reshuffle if needed
+      if (AppState.cardsDealt > AppState.totalCards * 0.75) {
+        shoeCount++;
+        await showReshuffleAnimation();
+        reshuffleShoeOnly();
+        await diceCardBurn(); // Dice card rule after reshuffle
+      }
+
+      simRoundCount++;
+      const cardsBeforeRound = AppState.cardsDealt;
+
+      updateSimStatus(`Round ${simRoundCount} | Cards: ${Math.round(totalCardsDealt)}/${Math.round(targetCards)}`);
+
+      await runSimRound();
+
+      const cardsThisRound = AppState.cardsDealt - cardsBeforeRound;
+      totalCardsDealt += cardsThisRound;
+
+      await delay(realtimeSimSpeed * 2);
+
+      if (totalCardsDealt < targetCards) {
+        clearTableForSim();
+      }
+    }
+
+    realtimeSimRunning = false;
+    hideSimulationControls();
+    endGameSession();
+
+    const handsPlayed = simRoundCount * simPlayerCount;
+    showToast(`Complete: ${handsPlayed} hands over ${shoeCount + 1} shoe(s)`, 'success');
+    showHistoryPanel();
+  } catch (error) {
+    console.error('Deck simulation error:', error);
+    showToast(`Simulation error: ${error.message}`, 'error');
+    realtimeSimRunning = false;
+    hideSimulationControls();
+  }
+}
+
 async function startRealtimeSimulation(numGames = 100) {
   if (realtimeSimRunning) {
     showToast('Simulation already running', 'warning');
@@ -3849,6 +3942,7 @@ async function startRealtimeSimulation(numGames = 100) {
   realtimeSimPaused = false;
   simRoundCount = 0;
 
+  try {
   // Show controls
   showSimulationControls();
 
@@ -3859,6 +3953,7 @@ async function startRealtimeSimulation(numGames = 100) {
 
   // Show cut card animation before starting
   await showCutCardAnimation();
+  await diceCardBurn(); // Dice card rule: 1 face-up + 2 burned
 
   showToast('Starting simulation...', 'info');
 
@@ -3874,6 +3969,7 @@ async function startRealtimeSimulation(numGames = 100) {
     if (AppState.cardsDealt > AppState.totalCards * 0.75) {
       await showReshuffleAnimation();
       reshuffleShoeOnly();
+      await diceCardBurn(); // Dice card rule after reshuffle
     }
 
     updateSimStatus(`Round ${round}/${numGames}`);
@@ -3897,6 +3993,12 @@ async function startRealtimeSimulation(numGames = 100) {
   endGameSession();
   showToast(`Simulation complete: ${simRoundCount} rounds`, 'success');
   showHistoryPanel();
+  } catch (error) {
+    console.error('Realtime simulation error:', error);
+    showToast(`Simulation error: ${error.message}`, 'error');
+    realtimeSimRunning = false;
+    hideSimulationControls();
+  }
 }
 
 // Simulate 1 shoe only (until 75% penetration)
@@ -3916,6 +4018,7 @@ async function simulateOneShoe() {
   clearTableForSim();
 
   await showCutCardAnimation();
+  await diceCardBurn(); // Dice card rule: 1 face-up + 2 burned
 
   const penetrationLimit = AppState.totalCards * 0.75; // 75% = 312 cards for 8 decks
   showToast(`Testing 1 shoe: ${AppState.numDecks} decks, ${AppState.totalCards} cards`, 'info');
@@ -3950,62 +4053,64 @@ async function simulateOneShoe() {
 
   showToast(`Shoe complete: ${simRoundCount} rounds | Win Rate: ${winRate}%`, 'success');
   showHistoryPanel();
-
-  // Log detailed results
-  console.log('=== 1 SHOE TEST RESULTS ===');
-  console.log(`Rounds: ${simRoundCount}`);
-  console.log(`Cards Dealt: ${AppState.cardsDealt}`);
-  console.log(`Player Wins: ${stats.playerWins}`);
-  console.log(`Player Losses: ${stats.playerLosses}`);
-  console.log(`Pushes: ${stats.pushes}`);
-  console.log(`Dealer Busts: ${stats.dealerBusts}`);
-  console.log(`Win Rate: ${winRate}%`);
-  console.log(`Final Running Count: ${AppState.runningCount}`);
-  console.log(`Final True Count: ${getTrueCount().toFixed(2)}`);
 }
 
 async function runSimRound() {
-  const roundCards = [];
+  try {
+    const roundCards = [];
+    const playerCount = simPlayerCount || 2;
 
-  // Deal: P1, P2, Dealer, P1, P2, Dealer
-  await simDeal('player1', roundCards);
-  await simDeal('player2', roundCards);
-  await simDeal('dealer', roundCards);
-  await simDeal('player1', roundCards);
-  await simDeal('player2', roundCards);
-  await simDeal('dealer', roundCards);
+    // Deal first card to each player, then dealer
+    for (let p = 1; p <= playerCount; p++) {
+      await simDeal(`player${p}`, roundCards);
+    }
+    await simDeal('dealer', roundCards);
 
-  if (!realtimeSimRunning) return;
+    // Deal second card to each player, then dealer
+    for (let p = 1; p <= playerCount; p++) {
+      await simDeal(`player${p}`, roundCards);
+    }
+    await simDeal('dealer', roundCards);
 
-  // Show unified decisions after dealing
-  showUnifiedDecisionSim(1);
-  showUnifiedDecisionSim(2);
+    if (!realtimeSimRunning) return;
 
-  await delay(realtimeSimSpeed);
+    // Show unified decisions after dealing
+    for (let p = 1; p <= playerCount; p++) {
+      showUnifiedDecisionSim(p);
+    }
 
-  const dealerUp = AppState.positions.dealer[0];
-  const dealerVal = getValue(dealerUp);
+    await delay(realtimeSimSpeed);
 
-  // Players hit/stand using unified decision engine
-  await simPlayerPlay('player1', dealerVal, roundCards);
-  await simPlayerPlay('player2', dealerVal, roundCards);
+    const dealerUp = AppState.positions.dealer[0];
+    const dealerVal = getValue(dealerUp);
 
-  if (!realtimeSimRunning) return;
+    // Players hit/stand using unified decision engine
+    for (let p = 1; p <= playerCount; p++) {
+      await simPlayerPlay(`player${p}`, dealerVal, roundCards);
+    }
 
-  // Clear unified decisions before dealer plays
-  clearUnifiedDecisionSim(1);
-  clearUnifiedDecisionSim(2);
+    if (!realtimeSimRunning) return;
 
-  // Dealer plays
-  await simDealerPlay(roundCards);
+    // Clear unified decisions before dealer plays
+    for (let p = 1; p <= playerCount; p++) {
+      clearUnifiedDecisionSim(p);
+    }
 
-  // Results
-  const dTotal = calculateHandTotal(AppState.positions.dealer);
-  simResult('player1', 1, dTotal);
-  simResult('player2', 2, dTotal);
+    // Dealer plays
+    await simDealerPlay(roundCards);
 
-  // Record
-  AppState.gameHistory.statistics.totalRounds++;
+    // Results
+    const dTotal = calculateHandTotal(AppState.positions.dealer);
+    for (let p = 1; p <= playerCount; p++) {
+      simResult(`player${p}`, p, dTotal);
+    }
+
+    // Record
+    AppState.gameHistory.statistics.totalRounds++;
+  } catch (error) {
+    console.error('Round error:', error);
+    throw error;
+  }
 }
 
 // Show unified decision during simulation
@@ -4036,7 +4141,9 @@ function showUnifiedDecisionSim(playerNum) {
                       decision.action === 'SPLIT' ? 'P' :
                       decision.action === 'SURRENDER' ? 'R' : '?';
 
-  indicator.classList.add(actionClass);
+  if (actionClass) {
+    indicator.classList.add(actionClass);
+  }
   if (decision.strategy.isDeviation) {
     indicator.classList.add('deviation');
   }
@@ -4327,6 +4434,50 @@ function reshuffleShoeOnly() {
   updateSimCounts();
 }
 
+// Dice Card Rule: 1 card face-up (dice), 2 cards face-down burned
+async function diceCardBurn(showAnimation = true) {
+  // Deal dice card (face-up, visible for counting)
+  const diceCard = dealRandomCard();
+  if (!diceCard) return;
+
+  // Deal 2 burn cards (face-down, not visible but removed from shoe)
+  const burn1 = dealRandomCard();
+  const burn2 = dealRandomCard();
+
+  if (showAnimation) {
+    // Show dice card animation
+    const overlay = document.createElement('div');
+    overlay.className = 'dice-card-overlay';
+    overlay.innerHTML = `
+      <div class="dice-card-container">
+        <div class="dice-card-title">Dice Card</div>
+        <div class="dice-card-display">
+          <div class="dice-card visible">${diceCard}</div>
+          <div class="burn-cards">
+            <div class="burn-card">?</div>
+            <div class="burn-card">?</div>
+          </div>
+        </div>
+        <div class="dice-card-info">3 cards burned</div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    setTimeout(() => overlay.classList.add('active'), 50);
+
+    await delay(1500);
+
+    overlay.classList.add('fade-out');
+    await delay(300);
+    overlay.remove();
+  }
+
+  // Update counts display
+  updateSimCounts();
+
+  return { diceCard, burn1, burn2 };
+}
+
 function updateDealerTableCards() {
   const dealerCards = AppState.positions.dealer || [];
   const container = document.getElementById('dealerCards');
@@ -4441,6 +4592,8 @@ async function runFullEngineSimulation() {
 
   fullSimRunning = true;
   showFullSimConsole();
+
+  try {
   logToConsole('INITIALIZING FULL ENGINE SIMULATION...', 'header');
   logToConsole(`Config: ${AppState.numDecks} decks | 2 players | 75% penetration`, 'info');
 
@@ -4449,6 +4602,7 @@ async function runFullEngineSimulation() {
   clearTableForSim();
 
   await showCutCardAnimation();
+  await diceCardBurn(); // Dice card rule: 1 face-up + 2 burned
 
   const penetrationLimit = AppState.totalCards * 0.75;
   let round = 0;
@@ -4628,6 +4782,12 @@ async function runFullEngineSimulation() {
 
   showToast(`Simulation complete: ${round} rounds | Win Rate: ${winRate}%`, 'success');
   endGameSession();
+  } catch (error) {
+    console.error('Simulation error:', error);
+    logToConsole(`ERROR: ${error.message}`, 'error');
+    showToast(`Simulation error: ${error.message}`, 'error');
+    fullSimRunning = false;
+  }
 }
 
 function getPreDealEngineMetrics() {
@@ -4845,7 +5005,8 @@ function showFullSimConsole() {
   let existing = document.getElementById('fullSimConsole');
   if (existing) {
     existing.style.display = 'flex';
-    existing.querySelector('.console-output').innerHTML = '';
+    fullSimConsole = existing.querySelector('.console-output');
+    fullSimConsole.innerHTML = '';
     return;
   }
 
@@ -5035,7 +5196,7 @@ function showToast(message, type = 'info') {
 // ============================================
 // HAND ANALYZER
 // ============================================
-function analyzeHand(playerCards, dealerUpcard) {
+function analyzeHandEV(playerCards, dealerUpcard) {
   const playerTotal = calculateHandTotal(playerCards);
   const isSoft = playerCards.includes('A') && playerTotal <= 21;
   const isPair = playerCards.length === 2 && getCardValue(playerCards[0]) === getCardValue(playerCards[1]);
@@ -5172,7 +5333,7 @@ function runHandAnalysis() {
   const card2 = document.getElementById('analyzerCard2').value;
   const dealer = document.getElementById('analyzerDealer').value;
 
-  const result = analyzeHand([card1, card2], dealer);
+  const result = analyzeHandEV([card1, card2], dealer);
 
   document.getElementById('analyzerResults').innerHTML = `
     <div class="result-summary">
@@ -6166,6 +6327,19 @@ function toggleAdvancedTools() {
 }
 
 // ============================================
+// MOBILE TOUCH MODE TOGGLE
+// ============================================
+function toggleMobileTouchMode() {
+  document.body.classList.toggle('touch-mode');
+  const isEnabled = document.body.classList.contains('touch-mode');
+  const btn = document.getElementById('btnTouchMode');
+  if (btn) {
+    btn.classList.toggle('active', isEnabled);
+  }
+  showToast(isEnabled ? 'Touch mode enabled' : 'Touch mode disabled', 'info');
+}
+
+// ============================================
 // MODAL UTILITIES
 // ============================================
 function closeModal(id) {
@@ -6198,7 +6372,7 @@ function runHandAnalysis() {
   }
 
   const cards = handInput.split(',').map(c => c.trim().toUpperCase());
-  const result = analyzeHand(cards, dealerCard);
+  const result = analyzeHandEV(cards, dealerCard);
 
   const resultsDiv = document.getElementById('analyzerResults');
   resultsDiv.innerHTML = `
@@ -6419,7 +6593,7 @@ function closeCountSystems() {
 
 function updateCountSystemsDisplay() {
   const cs = AppState.countSystems;
-  const decksRemaining = Math.max(0.5, (AppState.totalCards - AppState.cardsSeen) / 52);
+  const decksRemaining = Math.max(0.5, (AppState.totalCards - AppState.cardsDealt) / 52);
 
   document.getElementById('countHiLo').textContent = `RC: ${cs.counts.hilo}`;
   document.getElementById('countHiLoTC').textContent = `TC: ${(cs.counts.hilo / decksRemaining).toFixed(2)}`;
@@ -6444,12 +6618,12 @@ function closeAceSequencer() {
 }
 
 function updateAceSequencerDisplay() {
-  const acesLeft = AppState.remainingCards['A'] || 0;
-  const totalAces = AppState.decks * 4;
-  const decksRemaining = Math.max(0.5, (AppState.totalCards - AppState.cardsSeen) / 52);
+  const acesLeft = AppState.rankCounts['A'] || 0;
+  const totalAces = AppState.numDecks * 4;
+  const decksRemaining = Math.max(0.5, (AppState.totalCards - AppState.cardsDealt) / 52);
   const expectedPerDeck = 4;
   const aceRichness = (acesLeft / decksRemaining) / expectedPerDeck;
-  const aceProbability = (acesLeft / (AppState.totalCards - AppState.cardsSeen)) * 100;
+  const aceProbability = (acesLeft / Math.max(1, AppState.totalCards - AppState.cardsDealt)) * 100;
 
   document.getElementById('acesRemaining').textContent = acesLeft;
   document.getElementById('aceExpected').textContent = (decksRemaining * 4).toFixed(1);
