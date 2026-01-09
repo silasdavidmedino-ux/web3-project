@@ -6155,6 +6155,14 @@ function initMobileMode() {
 }
 
 // ============================================
+// ADVANCED TOOLS PANEL TOGGLE
+// ============================================
+function toggleAdvancedTools() {
+  const panel = document.getElementById('advancedToolsPanel');
+  panel.classList.toggle('collapsed');
+}
+
+// ============================================
 // MODAL UTILITIES
 // ============================================
 function closeModal(id) {

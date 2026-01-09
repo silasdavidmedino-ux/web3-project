@@ -459,71 +459,6 @@
         <button class="btn-end-game" id="btnEndGame">END GAME</button>
       </div>
 
-      <!-- Advanced Tools Toolbar -->
-      <div class="advanced-tools-section">
-        <div class="tools-header">
-          <span class="tools-icon">⚡</span>
-          <span>Advanced Tools</span>
-        </div>
-        <div class="tools-grid">
-          <button class="btn-tool" onclick="showHandAnalyzer()">
-            <span class="tool-icon">🎯</span>
-            <span class="tool-label">Hand Analyzer</span>
-          </button>
-          <button class="btn-tool" onclick="showRiskOfRuinCalculator()">
-            <span class="tool-icon">📉</span>
-            <span class="tool-label">Risk of Ruin</span>
-          </button>
-          <button class="btn-tool" onclick="showVarianceCalculator()">
-            <span class="tool-icon">📊</span>
-            <span class="tool-label">Variance Calc</span>
-          </button>
-          <button class="btn-tool" onclick="startTrainingMode()">
-            <span class="tool-icon">🎓</span>
-            <span class="tool-label">Training Mode</span>
-          </button>
-          <button class="btn-tool" onclick="showSessionTrackerPanel()">
-            <span class="tool-icon">💰</span>
-            <span class="tool-label">Session Tracker</span>
-          </button>
-          <button class="btn-tool" onclick="showBetSpreadOptimizer()">
-            <span class="tool-icon">📈</span>
-            <span class="tool-label">Bet Optimizer</span>
-          </button>
-          <button class="btn-tool" onclick="showCountSystemsPanel()">
-            <span class="tool-icon">🔢</span>
-            <span class="tool-label">Count Systems</span>
-          </button>
-          <button class="btn-tool" onclick="showAceSequencer()">
-            <span class="tool-icon">🃏</span>
-            <span class="tool-label">Ace Sequencing</span>
-          </button>
-          <button class="btn-tool" onclick="showHeatIndexPanel()">
-            <span class="tool-icon">🔥</span>
-            <span class="tool-label">Heat Index</span>
-          </button>
-          <button class="btn-tool" onclick="showWongingSignals()">
-            <span class="tool-icon">🚦</span>
-            <span class="tool-label">Wonging</span>
-          </button>
-          <button class="btn-tool" onclick="showShoeReplay()">
-            <span class="tool-icon">🔄</span>
-            <span class="tool-label">Shoe Replay</span>
-          </button>
-          <button class="btn-tool" id="btnThemeToggle" onclick="toggleTheme()">
-            <span class="tool-icon">🌙</span>
-            <span class="tool-label">Dark/Light</span>
-          </button>
-          <button class="btn-tool" id="btnAudioToggle" onclick="toggleAudio()">
-            <span class="tool-icon">🔊</span>
-            <span class="tool-label">Audio Alerts</span>
-          </button>
-          <button class="btn-tool" id="btnTouchMode" onclick="toggleMobileTouchMode()">
-            <span class="tool-icon">👆</span>
-            <span class="tool-label">Touch Mode</span>
-          </button>
-        </div>
-      </div>
     </div>
 
     <!-- Composition Metrics Panel -->
@@ -1915,6 +1850,73 @@
         </div>
         <button class="btn-save-shoe" onclick="saveCurrentShoe()">Save Current Shoe</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Advanced Tools Panel (Fixed Lower Right) -->
+  <div class="advanced-tools-panel" id="advancedToolsPanel">
+    <div class="tools-header" onclick="toggleAdvancedTools()">
+      <span class="tools-icon">⚡</span>
+      <span>Advanced Tools</span>
+      <span class="tools-toggle" id="toolsToggle">▼</span>
+    </div>
+    <div class="tools-grid" id="toolsGrid">
+      <button class="btn-tool" onclick="showHandAnalyzer()">
+        <span class="tool-icon">🎯</span>
+        <span class="tool-label">Hand Analyzer</span>
+      </button>
+      <button class="btn-tool" onclick="showRiskOfRuinCalculator()">
+        <span class="tool-icon">📉</span>
+        <span class="tool-label">Risk of Ruin</span>
+      </button>
+      <button class="btn-tool" onclick="showVarianceCalculator()">
+        <span class="tool-icon">📊</span>
+        <span class="tool-label">Variance Calc</span>
+      </button>
+      <button class="btn-tool" onclick="startTrainingMode()">
+        <span class="tool-icon">🎓</span>
+        <span class="tool-label">Training Mode</span>
+      </button>
+      <button class="btn-tool" onclick="showSessionTrackerPanel()">
+        <span class="tool-icon">💰</span>
+        <span class="tool-label">Session Tracker</span>
+      </button>
+      <button class="btn-tool" onclick="showBetSpreadOptimizer()">
+        <span class="tool-icon">📈</span>
+        <span class="tool-label">Bet Optimizer</span>
+      </button>
+      <button class="btn-tool" onclick="showCountSystemsPanel()">
+        <span class="tool-icon">🔢</span>
+        <span class="tool-label">Count Systems</span>
+      </button>
+      <button class="btn-tool" onclick="showAceSequencer()">
+        <span class="tool-icon">🃏</span>
+        <span class="tool-label">Ace Sequencing</span>
+      </button>
+      <button class="btn-tool" onclick="showHeatIndexPanel()">
+        <span class="tool-icon">🔥</span>
+        <span class="tool-label">Heat Index</span>
+      </button>
+      <button class="btn-tool" onclick="showWongingSignals()">
+        <span class="tool-icon">🚦</span>
+        <span class="tool-label">Wonging</span>
+      </button>
+      <button class="btn-tool" onclick="showShoeReplay()">
+        <span class="tool-icon">🔄</span>
+        <span class="tool-label">Shoe Replay</span>
+      </button>
+      <button class="btn-tool" id="btnThemeToggle" onclick="toggleTheme()">
+        <span class="tool-icon">🌙</span>
+        <span class="tool-label">Dark/Light</span>
+      </button>
+      <button class="btn-tool" id="btnAudioToggle" onclick="toggleAudio()">
+        <span class="tool-icon">🔊</span>
+        <span class="tool-label">Audio Alerts</span>
+      </button>
+      <button class="btn-tool" id="btnTouchMode" onclick="toggleMobileTouchMode()">
+        <span class="tool-icon">👆</span>
+        <span class="tool-label">Touch Mode</span>
+      </button>
     </div>
   </div>
 
