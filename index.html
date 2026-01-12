@@ -16,6 +16,10 @@
   <link rel="apple-touch-icon" href="icons/icon-192x192.png">
 
   <link rel="stylesheet" href="css/styles.css">
+
+  <!-- TensorFlow.js for AI Card Detection -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
 </head>
 <body>
   <!-- Top Navigation Bar -->
@@ -460,22 +464,227 @@
               <option value="1">1</option>
               <option value="2">2</option>
               <option value="4">4</option>
-              <option value="8" selected>8</option>
+              <option value="8">8</option>
               <option value="16">16</option>
-              <option value="32">32</option>
+              <option value="32" selected>32</option>
+              <option value="64">64</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+              <option value="300">300</option>
+              <option value="400">400</option>
+              <option value="500">500</option>
+              <option value="600">600</option>
+              <option value="700">700</option>
+              <option value="800">800</option>
+              <option value="900">900</option>
+              <option value="1000">1000</option>
             </select>
           </div>
           <div class="sim-config-item">
             <label for="simPlayersSelect">Players:</label>
             <select id="simPlayersSelect" onchange="updateSimPlayerCount()">
               <option value="1">1</option>
-              <option value="2" selected>2</option>
+              <option value="2">2</option>
               <option value="3">3</option>
               <option value="4">4</option>
-              <option value="5">5</option>
+              <option value="5" selected>5</option>
               <option value="6">6</option>
               <option value="7">7</option>
             </select>
+          </div>
+        </div>
+
+        <!-- Simulation Settings Panel -->
+        <div class="sim-settings-panel" id="simSettingsPanel" style="background:linear-gradient(135deg,#1a1a2e,#252545);border:2px solid #8b5cf6;border-radius:10px;padding:12px;margin:10px 0;">
+
+          <!-- Header with Toggle -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;cursor:pointer;" onclick="toggleSettingsPanel()">
+            <span style="color:#8b5cf6;font-weight:bold;font-size:14px;">⚙️ SIMULATION SETTINGS</span>
+            <span id="settingsToggleIcon" style="color:#8b5cf6;font-size:16px;">▼</span>
+          </div>
+
+          <!-- Collapsible Settings Content -->
+          <div id="settingsContent" style="display:block;">
+
+            <!-- SECTION 1: Table Settings -->
+            <div style="background:#1a1a2e;border:1px solid #22d3ee;border-radius:6px;padding:10px;margin-bottom:10px;">
+              <div style="color:#22d3ee;font-size:12px;font-weight:bold;margin-bottom:8px;">📋 TABLE SETTINGS</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label style="color:#888;font-size:10px;">Decks:</label>
+                  <select id="settingsDecks" onchange="applySimSettings()" style="background:#252545;color:#fff;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="4">4</option>
+                    <option value="6">6</option>
+                    <option value="8" selected>8</option>
+                    <option value="16">16</option>
+                    <option value="32">32</option>
+                    <option value="64">64</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                    <option value="500">500</option>
+                    <option value="1000">1000</option>
+                  </select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label style="color:#888;font-size:10px;">Players:</label>
+                  <select id="settingsPlayers" onchange="applySimSettings()" style="background:#252545;color:#fff;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5" selected>5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                  </select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label style="color:#888;font-size:10px;">Penetration:</label>
+                  <select id="settingsPenetration" onchange="applySimSettings()" style="background:#252545;color:#fff;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;">
+                    <option value="50">50%</option>
+                    <option value="65">65%</option>
+                    <option value="75" selected>75%</option>
+                    <option value="85">85%</option>
+                    <option value="90">90%</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 2: P1 Settings (Quant EV) -->
+            <div style="background:#1a1a2e;border:1px solid #f59e0b;border-radius:6px;padding:10px;margin-bottom:10px;">
+              <div style="color:#f59e0b;font-size:12px;font-weight:bold;margin-bottom:8px;">🎯 PLAYER 1 (QUANT EV)</div>
+
+              <!-- P1 Strategy -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label style="color:#888;font-size:10px;">Strategy:</label>
+                  <select id="settingsP1Strategy" onchange="applySimSettings()" style="background:#252545;color:#fff;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;">
+                    <option value="quantEv" selected>Quant EV + I18</option>
+                    <option value="quantEvT25">QEV + Top 2-5 Override</option>
+                    <option value="basic">Basic Strategy</option>
+                  </select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label style="color:#888;font-size:10px;">TC Entry Threshold:</label>
+                  <input type="number" id="settingsP1TcThreshold" value="0.9" step="0.1" min="-5" max="10" onchange="applySimSettings()" style="background:#252545;color:#22c55e;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;text-align:center;">
+                </div>
+              </div>
+
+              <!-- P1 Bankroll & Betting -->
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label style="color:#888;font-size:10px;">Bankroll ($):</label>
+                  <input type="number" id="settingsP1Bankroll" value="100000" min="1000" max="10000000" step="1000" onchange="applySimSettings()" style="background:#252545;color:#22c55e;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;text-align:center;">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label style="color:#888;font-size:10px;">Bet % of Bank:</label>
+                  <input type="number" id="settingsP1BetPercent" value="5" min="0.5" max="25" step="0.5" onchange="applySimSettings()" style="background:#252545;color:#f59e0b;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;text-align:center;">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label style="color:#888;font-size:10px;">Base Bet ($):</label>
+                  <input type="number" id="settingsP1BaseBet" value="5000" min="1" max="100000" onchange="applySimSettings()" style="background:#252545;color:#fff;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;text-align:center;" readonly>
+                </div>
+              </div>
+
+              <!-- P1 Bet Method -->
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label style="color:#888;font-size:10px;">Bet Method:</label>
+                  <select id="settingsP1BetMethod" onchange="applySimSettings()" style="background:#252545;color:#fff;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;">
+                    <option value="flat">Flat Betting</option>
+                    <option value="martingale" selected>Martingale</option>
+                    <option value="kelly">Kelly Criterion</option>
+                    <option value="spread">1-12 Spread</option>
+                  </select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label style="color:#888;font-size:10px;">Martingale Max:</label>
+                  <select id="settingsP1MartingaleMax" onchange="applySimSettings()" style="background:#252545;color:#fff;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;">
+                    <option value="2">2x</option>
+                    <option value="3" selected>3x</option>
+                    <option value="4">4x</option>
+                    <option value="5">5x</option>
+                    <option value="8">8x</option>
+                    <option value="16">16x</option>
+                  </select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label style="color:#888;font-size:10px;">Max Bet ($):</label>
+                  <input type="number" id="settingsP1MaxBet" value="15000" readonly style="background:#1a1a2e;color:#ef4444;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;text-align:center;">
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 3: P2-P5 Settings (Basic Strategy) -->
+            <div style="background:#1a1a2e;border:1px solid #a78bfa;border-radius:6px;padding:10px;margin-bottom:10px;">
+              <div style="color:#a78bfa;font-size:12px;font-weight:bold;margin-bottom:8px;">👥 PLAYERS 2-5 (BASIC STRATEGY)</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label style="color:#888;font-size:10px;">Strategy:</label>
+                  <select id="settingsP2Strategy" onchange="applySimSettings()" style="background:#252545;color:#fff;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;">
+                    <option value="basic" selected>Basic Strategy</option>
+                    <option value="quantEv">Quant EV</option>
+                  </select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label style="color:#888;font-size:10px;">Bankroll ($):</label>
+                  <input type="number" id="settingsP2Bankroll" value="100000" min="1000" max="10000000" step="1000" onchange="applySimSettings()" style="background:#252545;color:#22c55e;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;text-align:center;">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label style="color:#888;font-size:10px;">Flat Bet ($):</label>
+                  <input type="number" id="settingsP2FlatBet" value="5000" min="1" max="100000" onchange="applySimSettings()" style="background:#252545;color:#fff;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;text-align:center;">
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 4: Surrender Settings -->
+            <div style="background:#1a1a2e;border:1px solid #f472b6;border-radius:6px;padding:10px;margin-bottom:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <span style="color:#f472b6;font-size:12px;font-weight:bold;">🏳️ SURRENDER STRATEGY</span>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                  <input type="checkbox" id="settingsSurrenderEnabled" checked onchange="applySimSettings()" style="width:14px;height:14px;accent-color:#f472b6;">
+                  <span style="color:#aaa;font-size:10px;">Enabled</span>
+                </label>
+              </div>
+              <div style="color:#888;font-size:10px;line-height:1.4;">
+                <div style="margin-bottom:4px;">• Hard 16 vs 9, 10, A → SURRENDER</div>
+                <div>• Hard 15 vs 10 → SURRENDER</div>
+              </div>
+            </div>
+
+            <!-- SECTION 5: Post-Deal Override Settings -->
+            <div style="background:#1a1a2e;border:1px solid #ef4444;border-radius:6px;padding:10px;margin-bottom:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <span style="color:#ef4444;font-size:12px;font-weight:bold;">🔄 POST-DEAL OVERRIDE (Top 2-5)</span>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                  <input type="checkbox" id="settingsOverrideEnabled" checked onchange="applySimSettings()" style="width:14px;height:14px;accent-color:#ef4444;">
+                  <span style="color:#aaa;font-size:10px;">Enabled</span>
+                </label>
+              </div>
+              <div style="color:#888;font-size:10px;line-height:1.4;">
+                <div style="margin-bottom:4px;">• Hard 15 vs 9/10: STAY if Top 2-5 has 7,8,9</div>
+                <div style="margin-bottom:4px;">• Hard 16 vs 9/10: STAY if Top 2-5 has 6,7,8,9</div>
+                <div style="color:#f59e0b;font-size:9px;margin-top:4px;">Note: Override takes priority over Surrender when applicable</div>
+              </div>
+            </div>
+
+            <!-- Settings Summary -->
+            <div id="settingsSummary" style="background:#252545;border-radius:6px;padding:8px;margin-bottom:10px;">
+              <div style="color:#22c55e;font-size:11px;font-weight:bold;">📊 CURRENT CONFIG:</div>
+              <div id="settingsSummaryText" style="color:#aaa;font-size:10px;margin-top:4px;line-height:1.5;">
+                P1: QEV+MG+T25 | $100k | 5% ($5,000) | MG 3x max<br>
+                P2-P5: Basic Strategy | $100k | Flat $5,000
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display:flex;gap:8px;justify-content:space-between;">
+              <button onclick="resetSimSettings()" style="background:#374151;color:#fff;border:none;border-radius:4px;padding:6px 12px;font-size:11px;cursor:pointer;flex:1;">Reset Defaults</button>
+              <button onclick="saveSimSettings()" style="background:#22c55e;color:#fff;border:none;border-radius:4px;padding:6px 12px;font-size:11px;cursor:pointer;flex:1;">Save Settings</button>
+              <button id="trackerToggleBtn" onclick="toggleTrackerPanel()" style="background:#8b5cf6;color:white;border:none;border-radius:4px;padding:6px 12px;font-size:11px;cursor:pointer;flex:1;">Show Tracker</button>
+            </div>
           </div>
         </div>
         <button class="btn-simulate-rt" id="btnSimulateRT" onclick="startSimWithConfig()">LIVE SIM</button>
@@ -615,6 +824,43 @@
       <div class="metrics-footer">
         <span><strong>S-Score:</strong> Composition edge proxy</span>
         <span><strong>Deep Pen:</strong> 4+ decks for surrender bias</span>
+      </div>
+    </div>
+
+    <!-- Betting History Panel -->
+    <div class="betting-history-container" id="bettingHistoryContainer">
+      <div class="betting-history-toggle" onclick="toggleBettingHistoryPanel()">
+        <span>📊 BETTING HISTORY</span>
+        <span id="bettingHistoryToggleIcon">▼</span>
+      </div>
+      <div class="betting-history-panel" id="bettingHistoryPanel">
+        <div class="history-header">
+          <span>BETTING HISTORY</span>
+          <span>No Active Game</span>
+        </div>
+        <div class="history-actions">
+          <button onclick="startNewGame(5)" class="btn-small">Start New Game</button>
+          <button onclick="exportBettingHistoryCSV()" class="btn-small">Export CSV</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dealer Bust History Panel -->
+    <div class="dealer-bust-history-container" id="dealerBustHistoryContainer">
+      <div class="dealer-bust-toggle" onclick="toggleDealerBustHistoryPanel()">
+        <span>💥 DEALER BUST HISTORY</span>
+        <span id="dealerBustToggleIcon">▲</span>
+      </div>
+      <div class="dealer-bust-history-panel" id="dealerBustHistoryPanel">
+        <div class="bust-history-header">
+          <div class="bust-rate-main">
+            <span class="bust-rate-label">DEALER BUST RATE</span>
+            <span class="bust-rate-value">0.0%</span>
+            <span class="bust-rate-count">(0/0)</span>
+          </div>
+          <div class="expected-rate">Expected: 28.0%</div>
+        </div>
+        <div class="bust-empty">Start simulation to track dealer busts</div>
       </div>
     </div>
   </main>
@@ -777,6 +1023,19 @@
               <option value="4">4</option>
               <option value="6">6</option>
               <option value="8" selected>8</option>
+              <option value="16">16</option>
+              <option value="32">32</option>
+              <option value="64">64</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+              <option value="300">300</option>
+              <option value="400">400</option>
+              <option value="500">500</option>
+              <option value="600">600</option>
+              <option value="700">700</option>
+              <option value="800">800</option>
+              <option value="900">900</option>
+              <option value="1000">1000</option>
             </select>
           </div>
           <div class="form-row">
@@ -1878,6 +2137,352 @@
     </div>
   </div>
 
+  <!-- Live Stream Card Tracker Modal -->
+  <div id="videoTrackerModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeVideoTracker()">
+    <div class="modal-content live-tracker-modal">
+      <div class="modal-header live-tracker-header">
+        <h2>Live Stream Card Tracker</h2>
+        <div class="live-indicator" id="liveIndicator">
+          <span class="live-dot"></span>
+          <span>LIVE</span>
+        </div>
+        <button class="btn-close-modal" onclick="closeVideoTracker()">&times;</button>
+      </div>
+
+      <div class="modal-body live-tracker-body">
+        <!-- Left Panel: Video/Stream -->
+        <div class="stream-panel">
+          <div class="source-tabs">
+            <button class="source-tab active" onclick="switchStreamSource('screen')" id="tabScreen">Screen Capture</button>
+            <button class="source-tab" onclick="switchStreamSource('file')" id="tabFile">Video File</button>
+          </div>
+
+          <div class="stream-container">
+            <video id="trackerVideo" class="tracker-video" autoplay playsinline></video>
+            <canvas id="aiDetectionCanvas" class="ai-detection-canvas"></canvas>
+            <canvas id="streamCanvas" class="stream-canvas" style="display:none;"></canvas>
+            <div class="stream-overlay" id="streamOverlay">
+              <div class="overlay-content">
+                <div class="overlay-icon">📺</div>
+                <div class="overlay-text">Click "Start Capture" to begin</div>
+                <div class="overlay-hint">Capture a live casino stream or load a recorded video</div>
+              </div>
+            </div>
+            <!-- AI Detection Status Overlay -->
+            <div class="ai-status-overlay" id="aiStatusOverlay">
+              <div class="ai-status-badge" id="aiStatusBadge">
+                <span class="ai-pulse"></span>
+                <span class="ai-status-text">AI READY</span>
+              </div>
+              <div class="ai-fps" id="aiFPS">0 FPS</div>
+            </div>
+          </div>
+
+          <!-- AI Detection Controls -->
+          <div class="ai-control-panel" id="aiControlPanel">
+            <div class="ai-panel-header">
+              <span class="ai-icon">🤖</span>
+              <span class="ai-title">AI Card Detection</span>
+              <div class="ai-mode-toggle">
+                <button class="ai-mode-btn active" onclick="setAIMode('auto')" id="btnAIModeAuto">Auto</button>
+                <button class="ai-mode-btn" onclick="setAIMode('manual')" id="btnAIModeManual">Manual</button>
+              </div>
+            </div>
+            <div class="ai-controls">
+              <button class="btn-ai primary" onclick="startAIDetection()" id="btnStartAI">
+                <span class="btn-icon">▶</span> Start AI Detection
+              </button>
+              <button class="btn-ai danger" onclick="stopAIDetection()" id="btnStopAI" style="display:none;">
+                <span class="btn-icon">⏹</span> Stop AI
+              </button>
+              <div class="ai-settings">
+                <div class="ai-setting">
+                  <label>Confidence:</label>
+                  <input type="range" id="aiConfidence" min="50" max="95" value="75" onchange="updateAIConfidence(this.value)">
+                  <span id="aiConfidenceValue">75%</span>
+                </div>
+                <div class="ai-setting">
+                  <label>Detection Speed:</label>
+                  <select id="aiDetectionSpeed" onchange="updateAISpeed(this.value)">
+                    <option value="100">Fast (10 FPS)</option>
+                    <option value="200" selected>Normal (5 FPS)</option>
+                    <option value="500">Slow (2 FPS)</option>
+                  </select>
+                </div>
+                <div class="ai-setting">
+                  <label>Debug Grid:</label>
+                  <input type="checkbox" id="aiDebugMode" onchange="toggleAIDebugMode(this.checked)">
+                </div>
+              </div>
+            </div>
+
+            <!-- SINGLE ZONE DEALING SEQUENCE -->
+            <div class="dealing-sequence-panel">
+              <div class="dealing-header">
+                <span>🎯 Single Zone Mode</span>
+                <span class="dealing-badge">FOCUSED</span>
+              </div>
+              <div class="dealing-controls">
+                <div class="dealing-setting">
+                  <label>Players:</label>
+                  <select id="numPlayersSelect" onchange="setNumPlayers(parseInt(this.value))">
+                    <option value="1">1 Player</option>
+                    <option value="2">2 Players</option>
+                    <option value="3" selected>3 Players</option>
+                    <option value="4">4 Players</option>
+                    <option value="5">5 Players</option>
+                    <option value="6">6 Players</option>
+                    <option value="7">7 Players</option>
+                  </select>
+                </div>
+                <button class="btn-new-hand" onclick="resetDealingSequence()">🔄 New Hand</button>
+              </div>
+              <div class="zone-adjust">
+                <span class="zone-label">Zone Position:</span>
+                <button class="zone-btn" onclick="adjustZone('left')" title="Move Left">◀</button>
+                <button class="zone-btn" onclick="adjustZone('right')" title="Move Right">▶</button>
+                <button class="zone-btn" onclick="adjustZone('up')" title="Move Up">▲</button>
+                <button class="zone-btn" onclick="adjustZone('down')" title="Move Down">▼</button>
+                <button class="zone-btn" onclick="toggleZonePreview()" title="Show Zone">👁</button>
+              </div>
+              <div class="dealing-status">
+                <div class="dealing-position">
+                  <span class="label">Next Card →</span>
+                  <span class="deal-position player-turn" id="currentDealPosition">P1</span>
+                </div>
+                <div class="dealing-round">
+                  <span class="label">Round:</span>
+                  <span id="currentDealRound">Round 1</span>
+                </div>
+              </div>
+              <div class="dealing-sequence-visual" id="dealingSequenceVisual">
+                <span class="seq-item active">P1</span>
+                <span class="seq-arrow">→</span>
+                <span class="seq-item">P2</span>
+                <span class="seq-arrow">→</span>
+                <span class="seq-item">P3</span>
+                <span class="seq-arrow">→</span>
+                <span class="seq-item dealer">D</span>
+              </div>
+            </div>
+
+            <div class="ai-stats">
+              <div class="ai-stat">
+                <span class="ai-stat-label">Cards Detected</span>
+                <span class="ai-stat-value" id="aiCardsDetected">0</span>
+              </div>
+              <div class="ai-stat">
+                <span class="ai-stat-label">Accuracy</span>
+                <span class="ai-stat-value" id="aiAccuracy">--</span>
+              </div>
+              <div class="ai-stat">
+                <span class="ai-stat-label">Model</span>
+                <span class="ai-stat-value" id="aiModelName">TF.js</span>
+              </div>
+            </div>
+            <div class="ai-detected-cards" id="aiDetectedCards">
+              <span class="ai-detected-label">AI Tracked:</span>
+              <span class="ai-detected-none">Waiting for cards...</span>
+            </div>
+            <div class="ai-instruction ai-auto-mode">
+              <strong>🤖 FULL AI MODE:</strong> Cards are automatically detected and tracked! The AI recognizes card values using pattern analysis. Manual backup: <kbd>2</kbd>-<kbd>9</kbd>, <kbd>0</kbd>=10, <kbd>J</kbd><kbd>Q</kbd><kbd>K</kbd><kbd>A</kbd>
+            </div>
+          </div>
+
+          <div class="stream-controls">
+            <input type="file" id="videoFileInput" accept="video/*" onchange="loadTrackerVideo(this)" style="display:none">
+            <button class="btn-stream primary" onclick="startScreenCapture()" id="btnStartCapture">📺 Start Capture</button>
+            <button class="btn-stream" onclick="stopScreenCapture()" id="btnStopCapture" style="display:none;">⏹ Stop</button>
+            <button class="btn-stream" onclick="document.getElementById('videoFileInput').click()" id="btnLoadFile" style="display:none;">📁 Load File</button>
+            <button class="btn-stream" onclick="togglePictureInPicture()" id="btnPiP" disabled>🖼 PiP</button>
+            <div class="stream-speed">
+              <label>Speed:</label>
+              <select id="videoSpeed" onchange="setTrackerVideoSpeed(this.value)">
+                <option value="0.25">0.25x</option>
+                <option value="0.5">0.5x</option>
+                <option value="0.75">0.75x</option>
+                <option value="1" selected>1x</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="video-timeline" id="videoTimeline" style="display:none;">
+            <button class="btn-frame" onclick="trackerVideoStep(-1)">⏮</button>
+            <input type="range" id="videoSeekBar" min="0" max="100" value="0" onchange="seekTrackerVideo(this.value)">
+            <button class="btn-frame" onclick="trackerVideoStep(1)">⏭</button>
+            <button class="btn-frame" onclick="trackerVideoPlayPause()" id="btnPlayPause">▶</button>
+            <span id="videoTimeDisplay">0:00 / 0:00</span>
+          </div>
+
+          <!-- Keyboard Shortcuts Reference -->
+          <div class="hotkeys-panel">
+            <div class="hotkeys-title">Keyboard Shortcuts (Fast Input)</div>
+            <div class="hotkeys-grid">
+              <span class="hotkey"><kbd>2</kbd>-<kbd>9</kbd> Cards</span>
+              <span class="hotkey"><kbd>0</kbd> = 10</span>
+              <span class="hotkey"><kbd>J</kbd><kbd>Q</kbd><kbd>K</kbd><kbd>A</kbd></span>
+              <span class="hotkey"><kbd>Z</kbd> Undo</span>
+              <span class="hotkey"><kbd>Space</kbd> Pause</span>
+              <span class="hotkey"><kbd>N</kbd> New Shoe</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Panel: Tracking Interface -->
+        <div class="tracking-panel">
+          <!-- Live Stats Dashboard -->
+          <div class="live-stats-dashboard">
+            <div class="stat-card primary">
+              <div class="stat-icon">🎰</div>
+              <div class="stat-info">
+                <span class="stat-label">Running Count</span>
+                <span class="stat-value large" id="liveRC">0</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">📊</div>
+              <div class="stat-info">
+                <span class="stat-label">True Count</span>
+                <span class="stat-value large" id="liveTC">0.00</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🃏</div>
+              <div class="stat-info">
+                <span class="stat-label">Cards Seen</span>
+                <span class="stat-value" id="liveCardsSeen">0 / 416</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">📦</div>
+              <div class="stat-info">
+                <span class="stat-label">Decks Left</span>
+                <span class="stat-value" id="liveDecksLeft">8.00</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Decision Recommendation Panel -->
+          <div class="decision-panel" id="decisionPanel">
+            <div class="decision-header">
+              <span>Current Recommendation</span>
+              <span class="edge-display" id="liveEdge">House Edge: 0.50%</span>
+            </div>
+            <div class="decision-content">
+              <div class="bet-recommendation" id="betRecommendation">
+                <span class="bet-label">Optimal Bet:</span>
+                <span class="bet-value neutral">1 Unit (Wait)</span>
+              </div>
+              <div class="count-status" id="countStatus">
+                <span class="status-neutral">Neutral Count - Basic Strategy</span>
+              </div>
+              <div class="active-deviations" id="activeDeviations">
+                <span class="deviation-label">Active Deviations:</span>
+                <span class="no-deviations">None at current count</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Position Selector -->
+          <div class="position-section">
+            <div class="position-label">Tracking Position:</div>
+            <div class="position-buttons">
+              <button class="pos-btn active" onclick="setTrackingPosition('all')" data-pos="all">All Cards</button>
+              <button class="pos-btn" onclick="setTrackingPosition('dealer')" data-pos="dealer">Dealer</button>
+              <button class="pos-btn" onclick="setTrackingPosition('p1')" data-pos="p1">P1</button>
+              <button class="pos-btn" onclick="setTrackingPosition('p2')" data-pos="p2">P2</button>
+              <button class="pos-btn" onclick="setTrackingPosition('p3')" data-pos="p3">P3</button>
+              <button class="pos-btn" onclick="setTrackingPosition('p4')" data-pos="p4">P4</button>
+              <button class="pos-btn" onclick="setTrackingPosition('p5')" data-pos="p5">P5</button>
+              <button class="pos-btn" onclick="setTrackingPosition('p6')" data-pos="p6">P6</button>
+              <button class="pos-btn" onclick="setTrackingPosition('p7')" data-pos="p7">P7</button>
+            </div>
+          </div>
+
+          <!-- Card Input Grid -->
+          <div class="card-input-section">
+            <div class="card-input-label">Click or press key to track card:</div>
+            <div class="card-input-grid enhanced">
+              <button class="card-btn low" onclick="trackLiveCard('2')" data-key="2">2<span class="key-hint">2</span></button>
+              <button class="card-btn low" onclick="trackLiveCard('3')" data-key="3">3<span class="key-hint">3</span></button>
+              <button class="card-btn low" onclick="trackLiveCard('4')" data-key="4">4<span class="key-hint">4</span></button>
+              <button class="card-btn low" onclick="trackLiveCard('5')" data-key="5">5<span class="key-hint">5</span></button>
+              <button class="card-btn low" onclick="trackLiveCard('6')" data-key="6">6<span class="key-hint">6</span></button>
+              <button class="card-btn neutral" onclick="trackLiveCard('7')" data-key="7">7<span class="key-hint">7</span></button>
+              <button class="card-btn neutral" onclick="trackLiveCard('8')" data-key="8">8<span class="key-hint">8</span></button>
+              <button class="card-btn neutral" onclick="trackLiveCard('9')" data-key="9">9<span class="key-hint">9</span></button>
+              <button class="card-btn high" onclick="trackLiveCard('10')" data-key="0">10<span class="key-hint">0</span></button>
+              <button class="card-btn high" onclick="trackLiveCard('J')" data-key="j">J<span class="key-hint">J</span></button>
+              <button class="card-btn high" onclick="trackLiveCard('Q')" data-key="q">Q<span class="key-hint">Q</span></button>
+              <button class="card-btn high" onclick="trackLiveCard('K')" data-key="k">K<span class="key-hint">K</span></button>
+              <button class="card-btn high ace" onclick="trackLiveCard('A')" data-key="a">A<span class="key-hint">A</span></button>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="tracker-actions">
+            <button class="btn-action undo" onclick="undoLiveCard()">↩ Undo <kbd>Z</kbd></button>
+            <button class="btn-action new-shoe" onclick="newLiveShoe()">🔄 New Shoe <kbd>N</kbd></button>
+            <button class="btn-action sync" onclick="syncToMainTable()">🔗 Sync to Table</button>
+          </div>
+
+          <!-- Live Hand Tracker -->
+          <div class="live-hand-section">
+            <div class="hand-header">
+              <span>Current Hand</span>
+              <span class="hand-number" id="liveHandNumber">Hand #1</span>
+            </div>
+            <div class="hand-display">
+              <div class="hand-position">
+                <span class="pos-label">Dealer</span>
+                <div class="hand-cards" id="liveDealerHand">-</div>
+              </div>
+              <div class="hand-position player">
+                <span class="pos-label">Player</span>
+                <div class="hand-cards" id="livePlayerHand">-</div>
+                <div class="hand-total" id="livePlayerTotal"></div>
+              </div>
+            </div>
+            <div class="hand-actions">
+              <button class="btn-hand" onclick="markHandResult('win')">Win</button>
+              <button class="btn-hand" onclick="markHandResult('lose')">Lose</button>
+              <button class="btn-hand" onclick="markHandResult('push')">Push</button>
+              <button class="btn-hand" onclick="markHandResult('bj')">BJ!</button>
+              <button class="btn-hand next" onclick="nextHand()">Next Hand →</button>
+            </div>
+          </div>
+
+          <!-- Recent Cards History -->
+          <div class="cards-history">
+            <div class="history-header">
+              <span>Card History</span>
+              <span class="history-count" id="historyCount">0 cards</span>
+            </div>
+            <div class="history-stream" id="liveCardHistory">
+              <span class="empty-history">Cards will appear here as tracked...</span>
+            </div>
+          </div>
+
+          <!-- Thesis Export Section -->
+          <div class="thesis-export">
+            <div class="export-header">Thesis Data Export</div>
+            <div class="export-buttons">
+              <button class="btn-export" onclick="exportThesisJSON()">📄 JSON</button>
+              <button class="btn-export" onclick="exportThesisCSV()">📊 CSV</button>
+              <button class="btn-export" onclick="exportHandHistory()">🎰 Hands</button>
+              <button class="btn-export" onclick="exportSessionReport()">📋 Report</button>
+            </div>
+            <div class="session-stats" id="sessionStats">
+              <span>Hands: <strong id="totalHands">0</strong></span>
+              <span>Win Rate: <strong id="winRate">0%</strong></span>
+              <span>Time: <strong id="sessionTime">00:00:00</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Advanced Tools Panel (Fixed Lower Right) - Collapsed by default -->
   <div class="advanced-tools-panel collapsed" id="advancedToolsPanel">
     <div class="tools-header" onclick="toggleAdvancedTools()">
@@ -1930,6 +2535,10 @@
         <span class="tool-icon">🔄</span>
         <span class="tool-label">Shoe Replay</span>
       </button>
+      <button class="btn-tool" onclick="showVideoTracker()">
+        <span class="tool-icon">🎥</span>
+        <span class="tool-label">Video Tracker</span>
+      </button>
       <button class="btn-tool" id="btnThemeToggle" onclick="toggleTheme()">
         <span class="tool-icon">🌙</span>
         <span class="tool-label">Dark/Light</span>
@@ -1949,6 +2558,6 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- Scripts -->
-  <script src="js/app.js"></script>
+  <script src="js/app.js?v=3.9.21"></script>
 </body>
 </html>

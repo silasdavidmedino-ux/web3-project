@@ -6,9 +6,9 @@
  * Provides offline capability and caching for the PWA
  */
 
-const CACHE_NAME = 'bj-engine-v3.8.0';
-const STATIC_CACHE = 'bj-static-v3.8.0';
-const DYNAMIC_CACHE = 'bj-dynamic-v3.8.0';
+const CACHE_NAME = 'bj-engine-v3.9.40';
+const STATIC_CACHE = 'bj-static-v3.9.40';
+const DYNAMIC_CACHE = 'bj-dynamic-v3.9.40';
 
 // Assets to cache on install
 const STATIC_ASSETS = [
@@ -87,6 +87,12 @@ self.addEventListener('fetch', (event) => {
 
   // Skip cross-origin requests
   if (url.origin !== location.origin) {
+    return;
+  }
+
+  // ALWAYS fetch app.js fresh from network (no cache)
+  if (url.pathname.includes('app.js')) {
+    event.respondWith(fetch(request));
     return;
   }
 
