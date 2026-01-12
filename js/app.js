@@ -945,11 +945,11 @@ function updatePlayerCountAttribute() {
   const playersRow = document.querySelector('.players-row');
   if (playersRow) {
     const visibleCount = AppState.config.playersSeated;
-    // Set data attribute for CSS responsive scaling (1-6, above 6 uses default)
-    if (visibleCount >= 1 && visibleCount <= 6) {
+    // Set data attribute for CSS responsive scaling (1-8)
+    if (visibleCount >= 1 && visibleCount <= 8) {
       playersRow.setAttribute('data-player-count', visibleCount);
     } else {
-      playersRow.removeAttribute('data-player-count');
+      playersRow.setAttribute('data-player-count', '7');
     }
   }
 }

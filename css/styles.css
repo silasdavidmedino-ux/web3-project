@@ -1029,6 +1029,10 @@ body {
   flex: 0 1 9%;
   max-width: 99px;
 }
+.players-row[data-player-count="8"] .player-box {
+  flex: 0 1 8%;
+  max-width: 88px;
+}
 
 /* Split hand actions */
 .split-actions {
