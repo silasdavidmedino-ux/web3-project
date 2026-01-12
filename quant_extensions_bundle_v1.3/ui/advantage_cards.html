@@ -1,0 +1,168 @@
+<!-- Player Advantage Controls (v1.3) -->
+<section class="card">
+  <h2>Player Advantage Controls (v1.3)</h2>
+  <p class="sub">Seat edge, dealer upcard conditioning, conditional bet suppression, Kelly governor, portfolio selection, and temporal optimizer.</p>
+
+  <div class="grid2">
+    <!-- Seat Edge -->
+    <div>
+      <h3 class="h3">Seat Edge</h3>
+
+      <div class="row">
+        <label>Players Seated</label>
+        <input id="playersSeated" type="number" min="1" max="7" step="1" value="2">
+      </div>
+
+      <div class="row">
+        <label>Your Seat Index (1..Players)</label>
+        <input id="seatIndex" type="number" min="1" max="7" step="1" value="2">
+      </div>
+
+      <div class="row">
+        <label>Seat Alpha (max relative edge)</label>
+        <input id="seatAlpha" type="number" min="0" max="0.25" step="0.01" value="0.04">
+      </div>
+    </div>
+
+    <!-- CBS + Window -->
+    <div>
+      <h3 class="h3">Window + Suppression</h3>
+
+      <div class="row">
+        <label>Window Score Threshold</label>
+        <input id="windowScoreThreshold" type="number" min="0" max="100" step="1" value="65">
+      </div>
+
+      <div class="row">
+        <label>CBS K (sigma multiplier)</label>
+        <input id="cbsK" type="number" min="0" max="2" step="0.05" value="0.45">
+      </div>
+
+      <div class="row">
+        <label>Min Dominant EV (units)</label>
+        <input id="minDominantEV" type="number" min="0" max="1" step="0.01" value="0.03">
+      </div>
+    </div>
+
+    <!-- Bankroll Governor -->
+    <div>
+      <h3 class="h3">Bankroll Governor</h3>
+
+      <div class="row">
+        <label>Start Bankroll (for DD)</label>
+        <input id="startBankroll" type="number" min="1" step="1" value="50000">
+      </div>
+
+      <div class="row">
+        <label>Drawdown Max (fraction)</label>
+        <input id="drawdownMax" type="number" min="0.05" max="0.9" step="0.01" value="0.20">
+      </div>
+
+      <div class="row">
+        <label>Kelly Fraction (base)</label>
+        <input id="kellyFraction" type="number" min="0.05" max="1" step="0.05" value="0.50">
+      </div>
+    </div>
+
+    <!-- Temporal + Table Speed -->
+    <div>
+      <h3 class="h3">Temporal Optimizer</h3>
+
+      <div class="row">
+        <label>Hands / Hour</label>
+        <input id="handsPerHourCfg" type="number" min="20" max="400" step="5" value="120">
+      </div>
+
+      <div class="row">
+        <label>Min Profit / Hour (proxy)</label>
+        <input id="minProfitPerHour" type="number" min="0" max="50" step="0.1" value="0.5">
+      </div>
+
+      <div class="row">
+        <label>Bet Focus</label>
+        <select id="betFocus">
+          <option value="ANY_PAIR_12" selected>Any Pair (12:1)</option>
+          <option value="BEST_PORTFOLIO">Best Portfolio Only</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="actions">
+    <button id="btnAdvDefaults" class="btn">Reset Advantage Defaults</button>
+  </div>
+</section>
+
+<!-- Player Advantage Readout -->
+<section class="card">
+  <h2>Player Advantage Readout</h2>
+  <p class="sub">Live engine outputs. These fields are snapshot/export/replay/audit eligible.</p>
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpiLabel">Window Decision</div>
+      <div id="advDecision" class="kpiValue">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpiLabel">Window Score</div>
+      <div id="advScore" class="kpiValue">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpiLabel">Confidence</div>
+      <div id="advConf" class="kpiValue">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpiLabel">Portfolio Best</div>
+      <div id="advBest" class="kpiValue">—</div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <h3 class="h3">Any Pair (Seat-Adjusted)</h3>
+      <div class="kv">
+        <div><span class="k">p_base</span><span id="apPBase" class="v">—</span></div>
+        <div><span class="k">mult</span><span id="apSeatMult" class="v">—</span></div>
+        <div><span class="k">p_adj</span><span id="apPAdj" class="v">—</span></div>
+        <div><span class="k">EV_adj</span><span id="apEVAdj" class="v">—</span></div>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="h3">Dealer Upcard Conditioning</h3>
+      <div class="kv">
+        <div><span class="k">upcard</span><span id="duUp" class="v">—</span></div>
+        <div><span class="k">multiplier</span><span id="duMult" class="v">—</span></div>
+        <div><span class="k">samples (up/total)</span><span id="duSamples" class="v">—</span></div>
+        <div><span class="k">winRate (up/base)</span><span id="duWr" class="v">—</span></div>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="h3">CBS (Suppression)</h3>
+      <div class="kv">
+        <div><span class="k">sigma</span><span id="cbsSigma" class="v">—</span></div>
+        <div><span class="k">dominance threshold</span><span id="cbsDom" class="v">—</span></div>
+        <div><span class="k">passes</span><span id="cbsPass" class="v">—</span></div>
+        <div><span class="k">nSamples</span><span id="cbsN" class="v">—</span></div>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="h3">Risk + Temporal</h3>
+      <div class="kv">
+        <div><span class="k">kellyFraction</span><span id="kgK" class="v">—</span></div>
+        <div><span class="k">drawdown</span><span id="kgDD" class="v">—</span></div>
+        <div><span class="k">profit/hr proxy</span><span id="tpPH" class="v">—</span></div>
+        <div><span class="k">recommendation</span><span id="tpReco" class="v">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <details class="details">
+    <summary>Advantage Debug (raw engine JSON)</summary>
+    <pre id="advDump" class="mono"></pre>
+  </details>
+</section>

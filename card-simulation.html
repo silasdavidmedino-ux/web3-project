@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Card Recognition Simulation - Learn Card Patterns</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    h1 { text-align: center; margin-bottom: 10px; color: #58a6ff; }
+    .subtitle { text-align: center; color: #8b949e; margin-bottom: 30px; }
+
+    .container { max-width: 1400px; margin: 0 auto; }
+
+    /* Card Grid */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .card-study {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .card-study-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .card-rank {
+      font-size: 28px;
+      font-weight: bold;
+      color: #f0f6fc;
+    }
+
+    .card-rank.red { color: #f85149; }
+    .card-rank.black { color: #f0f6fc; }
+
+    .card-value {
+      font-size: 14px;
+      color: #8b949e;
+      background: #21262d;
+      padding: 4px 10px;
+      border-radius: 12px;
+    }
+
+    /* Visual Card Representation */
+    .card-visual {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .card-canvas-container {
+      background: #f0f0f0;
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-canvas {
+      background: white;
+      border-radius: 4px;
+    }
+
+    /* Pattern Grid (3x3) */
+    .pattern-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      width: 90px;
+      height: 90px;
+      background: #30363d;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .pattern-cell {
+      background: #21262d;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #8b949e;
+      position: relative;
+    }
+
+    .pattern-cell .fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #238636;
+      transition: height 0.3s;
+    }
+
+    .pattern-cell span {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Characteristics */
+    .card-chars {
+      background: #21262d;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+    }
+
+    .char-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px solid #30363d;
+    }
+
+    .char-row:last-child { border-bottom: none; }
+
+    .char-label { color: #8b949e; }
+    .char-value { color: #58a6ff; font-weight: 500; }
+    .char-value.high { color: #3fb950; }
+    .char-value.low { color: #f85149; }
+
+    /* Key Features */
+    .key-features {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #30363d;
+    }
+
+    .feature-tag {
+      display: inline-block;
+      background: #388bfd26;
+      color: #58a6ff;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      margin: 2px;
+    }
+
+    /* Analysis Panel */
+    .analysis-panel {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .analysis-title {
+      font-size: 18px;
+      color: #58a6ff;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Test Section */
+    .test-section {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .test-controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #238636;
+      color: white;
+    }
+
+    .btn-primary:hover { background: #2ea043; }
+
+    .btn-secondary {
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+    }
+
+    .btn-secondary:hover { background: #30363d; }
+
+    .test-results {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+    }
+
+    .test-result {
+      background: #21262d;
+      border-radius: 8px;
+      padding: 15px;
+      text-align: center;
+    }
+
+    .test-result.correct { border: 2px solid #3fb950; }
+    .test-result.incorrect { border: 2px solid #f85149; }
+
+    .test-expected { font-size: 24px; font-weight: bold; }
+    .test-detected { font-size: 14px; color: #8b949e; margin-top: 5px; }
+    .test-score { font-size: 12px; margin-top: 5px; }
+
+    /* Pattern Definition Table */
+    .pattern-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .pattern-table th {
+      background: #21262d;
+      padding: 10px;
+      text-align: left;
+      color: #8b949e;
+      font-weight: 500;
+    }
+
+    .pattern-table td {
+      padding: 10px;
+      border-bottom: 1px solid #21262d;
+    }
+
+    .pattern-table tr:hover { background: #21262d44; }
+
+    .indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+
+    .indicator.yes { background: #3fb950; }
+    .indicator.no { background: #484f58; }
+    .indicator.maybe { background: #d29922; }
+
+    /* Console Output */
+    .console-output {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 15px;
+      font-family: 'Consolas', monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 15px;
+    }
+
+    .console-line { padding: 2px 0; }
+    .console-line.info { color: #58a6ff; }
+    .console-line.success { color: #3fb950; }
+    .console-line.error { color: #f85149; }
+    .console-line.warn { color: #d29922; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Card Recognition Simulation</h1>
+    <p class="subtitle">Learn how each card looks and develop pattern recognition</p>
+
+    <!-- Analysis Summary -->
+    <div class="analysis-panel">
+      <div class="analysis-title">
+        <span>Pattern Analysis Summary</span>
+      </div>
+      <table class="pattern-table">
+        <thead>
+          <tr>
+            <th>Card</th>
+            <th>Top Heavy</th>
+            <th>Bottom Heavy</th>
+            <th>Left Heavy</th>
+            <th>Right Heavy</th>
+            <th>Symmetric V</th>
+            <th>Symmetric H</th>
+            <th>Key Identifier</th>
+          </tr>
+        </thead>
+        <tbody id="patternSummary"></tbody>
+      </table>
+    </div>
+
+    <!-- Test Section -->
+    <div class="test-section">
+      <div class="analysis-title">
+        <span>Pattern Recognition Test</span>
+      </div>
+      <div class="test-controls">
+        <button class="btn btn-primary" onclick="runPatternTest()">Run Pattern Test</button>
+        <button class="btn btn-secondary" onclick="runRandomTest()">Random Card Test</button>
+        <button class="btn btn-secondary" onclick="clearResults()">Clear Results</button>
+      </div>
+      <div class="test-results" id="testResults"></div>
+      <div class="console-output" id="consoleOutput"></div>
+    </div>
+
+    <!-- Card Study Grid -->
+    <div class="card-grid" id="cardGrid"></div>
+  </div>
+
+  <script>
+    // ============================================
+    // CARD PATTERN DEFINITIONS
+    // Based on visual analysis of playing cards
+    // ============================================
+    const CARD_PATTERNS = {
+      'A': {
+        name: 'Ace',
+        value: 11,
+        description: 'Pointed top (triangle), wide base, hollow center',
+        characteristics: {
+          topHeavy: true,      // A has peak at top
+          bottomHeavy: false,
+          leftHeavy: false,
+          rightHeavy: false,
+          verticalSymmetric: true,   // A is symmetric left-right
+          horizontalSymmetric: false, // A is NOT symmetric top-bottom
+          hasHole: true,       // A has hollow triangle
+          hasCurves: false,
+          hasAngles: true,
+          darkRatioRange: [0.10, 0.20]
+        },
+        keyFeatures: ['Triangle peak at top', 'Wide legs at bottom', 'Hollow center', 'Symmetric left-right'],
+        sectorPattern: [
+          0.10, 0.14, 0.10,  // Top row: STRONG peak in center-top (MORE TOP WEIGHT)
+          0.10, 0.02, 0.10,  // Middle row: hollow center, diagonal legs
+          0.06, 0.04, 0.06   // Bottom row: less at bottom (TOP-HEAVY)
+        ]
+      },
+      'K': {
+        name: 'King',
+        value: 10,
+        description: 'Vertical line left, diagonals right forming K shape',
+        characteristics: {
+          topHeavy: false,
+          bottomHeavy: false,
+          leftHeavy: true,     // K has strong left vertical
+          rightHeavy: false,
+          verticalSymmetric: false,
+          horizontalSymmetric: false,
+          hasHole: false,
+          hasCurves: false,
+          hasAngles: true,      // K has diagonal angles
+          darkRatioRange: [0.12, 0.22]
+        },
+        keyFeatures: ['Strong left vertical', 'Diagonals meeting in middle', 'Angular shape', 'High ink density'],
+        sectorPattern: [
+          0.14, 0.04, 0.10,  // Top: STRONG left vertical, right diagonal
+          0.14, 0.10, 0.06,  // Middle: left vertical, center meeting point (HIGH INK)
+          0.14, 0.04, 0.10   // Bottom: left vertical, right diagonal
+        ]
+      },
+      'Q': {
+        name: 'Queen',
+        value: 10,
+        description: 'Circular O shape with tail at bottom-right',
+        characteristics: {
+          topHeavy: false,
+          bottomHeavy: true,   // Q has tail at bottom
+          leftHeavy: false,
+          rightHeavy: true,    // Q tail goes to right
+          verticalSymmetric: false, // Tail breaks symmetry
+          horizontalSymmetric: false,
+          hasHole: true,       // Q is like O with hole
+          hasCurves: true,
+          hasAngles: false,
+          darkRatioRange: [0.10, 0.20]
+        },
+        keyFeatures: ['Circular body', 'Tail at bottom-right (KEY!)', 'Hollow center', 'Curved shape'],
+        sectorPattern: [
+          0.08, 0.10, 0.08,  // Top: curved top of O
+          0.10, 0.02, 0.10,  // Middle: hollow center
+          0.06, 0.06, 0.16   // Bottom: curved bottom + STRONG TAIL at bottom-right
+        ]
+      },
+      'J': {
+        name: 'Jack',
+        value: 10,
+        description: 'Top bar, vertical stem, hook at bottom-left',
+        characteristics: {
+          topHeavy: false,
+          bottomHeavy: true,   // J has hook at bottom
+          leftHeavy: true,     // J hooks left
+          rightHeavy: false,
+          verticalSymmetric: false,
+          horizontalSymmetric: false,
+          hasHole: false,
+          hasCurves: true,     // J has curved hook
+          hasAngles: false,
+          darkRatioRange: [0.08, 0.16]
+        },
+        keyFeatures: ['Top horizontal bar', 'Vertical stem', 'Curved hook at bottom-left', 'Left-leaning'],
+        sectorPattern: [
+          0.06, 0.10, 0.06,  // Top: horizontal bar
+          0.02, 0.10, 0.02,  // Middle: vertical stem
+          0.10, 0.08, 0.02   // Bottom: hook going left
+        ]
+      },
+      '10': {
+        name: 'Ten',
+        value: 10,
+        description: 'TWO digits side by side - 1 and 0',
+        characteristics: {
+          topHeavy: false,
+          bottomHeavy: false,
+          leftHeavy: false,
+          rightHeavy: false,
+          verticalSymmetric: true,
+          horizontalSymmetric: true,
+          hasHole: true,       // The 0 has a hole
+          hasCurves: true,     // The 0 is curved
+          hasAngles: false,
+          darkRatioRange: [0.14, 0.25]  // MORE ink than single digits!
+        },
+        keyFeatures: ['TWO characters wide', 'Much more ink than others', 'Left side has 1, right has 0', 'Widest card rank'],
+        sectorPattern: [
+          0.14, 0.08, 0.14,  // Top: 1-top and 0-top (MORE INK!)
+          0.14, 0.06, 0.14,  // Middle: 1-mid and 0-mid
+          0.14, 0.08, 0.14   // Bottom: 1-bottom and 0-bottom
+        ]
+      },
+      '9': {
+        name: 'Nine',
+        value: 9,
+        description: 'Circle at top, stem going down on right',
+        characteristics: {
+          topHeavy: true,      // 9 has loop at TOP
+          bottomHeavy: false,
+          leftHeavy: false,
+          rightHeavy: true,    // 9 stem is on RIGHT
+          verticalSymmetric: false,
+          horizontalSymmetric: false,
+          hasHole: true,       // 9 has loop hole
+          hasCurves: true,
+          hasAngles: false,
+          darkRatioRange: [0.08, 0.16]
+        },
+        keyFeatures: ['Loop/circle at TOP', 'Stem descends on RIGHT side', 'Top-heavy', 'Like upside-down 6'],
+        sectorPattern: [
+          0.08, 0.10, 0.10,  // Top: loop mostly right
+          0.04, 0.04, 0.10,  // Middle: stem on right
+          0.02, 0.02, 0.08   // Bottom: stem ends right
+        ]
+      },
+      '8': {
+        name: 'Eight',
+        value: 8,
+        description: 'Two stacked circles, pinched in middle',
+        characteristics: {
+          topHeavy: false,
+          bottomHeavy: false,
+          leftHeavy: false,
+          rightHeavy: false,
+          verticalSymmetric: true,   // 8 is symmetric top-bottom
+          horizontalSymmetric: true, // 8 is symmetric left-right
+          hasHole: true,       // 8 has two holes
+          hasCurves: true,
+          hasAngles: false,
+          darkRatioRange: [0.10, 0.18]
+        },
+        keyFeatures: ['Two stacked loops', 'MOST SYMMETRIC card', 'Pinched waist in center', 'Balanced all around'],
+        sectorPattern: [
+          0.08, 0.10, 0.08,  // Top: top loop
+          0.06, 0.04, 0.06,  // Middle: pinched waist
+          0.08, 0.10, 0.08   // Bottom: bottom loop
+        ]
+      },
+      '7': {
+        name: 'Seven',
+        value: 7,
+        description: 'Horizontal bar at top, diagonal line going down-right',
+        characteristics: {
+          topHeavy: true,      // 7 has bar at TOP
+          bottomHeavy: false,
+          leftHeavy: true,     // 7 bar starts from LEFT
+          rightHeavy: false,
+          verticalSymmetric: false,
+          horizontalSymmetric: false,
+          hasHole: false,
+          hasCurves: false,
+          hasAngles: true,     // 7 has angle at corner
+          darkRatioRange: [0.06, 0.14]
+        },
+        keyFeatures: ['Horizontal bar at TOP-LEFT', 'Diagonal descending right', 'Very top-heavy', 'Angular, no curves'],
+        sectorPattern: [
+          0.10, 0.10, 0.06,  // Top: horizontal bar
+          0.02, 0.06, 0.06,  // Middle: diagonal
+          0.02, 0.02, 0.08   // Bottom: diagonal ends right
+        ]
+      },
+      '6': {
+        name: 'Six',
+        value: 6,
+        description: 'Curve at top, loop at bottom',
+        characteristics: {
+          topHeavy: false,
+          bottomHeavy: true,   // 6 has loop at BOTTOM
+          leftHeavy: true,     // 6 curves from left
+          rightHeavy: false,
+          verticalSymmetric: false,
+          horizontalSymmetric: false,
+          hasHole: true,       // 6 has loop hole
+          hasCurves: true,
+          hasAngles: false,
+          darkRatioRange: [0.08, 0.16]
+        },
+        keyFeatures: ['Loop/circle at BOTTOM', 'Stem curves from TOP-LEFT', 'Bottom-heavy', 'Like upside-down 9'],
+        sectorPattern: [
+          0.06, 0.02, 0.02,  // Top: stem starts top-left (LESS TOP)
+          0.08, 0.04, 0.04,  // Middle: curving down
+          0.12, 0.12, 0.10   // Bottom: STRONG loop at bottom (MORE BOTTOM)
+        ]
+      },
+      '5': {
+        name: 'Five',
+        value: 5,
+        description: 'Top bar, middle bar, curved bottom',
+        characteristics: {
+          topHeavy: false,
+          bottomHeavy: false,
+          leftHeavy: true,     // 5 has bars on left
+          rightHeavy: false,
+          verticalSymmetric: false,
+          horizontalSymmetric: false,
+          hasHole: false,
+          hasCurves: true,     // 5 has curved bottom
+          hasAngles: true,     // 5 has angular top
+          darkRatioRange: [0.08, 0.16]
+        },
+        keyFeatures: ['Top horizontal bar', 'Middle horizontal bar', 'Curved bottom-right', 'Left-heavy overall'],
+        sectorPattern: [
+          0.10, 0.08, 0.04,  // Top: bar going left-to-right
+          0.10, 0.06, 0.02,  // Middle: bar then nothing
+          0.04, 0.08, 0.10   // Bottom: curve going right
+        ]
+      },
+      '4': {
+        name: 'Four',
+        value: 4,
+        description: 'Diagonal from top-left, horizontal cross, vertical on right',
+        characteristics: {
+          topHeavy: false,
+          bottomHeavy: false,
+          leftHeavy: false,
+          rightHeavy: true,    // 4 has vertical on RIGHT
+          verticalSymmetric: false,
+          horizontalSymmetric: false,
+          hasHole: false,
+          hasCurves: false,
+          hasAngles: true,     // 4 is all angles
+          darkRatioRange: [0.08, 0.16]
+        },
+        keyFeatures: ['Diagonal from top-left to middle', 'Horizontal bar in middle', 'Vertical stem on RIGHT', 'All straight lines'],
+        sectorPattern: [
+          0.08, 0.02, 0.08,  // Top: diagonal top-left, vertical top-right
+          0.08, 0.10, 0.10,  // Middle: horizontal cross + vertical
+          0.02, 0.02, 0.10   // Bottom: only vertical on right
+        ]
+      },
+      '3': {
+        name: 'Three',
+        value: 3,
+        description: 'Two bumps facing right, opening to the left',
+        characteristics: {
+          topHeavy: false,
+          bottomHeavy: false,
+          leftHeavy: false,
+          rightHeavy: true,    // 3 faces RIGHT
+          verticalSymmetric: false,
+          horizontalSymmetric: false,
+          hasHole: false,
+          hasCurves: true,
+          hasAngles: false,
+          darkRatioRange: [0.06, 0.14]
+        },
+        keyFeatures: ['Two bumps/curves', 'Opens to the LEFT', 'Content on RIGHT side', 'Like backwards E'],
+        sectorPattern: [
+          0.02, 0.06, 0.12,  // Top: STRONG curve to right (less left)
+          0.02, 0.04, 0.10,  // Middle: pinch then right
+          0.02, 0.06, 0.12   // Bottom: STRONG curve to right
+        ]
+      },
+      '2': {
+        name: 'Two',
+        value: 2,
+        description: 'Curved top, diagonal middle, flat bottom',
+        characteristics: {
+          topHeavy: false,
+          bottomHeavy: false,
+          leftHeavy: false,
+          rightHeavy: false,
+          verticalSymmetric: false,
+          horizontalSymmetric: false,
+          hasHole: false,
+          hasCurves: true,     // 2 has curved top
+          hasAngles: true,     // 2 has angled bottom
+          darkRatioRange: [0.06, 0.14]
+        },
+        keyFeatures: ['Curved loop at top-right', 'Diagonal middle', 'Horizontal bar at bottom', 'S-like flow'],
+        sectorPattern: [
+          0.04, 0.08, 0.10,  // Top: curve at top-right
+          0.04, 0.08, 0.04,  // Middle: diagonal
+          0.10, 0.10, 0.06   // Bottom: flat bar at bottom
+        ]
+      }
+    };
+
+    // ============================================
+    // RENDER FUNCTIONS
+    // ============================================
+    function renderCardStudy(rank, pattern) {
+      const isRed = Math.random() > 0.5; // Random color for variety
+      const colorClass = isRed ? 'red' : 'black';
+
+      return `
+        <div class="card-study">
+          <div class="card-study-header">
+            <span class="card-rank ${colorClass}">${rank}</span>
+            <span class="card-value">${pattern.name} = ${pattern.value}</span>
+          </div>
+
+          <div class="card-visual">
+            <div class="card-canvas-container">
+              <canvas class="card-canvas" id="canvas-${rank}" width="60" height="80"></canvas>
+            </div>
+            <div class="pattern-grid" id="grid-${rank}">
+              ${pattern.sectorPattern.map((val, i) => `
+                <div class="pattern-cell">
+                  <div class="fill" style="height: ${val * 500}%"></div>
+                  <span>${(val * 100).toFixed(0)}%</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="card-chars">
+            <div class="char-row">
+              <span class="char-label">Dark Ratio</span>
+              <span class="char-value">${(pattern.characteristics.darkRatioRange[0]*100).toFixed(0)}-${(pattern.characteristics.darkRatioRange[1]*100).toFixed(0)}%</span>
+            </div>
+            <div class="char-row">
+              <span class="char-label">Top/Bottom</span>
+              <span class="char-value ${pattern.characteristics.topHeavy ? 'high' : pattern.characteristics.bottomHeavy ? 'low' : ''}">${pattern.characteristics.topHeavy ? 'TOP Heavy' : pattern.characteristics.bottomHeavy ? 'BOTTOM Heavy' : 'Balanced'}</span>
+            </div>
+            <div class="char-row">
+              <span class="char-label">Left/Right</span>
+              <span class="char-value ${pattern.characteristics.leftHeavy ? 'high' : pattern.characteristics.rightHeavy ? 'low' : ''}">${pattern.characteristics.leftHeavy ? 'LEFT Heavy' : pattern.characteristics.rightHeavy ? 'RIGHT Heavy' : 'Balanced'}</span>
+            </div>
+            <div class="char-row">
+              <span class="char-label">Symmetry</span>
+              <span class="char-value">${pattern.characteristics.verticalSymmetric ? 'V' : '-'}${pattern.characteristics.horizontalSymmetric ? 'H' : '-'}</span>
+            </div>
+
+            <div class="key-features">
+              ${pattern.keyFeatures.map(f => `<span class="feature-tag">${f}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPatternSummary() {
+      const tbody = document.getElementById('patternSummary');
+      tbody.innerHTML = Object.entries(CARD_PATTERNS).map(([rank, p]) => `
+        <tr>
+          <td><strong style="font-size: 18px; color: ${Math.random() > 0.5 ? '#f85149' : '#f0f6fc'}">${rank}</strong></td>
+          <td><span class="indicator ${p.characteristics.topHeavy ? 'yes' : 'no'}"></span>${p.characteristics.topHeavy ? 'Yes' : 'No'}</td>
+          <td><span class="indicator ${p.characteristics.bottomHeavy ? 'yes' : 'no'}"></span>${p.characteristics.bottomHeavy ? 'Yes' : 'No'}</td>
+          <td><span class="indicator ${p.characteristics.leftHeavy ? 'yes' : 'no'}"></span>${p.characteristics.leftHeavy ? 'Yes' : 'No'}</td>
+          <td><span class="indicator ${p.characteristics.rightHeavy ? 'yes' : 'no'}"></span>${p.characteristics.rightHeavy ? 'Yes' : 'No'}</td>
+          <td><span class="indicator ${p.characteristics.verticalSymmetric ? 'yes' : 'no'}"></span>${p.characteristics.verticalSymmetric ? 'Yes' : 'No'}</td>
+          <td><span class="indicator ${p.characteristics.horizontalSymmetric ? 'yes' : 'no'}"></span>${p.characteristics.horizontalSymmetric ? 'Yes' : 'No'}</td>
+          <td style="color: #58a6ff; font-size: 12px;">${p.keyFeatures[0]}</td>
+        </tr>
+      `).join('');
+    }
+
+    function drawCardOnCanvas(rank, pattern) {
+      const canvas = document.getElementById(`canvas-${rank}`);
+      if (!canvas) return;
+
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // White background
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, w, h);
+
+      // Draw rank text
+      ctx.fillStyle = Math.random() > 0.5 ? '#d32f2f' : '#000';
+      ctx.font = 'bold 28px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(rank, w/2, h/2);
+    }
+
+    // ============================================
+    // PATTERN MATCHING TEST
+    // ============================================
+    function analyzePattern(sectorPattern) {
+      // Convert sector pattern to metrics
+      const leftSectors = sectorPattern[0] + sectorPattern[3] + sectorPattern[6];
+      const rightSectors = sectorPattern[2] + sectorPattern[5] + sectorPattern[8];
+      const topSectors = sectorPattern[0] + sectorPattern[1] + sectorPattern[2];
+      const bottomSectors = sectorPattern[6] + sectorPattern[7] + sectorPattern[8];
+      const middleSectors = sectorPattern[3] + sectorPattern[4] + sectorPattern[5];
+      const centerRatio = sectorPattern[4];
+
+      const darkRatio = sectorPattern.reduce((a, b) => a + b, 0) / 9;
+      const topBottomRatio = topSectors / (bottomSectors + 0.001);
+      const leftRightRatio = leftSectors / (rightSectors + 0.001);
+
+      const verticalSymmetry = 1 - Math.abs(topSectors - bottomSectors) / Math.max(topSectors, bottomSectors, 0.01);
+      const horizontalSymmetry = 1 - Math.abs(leftSectors - rightSectors) / Math.max(leftSectors, rightSectors, 0.01);
+
+      const topHeavy = topSectors > bottomSectors * 1.2;
+      const bottomHeavy = bottomSectors > topSectors * 1.2;
+      const leftHeavy = leftSectors > rightSectors * 1.2;
+      const rightHeavy = rightSectors > leftSectors * 1.2;
+
+      return {
+        darkRatio, topBottomRatio, leftRightRatio, centerRatio,
+        leftSectors, rightSectors, topSectors, bottomSectors, middleSectors,
+        verticalSymmetry, horizontalSymmetry,
+        topHeavy, bottomHeavy, leftHeavy, rightHeavy,
+        sectorRatios: sectorPattern
+      };
+    }
+
+    function matchPatternToCard(pattern) {
+      const { darkRatio, topBottomRatio, leftRightRatio, centerRatio, sectorRatios,
+              leftSectors, rightSectors, topSectors, bottomSectors, middleSectors,
+              verticalSymmetry, horizontalSymmetry,
+              topHeavy, bottomHeavy, leftHeavy, rightHeavy } = pattern;
+
+      const scores = {};
+      const reasons = {};
+
+      // ACE - Triangle with peak at top-center
+      scores['A'] = 0; reasons['A'] = [];
+      if (darkRatio > 0.07 && darkRatio < 0.12) { scores['A'] += 2; reasons['A'].push('darkRatio OK'); }
+      if (topHeavy) { scores['A'] += 3; reasons['A'].push('top-heavy'); }
+      if (sectorRatios[1] > 0.10) { scores['A'] += 3; reasons['A'].push('STRONG top-center peak!'); }
+      if (horizontalSymmetry > 0.7) { scores['A'] += 2; reasons['A'].push('H-symmetric'); }
+      if (centerRatio < 0.04) { scores['A'] += 1; reasons['A'].push('hollow center'); }
+      if (bottomHeavy) { scores['A'] -= 4; reasons['A'].push('PENALTY: bottom-heavy'); }
+      if (verticalSymmetry > 0.85) { scores['A'] -= 2; reasons['A'].push('PENALTY: too V-symmetric (8?)'); }
+
+      // KING - High ink, strong left, diagonals to right
+      scores['K'] = 0; reasons['K'] = [];
+      if (darkRatio > 0.09) { scores['K'] += 3; reasons['K'].push('HIGH ink'); }
+      if (leftHeavy) { scores['K'] += 3; reasons['K'].push('LEFT-heavy!'); }
+      if (leftSectors > 0.20) { scores['K'] += 2; reasons['K'].push('strong left column'); }
+      if (middleSectors > 0.12) { scores['K'] += 1; reasons['K'].push('middle meeting point'); }
+      if (Math.abs(topBottomRatio - 1) < 0.25) { scores['K'] += 1; reasons['K'].push('balanced TB'); }
+      if (darkRatio < 0.08) { scores['K'] -= 4; reasons['K'].push('PENALTY: low ink'); }
+      if (rightHeavy) { scores['K'] -= 3; reasons['K'].push('PENALTY: right-heavy'); }
+
+      // QUEEN - Circular with STRONG TAIL at bottom-right (KEY FEATURE!)
+      scores['Q'] = 0; reasons['Q'] = [];
+      if (sectorRatios[8] > 0.14) { scores['Q'] += 5; reasons['Q'].push('STRONG TAIL bottom-right!'); }
+      else if (sectorRatios[8] > 0.10) { scores['Q'] += 3; reasons['Q'].push('tail bottom-right'); }
+      if (bottomHeavy || bottomSectors > topSectors) { scores['Q'] += 2; reasons['Q'].push('bottom content (tail)'); }
+      if (rightHeavy) { scores['Q'] += 1; reasons['Q'].push('right-heavy'); }
+      if (centerRatio < 0.04) { scores['Q'] += 1; reasons['Q'].push('hollow center'); }
+      if (topHeavy) { scores['Q'] -= 4; reasons['Q'].push('PENALTY: top-heavy'); }
+      if (leftHeavy) { scores['Q'] -= 3; reasons['Q'].push('PENALTY: left-heavy'); }
+      if (Math.abs(topBottomRatio - 1) < 0.15) { scores['Q'] -= 2; reasons['Q'].push('PENALTY: too balanced (3?)'); }
+
+      // JACK
+      scores['J'] = 0; reasons['J'] = [];
+      if (darkRatio > 0.08 && darkRatio < 0.18) { scores['J'] += 2; reasons['J'].push('darkRatio OK'); }
+      if (sectorRatios[1] > 0.08) { scores['J'] += 2; reasons['J'].push('top bar'); }
+      if (sectorRatios[6] > 0.06 || sectorRatios[7] > 0.06) { scores['J'] += 2; reasons['J'].push('bottom hook'); }
+      if (leftHeavy) { scores['J'] += 1; reasons['J'].push('left-leaning'); }
+
+      // TEN - TWO digits = highest ink, widest spread
+      scores['10'] = 0; reasons['10'] = [];
+      if (darkRatio > 0.11) { scores['10'] += 4; reasons['10'].push('HIGH ink (2 chars)!'); }
+      if (leftSectors > 0.20 && rightSectors > 0.20) { scores['10'] += 3; reasons['10'].push('wide spread L+R'); }
+      if (verticalSymmetry > 0.8 && horizontalSymmetry > 0.8) { scores['10'] += 2; reasons['10'].push('very symmetric'); }
+      if (darkRatio < 0.10) { scores['10'] -= 6; reasons['10'].push('PENALTY: too little ink'); }
+      if (leftSectors < 0.15 || rightSectors < 0.15) { scores['10'] -= 4; reasons['10'].push('PENALTY: not wide enough'); }
+      if (topHeavy || bottomHeavy) { scores['10'] -= 2; reasons['10'].push('PENALTY: lopsided'); }
+      if (leftHeavy || rightHeavy) { scores['10'] -= 2; reasons['10'].push('PENALTY: L/R imbalanced'); }
+
+      // NINE - TOP-heavy with loop at top, stem on right (opposite of 6)
+      scores['9'] = 0; reasons['9'] = [];
+      if (topHeavy) { scores['9'] += 4; reasons['9'].push('TOP-heavy!'); }
+      if (topBottomRatio > 1.5) { scores['9'] += 2; reasons['9'].push('very top-heavy'); }
+      if (sectorRatios[2] > 0.08) { scores['9'] += 2; reasons['9'].push('top-right loop'); }
+      if (rightSectors > leftSectors * 1.2) { scores['9'] += 1; reasons['9'].push('right stem'); }
+      if (bottomHeavy) { scores['9'] -= 5; reasons['9'].push('PENALTY: bottom-heavy'); }
+      if (leftHeavy) { scores['9'] -= 3; reasons['9'].push('PENALTY: left-heavy'); }
+      if (verticalSymmetry > 0.75) { scores['9'] -= 2; reasons['9'].push('PENALTY: too symmetric'); }
+      if (Math.abs(topBottomRatio - 1) < 0.2) { scores['9'] -= 3; reasons['9'].push('PENALTY: too balanced (3?)'); }
+
+      // EIGHT - Must be VERY symmetric, NOT high ink like 10
+      scores['8'] = 0; reasons['8'] = [];
+      if (verticalSymmetry > 0.80) { scores['8'] += 3; reasons['8'].push('V-symmetric'); }
+      if (horizontalSymmetry > 0.75) { scores['8'] += 3; reasons['8'].push('H-symmetric'); }
+      if (centerRatio > 0.02 && centerRatio < 0.06) { scores['8'] += 1; reasons['8'].push('pinched center'); }
+      if (topHeavy || bottomHeavy) { scores['8'] -= 4; reasons['8'].push('PENALTY: lopsided'); }
+      if (leftHeavy || rightHeavy) { scores['8'] -= 3; reasons['8'].push('PENALTY: L/R imbalanced'); }
+      if (darkRatio > 0.11) { scores['8'] -= 3; reasons['8'].push('PENALTY: too much ink (not 10)'); }
+      if (sectorRatios[1] > 0.10) { scores['8'] -= 2; reasons['8'].push('PENALTY: strong top-center (A?)'); }
+
+      // SEVEN
+      scores['7'] = 0; reasons['7'] = [];
+      if (topHeavy && topBottomRatio > 1.4) { scores['7'] += 3; reasons['7'].push('TOP-heavy'); }
+      if (sectorRatios[0] > 0.08 && sectorRatios[1] > 0.06) { scores['7'] += 2; reasons['7'].push('top bar'); }
+      if (bottomSectors < topSectors * 0.6) { scores['7'] += 2; reasons['7'].push('sparse bottom'); }
+      if (leftSectors > rightSectors) { scores['7'] += 1; reasons['7'].push('left-leaning'); }
+      if (bottomHeavy) { scores['7'] -= 4; reasons['7'].push('PENALTY: bottom-heavy'); }
+      if (verticalSymmetry > 0.8) { scores['7'] -= 3; reasons['7'].push('PENALTY: too symmetric'); }
+
+      // SIX - BOTTOM-heavy with loop at bottom (opposite of 9)
+      scores['6'] = 0; reasons['6'] = [];
+      if (bottomHeavy) { scores['6'] += 4; reasons['6'].push('BOTTOM-heavy!'); }
+      if (topBottomRatio < 0.7) { scores['6'] += 2; reasons['6'].push('very bottom-heavy ratio'); }
+      if (sectorRatios[6] > 0.10 || sectorRatios[7] > 0.10) { scores['6'] += 2; reasons['6'].push('strong bottom loop'); }
+      if (leftSectors > rightSectors) { scores['6'] += 1; reasons['6'].push('left-leaning'); }
+      if (topHeavy) { scores['6'] -= 5; reasons['6'].push('PENALTY: top-heavy'); }
+      if (verticalSymmetry > 0.8) { scores['6'] -= 2; reasons['6'].push('PENALTY: too symmetric'); }
+
+      // FIVE - Top bar, middle bar, bottom-right curve (NOT bottom-heavy like 6)
+      scores['5'] = 0; reasons['5'] = [];
+      if (sectorRatios[0] > 0.06) { scores['5'] += 2; reasons['5'].push('top-left bar'); }
+      if (middleSectors > 0.10) { scores['5'] += 2; reasons['5'].push('middle bar'); }
+      if (sectorRatios[8] > 0.06) { scores['5'] += 1; reasons['5'].push('bottom-right curve'); }
+      if (leftHeavy) { scores['5'] += 1; reasons['5'].push('left-heavy'); }
+      if (bottomHeavy && topBottomRatio < 0.7) { scores['5'] -= 3; reasons['5'].push('PENALTY: too bottom-heavy (6?)'); }
+      if (topHeavy) { scores['5'] -= 2; reasons['5'].push('PENALTY: top-heavy'); }
+
+      // FOUR - Right vertical + middle horizontal cross + top-left diagonal
+      scores['4'] = 0; reasons['4'] = [];
+      if (middleSectors > 0.15) { scores['4'] += 3; reasons['4'].push('STRONG middle cross!'); }
+      if (sectorRatios[5] > 0.08) { scores['4'] += 2; reasons['4'].push('right-middle content'); }
+      if (sectorRatios[0] > 0.05 && sectorRatios[3] > 0.05) { scores['4'] += 2; reasons['4'].push('diagonal TL-ML'); }
+      if (rightSectors > 0.15) { scores['4'] += 1; reasons['4'].push('right vertical'); }
+      if (verticalSymmetry > 0.8) { scores['4'] -= 3; reasons['4'].push('PENALTY: too V-symmetric'); }
+      if (horizontalSymmetry > 0.8) { scores['4'] -= 3; reasons['4'].push('PENALTY: too H-symmetric'); }
+      if (bottomHeavy) { scores['4'] -= 2; reasons['4'].push('PENALTY: bottom-heavy'); }
+      if (topHeavy) { scores['4'] -= 2; reasons['4'].push('PENALTY: top-heavy'); }
+
+      // THREE - Two bumps facing RIGHT, balanced top-bottom, NOT top-heavy like 9
+      scores['3'] = 0; reasons['3'] = [];
+      if (rightHeavy) { scores['3'] += 3; reasons['3'].push('RIGHT-heavy'); }
+      if (rightSectors > leftSectors * 2) { scores['3'] += 2; reasons['3'].push('very right bias'); }
+      if (sectorRatios[2] > 0.08 && sectorRatios[8] > 0.08) { scores['3'] += 2; reasons['3'].push('right top+bottom bumps'); }
+      if (Math.abs(topBottomRatio - 1) < 0.2) { scores['3'] += 2; reasons['3'].push('balanced T/B'); }
+      if (leftHeavy) { scores['3'] -= 5; reasons['3'].push('PENALTY: left-heavy'); }
+      if (topHeavy) { scores['3'] -= 3; reasons['3'].push('PENALTY: top-heavy (9?)'); }
+      if (bottomHeavy) { scores['3'] -= 2; reasons['3'].push('PENALTY: bottom-heavy (Q?)'); }
+      if (sectorRatios[8] > 0.14) { scores['3'] -= 2; reasons['3'].push('PENALTY: too strong BR (Q?)'); }
+      if (middleSectors > 0.18) { scores['3'] -= 2; reasons['3'].push('PENALTY: strong middle (4?)'); }
+
+      // TWO - Top-right curve, diagonal, bottom bar
+      scores['2'] = 0; reasons['2'] = [];
+      if (sectorRatios[2] > 0.06) { scores['2'] += 2; reasons['2'].push('top-right curve'); }
+      if (sectorRatios[6] > 0.06 || sectorRatios[7] > 0.06) { scores['2'] += 2; reasons['2'].push('bottom bar'); }
+      if (Math.abs(topBottomRatio - 1) < 0.3) { scores['2'] += 1; reasons['2'].push('balanced'); }
+      if (sectorRatios[4] > 0.05) { scores['2'] += 1; reasons['2'].push('diagonal center'); }
+      if (leftHeavy) { scores['2'] -= 3; reasons['2'].push('PENALTY: left-heavy (K?)'); }
+      if (darkRatio > 0.10) { scores['2'] -= 2; reasons['2'].push('PENALTY: too much ink'); }
+
+      // Find best match
+      let bestCard = 'unknown';
+      let bestScore = 3;
+
+      for (const [card, score] of Object.entries(scores)) {
+        if (score > bestScore) {
+          bestScore = score;
+          bestCard = card;
+        }
+      }
+
+      return { bestCard, bestScore, scores, reasons };
+    }
+
+    // ============================================
+    // TEST FUNCTIONS
+    // ============================================
+    let consoleLines = [];
+
+    function log(message, type = 'info') {
+      consoleLines.push({ message, type });
+      updateConsole();
+    }
+
+    function updateConsole() {
+      const output = document.getElementById('consoleOutput');
+      output.innerHTML = consoleLines.map(l =>
+        `<div class="console-line ${l.type}">${l.message}</div>`
+      ).join('');
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function runPatternTest() {
+      const resultsDiv = document.getElementById('testResults');
+      resultsDiv.innerHTML = '';
+      consoleLines = [];
+
+      log('=== PATTERN RECOGNITION TEST ===', 'info');
+      log('Testing all cards against our pattern matching algorithm...', 'info');
+      log('', 'info');
+
+      let correct = 0;
+      let total = 0;
+
+      Object.entries(CARD_PATTERNS).forEach(([rank, cardPattern]) => {
+        const pattern = analyzePattern(cardPattern.sectorPattern);
+        const result = matchPatternToCard(pattern);
+
+        const isCorrect = result.bestCard === rank;
+        if (isCorrect) correct++;
+        total++;
+
+        log(`Testing ${rank}:`, 'info');
+        log(`  Pattern: dark=${(pattern.darkRatio*100).toFixed(1)}% T/B=${pattern.topBottomRatio.toFixed(2)} L/R=${pattern.leftRightRatio.toFixed(2)}`, 'info');
+        log(`  Detected: ${result.bestCard} (score: ${result.bestScore})`, isCorrect ? 'success' : 'error');
+        if (!isCorrect) {
+          log(`  Expected: ${rank}`, 'error');
+          log(`  ${rank} score: ${result.scores[rank]} - ${result.reasons[rank].join(', ')}`, 'warn');
+          log(`  ${result.bestCard} score: ${result.scores[result.bestCard]} - ${result.reasons[result.bestCard].join(', ')}`, 'warn');
+        }
+        log('', 'info');
+
+        resultsDiv.innerHTML += `
+          <div class="test-result ${isCorrect ? 'correct' : 'incorrect'}">
+            <div class="test-expected">${rank}</div>
+            <div class="test-detected">Detected: ${result.bestCard}</div>
+            <div class="test-score">Score: ${result.bestScore}</div>
+          </div>
+        `;
+      });
+
+      log(`=== RESULTS: ${correct}/${total} correct (${(correct/total*100).toFixed(0)}%) ===`, correct === total ? 'success' : 'warn');
+    }
+
+    function runRandomTest() {
+      const ranks = Object.keys(CARD_PATTERNS);
+      const randomRank = ranks[Math.floor(Math.random() * ranks.length)];
+      const cardPattern = CARD_PATTERNS[randomRank];
+
+      // Add some noise to the pattern
+      const noisyPattern = cardPattern.sectorPattern.map(v =>
+        Math.max(0, Math.min(1, v + (Math.random() - 0.5) * 0.04))
+      );
+
+      const pattern = analyzePattern(noisyPattern);
+      const result = matchPatternToCard(pattern);
+
+      log(`Random test: ${randomRank} (with noise)`, 'info');
+      log(`  Detected: ${result.bestCard} (score: ${result.bestScore})`, result.bestCard === randomRank ? 'success' : 'error');
+
+      const resultsDiv = document.getElementById('testResults');
+      resultsDiv.innerHTML = `
+        <div class="test-result ${result.bestCard === randomRank ? 'correct' : 'incorrect'}">
+          <div class="test-expected">${randomRank}</div>
+          <div class="test-detected">Detected: ${result.bestCard}</div>
+          <div class="test-score">Score: ${result.bestScore}</div>
+        </div>
+      ` + resultsDiv.innerHTML;
+    }
+
+    function clearResults() {
+      document.getElementById('testResults').innerHTML = '';
+      consoleLines = [];
+      updateConsole();
+    }
+
+    // ============================================
+    // INITIALIZATION
+    // ============================================
+    function init() {
+      // Render pattern summary table
+      renderPatternSummary();
+
+      // Render card study grid
+      const grid = document.getElementById('cardGrid');
+      grid.innerHTML = Object.entries(CARD_PATTERNS)
+        .map(([rank, pattern]) => renderCardStudy(rank, pattern))
+        .join('');
+
+      // Draw cards on canvases
+      Object.keys(CARD_PATTERNS).forEach(rank => {
+        drawCardOnCanvas(rank, CARD_PATTERNS[rank]);
+      });
+
+      log('Card Recognition Simulation loaded!', 'success');
+      log('Click "Run Pattern Test" to test all cards.', 'info');
+    }
+
+    // Start
+    init();
+  </script>
+</body>
+</html>

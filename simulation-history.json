@@ -1,0 +1,4884 @@
+{
+  "sessionId": "SIM-1767906698795",
+  "sessionStart": "2026-01-08T21:11:38.795Z",
+  "sessionEnd": "2026-01-08T21:11:38.810Z",
+  "casinoName": "Simulation Casino",
+  "tableName": "Disruptor Engine Table",
+  "numDecks": 8,
+  "rounds": [
+    {
+      "roundNumber": 1,
+      "timestamp": "2026-01-08T21:11:38.805Z",
+      "runningCountStart": 0,
+      "runningCountEnd": -2,
+      "trueCountStart": "0.00",
+      "trueCountEnd": "-0.25",
+      "cardsDealtInRound": [
+        "5",
+        "A",
+        "K",
+        "8",
+        "10"
+      ],
+      "dealer": {
+        "cards": [
+          "A",
+          "8"
+        ],
+        "total": 19,
+        "busted": false,
+        "upcard": "A",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "5",
+          "K",
+          "10"
+        ],
+        "total": 25,
+        "busted": true,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "LOSS",
+      "penetration": "1.2"
+    },
+    {
+      "roundNumber": 2,
+      "timestamp": "2026-01-08T21:11:38.805Z",
+      "runningCountStart": -2,
+      "runningCountEnd": -5,
+      "trueCountStart": "-0.25",
+      "trueCountEnd": "-0.64",
+      "cardsDealtInRound": [
+        "6",
+        "A",
+        "K",
+        "A",
+        "10"
+      ],
+      "dealer": {
+        "cards": [
+          "A",
+          "A"
+        ],
+        "total": 12,
+        "busted": false,
+        "upcard": "A",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "6",
+          "K",
+          "10"
+        ],
+        "total": 26,
+        "busted": true,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "LOSS",
+      "penetration": "2.4"
+    },
+    {
+      "roundNumber": 3,
+      "timestamp": "2026-01-08T21:11:38.805Z",
+      "runningCountStart": -5,
+      "runningCountEnd": -5,
+      "trueCountStart": "-0.64",
+      "trueCountEnd": "-0.65",
+      "cardsDealtInRound": [
+        "3",
+        "9",
+        "8",
+        "9",
+        "J"
+      ],
+      "dealer": {
+        "cards": [
+          "9",
+          "9"
+        ],
+        "total": 18,
+        "busted": false,
+        "upcard": "9",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "3",
+          "8",
+          "J"
+        ],
+        "total": 21,
+        "busted": false,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "WIN",
+      "penetration": "3.6"
+    },
+    {
+      "roundNumber": 4,
+      "timestamp": "2026-01-08T21:11:38.805Z",
+      "runningCountStart": -5,
+      "runningCountEnd": -7,
+      "trueCountStart": "-0.65",
+      "trueCountEnd": "-0.92",
+      "cardsDealtInRound": [
+        "3",
+        "A",
+        "10",
+        "Q"
+      ],
+      "dealer": {
+        "cards": [
+          "A",
+          "Q"
+        ],
+        "total": 21,
+        "busted": false,
+        "upcard": "A",
+        "blackjack": true
+      },
+      "player": {
+        "cards": [
+          "3",
+          "10"
+        ],
+        "total": 13,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "4.6"
+    },
+    {
+      "roundNumber": 5,
+      "timestamp": "2026-01-08T21:11:38.805Z",
+      "runningCountStart": -7,
+      "runningCountEnd": -9,
+      "trueCountStart": "-0.92",
+      "trueCountEnd": "-1.19",
+      "cardsDealtInRound": [
+        "9",
+        "3",
+        "10",
+        "10",
+        "K"
+      ],
+      "dealer": {
+        "cards": [
+          "3",
+          "10",
+          "K"
+        ],
+        "total": 23,
+        "busted": true,
+        "upcard": "3",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "9",
+          "10"
+        ],
+        "total": 19,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "5.8"
+    },
+    {
+      "roundNumber": 6,
+      "timestamp": "2026-01-08T21:11:38.805Z",
+      "runningCountStart": -9,
+      "runningCountEnd": -10,
+      "trueCountStart": "-1.19",
+      "trueCountEnd": "-1.34",
+      "cardsDealtInRound": [
+        "6",
+        "8",
+        "J",
+        "7",
+        "K"
+      ],
+      "dealer": {
+        "cards": [
+          "8",
+          "7"
+        ],
+        "total": 15,
+        "busted": false,
+        "upcard": "8",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "6",
+          "J",
+          "K"
+        ],
+        "total": 26,
+        "busted": true,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "LOSS",
+      "penetration": "7.0"
+    },
+    {
+      "roundNumber": 7,
+      "timestamp": "2026-01-08T21:11:38.805Z",
+      "runningCountStart": -10,
+      "runningCountEnd": -10,
+      "trueCountStart": "-1.34",
+      "trueCountEnd": "-1.36",
+      "cardsDealtInRound": [
+        "6",
+        "10",
+        "10",
+        "8",
+        "6"
+      ],
+      "dealer": {
+        "cards": [
+          "10",
+          "8"
+        ],
+        "total": 18,
+        "busted": false,
+        "upcard": "10",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "6",
+          "10",
+          "6"
+        ],
+        "total": 22,
+        "busted": true,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "LOSS",
+      "penetration": "8.2"
+    },
+    {
+      "roundNumber": 8,
+      "timestamp": "2026-01-08T21:11:38.805Z",
+      "runningCountStart": -10,
+      "runningCountEnd": -12,
+      "trueCountStart": "-1.36",
+      "trueCountEnd": "-1.65",
+      "cardsDealtInRound": [
+        "Q",
+        "4",
+        "A",
+        "J"
+      ],
+      "dealer": {
+        "cards": [
+          "4",
+          "J"
+        ],
+        "total": 14,
+        "busted": false,
+        "upcard": "4",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "Q",
+          "A"
+        ],
+        "total": 21,
+        "busted": false,
+        "blackjack": true,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "9.1"
+    },
+    {
+      "roundNumber": 9,
+      "timestamp": "2026-01-08T21:11:38.805Z",
+      "runningCountStart": -12,
+      "runningCountEnd": -12,
+      "trueCountStart": "-1.65",
+      "trueCountEnd": "-1.67",
+      "cardsDealtInRound": [
+        "10",
+        "6",
+        "A",
+        "2"
+      ],
+      "dealer": {
+        "cards": [
+          "6",
+          "2"
+        ],
+        "total": 8,
+        "busted": false,
+        "upcard": "6",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "10",
+          "A"
+        ],
+        "total": 21,
+        "busted": false,
+        "blackjack": true,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "10.1"
+    },
+    {
+      "roundNumber": 10,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -12,
+      "runningCountEnd": -14,
+      "trueCountStart": "-1.67",
+      "trueCountEnd": "-1.97",
+      "cardsDealtInRound": [
+        "J",
+        "8",
+        "K",
+        "3",
+        "K"
+      ],
+      "dealer": {
+        "cards": [
+          "8",
+          "3",
+          "K"
+        ],
+        "total": 21,
+        "busted": false,
+        "upcard": "8",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "J",
+          "K"
+        ],
+        "total": 20,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "11.3"
+    },
+    {
+      "roundNumber": 11,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -14,
+      "runningCountEnd": -12,
+      "trueCountStart": "-1.97",
+      "trueCountEnd": "-1.72",
+      "cardsDealtInRound": [
+        "5",
+        "7",
+        "2",
+        "6",
+        "8",
+        "10"
+      ],
+      "dealer": {
+        "cards": [
+          "7",
+          "6"
+        ],
+        "total": 13,
+        "busted": false,
+        "upcard": "7",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "5",
+          "2",
+          "8",
+          "10"
+        ],
+        "total": 25,
+        "busted": true,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "LOSS",
+      "penetration": "12.7"
+    },
+    {
+      "roundNumber": 12,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -12,
+      "runningCountEnd": -8,
+      "trueCountStart": "-1.72",
+      "trueCountEnd": "-1.17",
+      "cardsDealtInRound": [
+        "J",
+        "3",
+        "2",
+        "3",
+        "4",
+        "5",
+        "9"
+      ],
+      "dealer": {
+        "cards": [
+          "3",
+          "3",
+          "4",
+          "5",
+          "9"
+        ],
+        "total": 24,
+        "busted": true,
+        "upcard": "3",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "J",
+          "2"
+        ],
+        "total": 12,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "14.4"
+    },
+    {
+      "roundNumber": 13,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -8,
+      "runningCountEnd": -10,
+      "trueCountStart": "-1.17",
+      "trueCountEnd": "-1.48",
+      "cardsDealtInRound": [
+        "K",
+        "8",
+        "9",
+        "8",
+        "10"
+      ],
+      "dealer": {
+        "cards": [
+          "8",
+          "8",
+          "10"
+        ],
+        "total": 26,
+        "busted": true,
+        "upcard": "8",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "K",
+          "9"
+        ],
+        "total": 19,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "15.6"
+    },
+    {
+      "roundNumber": 14,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -10,
+      "runningCountEnd": -14,
+      "trueCountStart": "-1.48",
+      "trueCountEnd": "-2.10",
+      "cardsDealtInRound": [
+        "Q",
+        "A",
+        "K",
+        "J"
+      ],
+      "dealer": {
+        "cards": [
+          "A",
+          "J"
+        ],
+        "total": 21,
+        "busted": false,
+        "upcard": "A",
+        "blackjack": true
+      },
+      "player": {
+        "cards": [
+          "Q",
+          "K"
+        ],
+        "total": 20,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "16.6"
+    },
+    {
+      "roundNumber": 15,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -14,
+      "runningCountEnd": -15,
+      "trueCountStart": "-2.10",
+      "trueCountEnd": "-2.28",
+      "cardsDealtInRound": [
+        "Q",
+        "Q",
+        "K",
+        "6",
+        "6"
+      ],
+      "dealer": {
+        "cards": [
+          "Q",
+          "6",
+          "6"
+        ],
+        "total": 22,
+        "busted": true,
+        "upcard": "Q",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "Q",
+          "K"
+        ],
+        "total": 20,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "17.8"
+    },
+    {
+      "roundNumber": 16,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -15,
+      "runningCountEnd": -15,
+      "trueCountStart": "-2.28",
+      "trueCountEnd": "-2.32",
+      "cardsDealtInRound": [
+        "2",
+        "J",
+        "5",
+        "10",
+        "6",
+        "K"
+      ],
+      "dealer": {
+        "cards": [
+          "J",
+          "10"
+        ],
+        "total": 20,
+        "busted": false,
+        "upcard": "J",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "2",
+          "5",
+          "6",
+          "K"
+        ],
+        "total": 23,
+        "busted": true,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "LOSS",
+      "penetration": "19.2"
+    },
+    {
+      "roundNumber": 17,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -15,
+      "runningCountEnd": -15,
+      "trueCountStart": "-2.32",
+      "trueCountEnd": "-2.36",
+      "cardsDealtInRound": [
+        "9",
+        "5",
+        "9",
+        "K",
+        "9"
+      ],
+      "dealer": {
+        "cards": [
+          "5",
+          "K",
+          "9"
+        ],
+        "total": 24,
+        "busted": true,
+        "upcard": "5",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "9",
+          "9"
+        ],
+        "total": 18,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "20.4"
+    },
+    {
+      "roundNumber": 18,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -15,
+      "runningCountEnd": -16,
+      "trueCountStart": "-2.36",
+      "trueCountEnd": "-2.55",
+      "cardsDealtInRound": [
+        "8",
+        "K",
+        "6",
+        "9",
+        "Q"
+      ],
+      "dealer": {
+        "cards": [
+          "K",
+          "9"
+        ],
+        "total": 19,
+        "busted": false,
+        "upcard": "K",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "8",
+          "6",
+          "Q"
+        ],
+        "total": 24,
+        "busted": true,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "LOSS",
+      "penetration": "21.6"
+    },
+    {
+      "roundNumber": 19,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -16,
+      "runningCountEnd": -17,
+      "trueCountStart": "-2.55",
+      "trueCountEnd": "-2.75",
+      "cardsDealtInRound": [
+        "8",
+        "3",
+        "Q",
+        "7",
+        "J"
+      ],
+      "dealer": {
+        "cards": [
+          "3",
+          "7",
+          "J"
+        ],
+        "total": 20,
+        "busted": false,
+        "upcard": "3",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "8",
+          "Q"
+        ],
+        "total": 18,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "22.8"
+    },
+    {
+      "roundNumber": 20,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -17,
+      "runningCountEnd": -17,
+      "trueCountStart": "-2.75",
+      "trueCountEnd": "-2.82",
+      "cardsDealtInRound": [
+        "5",
+        "2",
+        "Q",
+        "2",
+        "A",
+        "K",
+        "8"
+      ],
+      "dealer": {
+        "cards": [
+          "2",
+          "2",
+          "A",
+          "K",
+          "8"
+        ],
+        "total": 23,
+        "busted": true,
+        "upcard": "2",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "5",
+          "Q"
+        ],
+        "total": 15,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "24.5"
+    },
+    {
+      "roundNumber": 21,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -17,
+      "runningCountEnd": -17,
+      "trueCountStart": "-2.82",
+      "trueCountEnd": "-2.85",
+      "cardsDealtInRound": [
+        "2",
+        "10",
+        "5",
+        "A"
+      ],
+      "dealer": {
+        "cards": [
+          "10",
+          "A"
+        ],
+        "total": 21,
+        "busted": false,
+        "upcard": "10",
+        "blackjack": true
+      },
+      "player": {
+        "cards": [
+          "2",
+          "5"
+        ],
+        "total": 7,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "25.5"
+    },
+    {
+      "roundNumber": 22,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -17,
+      "runningCountEnd": -16,
+      "trueCountStart": "-2.85",
+      "trueCountEnd": "-2.73",
+      "cardsDealtInRound": [
+        "K",
+        "8",
+        "8",
+        "5",
+        "5"
+      ],
+      "dealer": {
+        "cards": [
+          "8",
+          "5",
+          "5"
+        ],
+        "total": 18,
+        "busted": false,
+        "upcard": "8",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "K",
+          "8"
+        ],
+        "total": 18,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "PUSH",
+      "penetration": "26.7"
+    },
+    {
+      "roundNumber": 23,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -16,
+      "runningCountEnd": -17,
+      "trueCountStart": "-2.73",
+      "trueCountEnd": "-2.95",
+      "cardsDealtInRound": [
+        "J",
+        "10",
+        "6",
+        "K",
+        "3"
+      ],
+      "dealer": {
+        "cards": [
+          "10",
+          "K"
+        ],
+        "total": 20,
+        "busted": false,
+        "upcard": "10",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "J",
+          "6",
+          "3"
+        ],
+        "total": 19,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "27.9"
+    },
+    {
+      "roundNumber": 24,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -17,
+      "runningCountEnd": -18,
+      "trueCountStart": "-2.95",
+      "trueCountEnd": "-3.17",
+      "cardsDealtInRound": [
+        "Q",
+        "10",
+        "9",
+        "4",
+        "8"
+      ],
+      "dealer": {
+        "cards": [
+          "10",
+          "4",
+          "8"
+        ],
+        "total": 22,
+        "busted": true,
+        "upcard": "10",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "Q",
+          "9"
+        ],
+        "total": 19,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "29.1"
+    },
+    {
+      "roundNumber": 25,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -18,
+      "runningCountEnd": -19,
+      "trueCountStart": "-3.17",
+      "trueCountEnd": "-3.41",
+      "cardsDealtInRound": [
+        "9",
+        "K",
+        "6",
+        "9",
+        "Q"
+      ],
+      "dealer": {
+        "cards": [
+          "K",
+          "9"
+        ],
+        "total": 19,
+        "busted": false,
+        "upcard": "K",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "9",
+          "6",
+          "Q"
+        ],
+        "total": 25,
+        "busted": true,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "LOSS",
+      "penetration": "30.3"
+    },
+    {
+      "roundNumber": 26,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -19,
+      "runningCountEnd": -17,
+      "trueCountStart": "-3.41",
+      "trueCountEnd": "-3.11",
+      "cardsDealtInRound": [
+        "4",
+        "Q",
+        "6",
+        "4",
+        "Q",
+        "4"
+      ],
+      "dealer": {
+        "cards": [
+          "Q",
+          "4",
+          "4"
+        ],
+        "total": 18,
+        "busted": false,
+        "upcard": "Q",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "4",
+          "6",
+          "Q"
+        ],
+        "total": 20,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "31.7"
+    },
+    {
+      "roundNumber": 27,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -17,
+      "runningCountEnd": -15,
+      "trueCountStart": "-3.11",
+      "trueCountEnd": "-2.81",
+      "cardsDealtInRound": [
+        "10",
+        "4",
+        "4",
+        "6",
+        "3",
+        "J"
+      ],
+      "dealer": {
+        "cards": [
+          "4",
+          "6",
+          "3",
+          "J"
+        ],
+        "total": 23,
+        "busted": true,
+        "upcard": "4",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "10",
+          "4"
+        ],
+        "total": 14,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "33.2"
+    },
+    {
+      "roundNumber": 28,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -15,
+      "runningCountEnd": -13,
+      "trueCountStart": "-2.81",
+      "trueCountEnd": "-2.49",
+      "cardsDealtInRound": [
+        "3",
+        "8",
+        "A",
+        "3",
+        "7",
+        "4",
+        "8"
+      ],
+      "dealer": {
+        "cards": [
+          "8",
+          "3",
+          "4",
+          "8"
+        ],
+        "total": 23,
+        "busted": true,
+        "upcard": "8",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "3",
+          "A",
+          "7"
+        ],
+        "total": 21,
+        "busted": false,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "WIN",
+      "penetration": "34.9"
+    },
+    {
+      "roundNumber": 29,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -13,
+      "runningCountEnd": -13,
+      "trueCountStart": "-2.49",
+      "trueCountEnd": "-2.55",
+      "cardsDealtInRound": [
+        "Q",
+        "K",
+        "2",
+        "3",
+        "4",
+        "J"
+      ],
+      "dealer": {
+        "cards": [
+          "K",
+          "3"
+        ],
+        "total": 13,
+        "busted": false,
+        "upcard": "K",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "Q",
+          "2",
+          "4",
+          "J"
+        ],
+        "total": 26,
+        "busted": true,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "LOSS",
+      "penetration": "36.3"
+    },
+    {
+      "roundNumber": 30,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -13,
+      "runningCountEnd": -15,
+      "trueCountStart": "-2.55",
+      "trueCountEnd": "-3.01",
+      "cardsDealtInRound": [
+        "6",
+        "5",
+        "K",
+        "A",
+        "J",
+        "10"
+      ],
+      "dealer": {
+        "cards": [
+          "5",
+          "A",
+          "J",
+          "10"
+        ],
+        "total": 26,
+        "busted": true,
+        "upcard": "5",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "6",
+          "K"
+        ],
+        "total": 16,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "37.7"
+    },
+    {
+      "roundNumber": 31,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -15,
+      "runningCountEnd": -14,
+      "trueCountStart": "-3.01",
+      "trueCountEnd": "-2.88",
+      "cardsDealtInRound": [
+        "5",
+        "9",
+        "6",
+        "2",
+        "Q",
+        "Q"
+      ],
+      "dealer": {
+        "cards": [
+          "9",
+          "2",
+          "Q"
+        ],
+        "total": 21,
+        "busted": false,
+        "upcard": "9",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "5",
+          "6",
+          "Q"
+        ],
+        "total": 21,
+        "busted": false,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "PUSH",
+      "penetration": "39.2"
+    },
+    {
+      "roundNumber": 32,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -14,
+      "runningCountEnd": -14,
+      "trueCountStart": "-2.88",
+      "trueCountEnd": "-2.94",
+      "cardsDealtInRound": [
+        "6",
+        "3",
+        "7",
+        "K",
+        "K"
+      ],
+      "dealer": {
+        "cards": [
+          "3",
+          "K",
+          "K"
+        ],
+        "total": 23,
+        "busted": true,
+        "upcard": "3",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "6",
+          "7"
+        ],
+        "total": 13,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "40.4"
+    },
+    {
+      "roundNumber": 33,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -14,
+      "runningCountEnd": -16,
+      "trueCountStart": "-2.94",
+      "trueCountEnd": "-3.41",
+      "cardsDealtInRound": [
+        "9",
+        "7",
+        "10",
+        "J"
+      ],
+      "dealer": {
+        "cards": [
+          "7",
+          "J"
+        ],
+        "total": 17,
+        "busted": false,
+        "upcard": "7",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "9",
+          "10"
+        ],
+        "total": 19,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "41.3"
+    },
+    {
+      "roundNumber": 34,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -16,
+      "runningCountEnd": -19,
+      "trueCountStart": "-3.41",
+      "trueCountEnd": "-4.13",
+      "cardsDealtInRound": [
+        "Q",
+        "4",
+        "Q",
+        "K",
+        "K"
+      ],
+      "dealer": {
+        "cards": [
+          "4",
+          "K",
+          "K"
+        ],
+        "total": 24,
+        "busted": true,
+        "upcard": "4",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "Q",
+          "Q"
+        ],
+        "total": 20,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "42.5"
+    },
+    {
+      "roundNumber": 35,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -19,
+      "runningCountEnd": -21,
+      "trueCountStart": "-4.13",
+      "trueCountEnd": "-4.65",
+      "cardsDealtInRound": [
+        "5",
+        "K",
+        "A",
+        "A"
+      ],
+      "dealer": {
+        "cards": [
+          "K",
+          "A"
+        ],
+        "total": 21,
+        "busted": false,
+        "upcard": "K",
+        "blackjack": true
+      },
+      "player": {
+        "cards": [
+          "5",
+          "A"
+        ],
+        "total": 16,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "43.5"
+    },
+    {
+      "roundNumber": 36,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -21,
+      "runningCountEnd": -19,
+      "trueCountStart": "-4.65",
+      "trueCountEnd": "-4.31",
+      "cardsDealtInRound": [
+        "6",
+        "7",
+        "8",
+        "2",
+        "3",
+        "A"
+      ],
+      "dealer": {
+        "cards": [
+          "7",
+          "2",
+          "A"
+        ],
+        "total": 20,
+        "busted": false,
+        "upcard": "7",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "6",
+          "8",
+          "3"
+        ],
+        "total": 17,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "45.0"
+    },
+    {
+      "roundNumber": 37,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -19,
+      "runningCountEnd": -19,
+      "trueCountStart": "-4.31",
+      "trueCountEnd": "-4.43",
+      "cardsDealtInRound": [
+        "4",
+        "10",
+        "K",
+        "10",
+        "2",
+        "5"
+      ],
+      "dealer": {
+        "cards": [
+          "10",
+          "10"
+        ],
+        "total": 20,
+        "busted": false,
+        "upcard": "10",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "4",
+          "K",
+          "2",
+          "5"
+        ],
+        "total": 21,
+        "busted": false,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "WIN",
+      "penetration": "46.4"
+    },
+    {
+      "roundNumber": 38,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -19,
+      "runningCountEnd": -18,
+      "trueCountStart": "-4.43",
+      "trueCountEnd": "-4.29",
+      "cardsDealtInRound": [
+        "3",
+        "5",
+        "K",
+        "2",
+        "J"
+      ],
+      "dealer": {
+        "cards": [
+          "5",
+          "2",
+          "J"
+        ],
+        "total": 17,
+        "busted": false,
+        "upcard": "5",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "3",
+          "K"
+        ],
+        "total": 13,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "47.6"
+    },
+    {
+      "roundNumber": 39,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -18,
+      "runningCountEnd": -14,
+      "trueCountStart": "-4.29",
+      "trueCountEnd": "-3.43",
+      "cardsDealtInRound": [
+        "2",
+        "4",
+        "6",
+        "A",
+        "5",
+        "6"
+      ],
+      "dealer": {
+        "cards": [
+          "4",
+          "A",
+          "6"
+        ],
+        "total": 21,
+        "busted": false,
+        "upcard": "4",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "2",
+          "6",
+          "5"
+        ],
+        "total": 13,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "49.0"
+    },
+    {
+      "roundNumber": 40,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -14,
+      "runningCountEnd": -14,
+      "trueCountStart": "-3.43",
+      "trueCountEnd": "-3.52",
+      "cardsDealtInRound": [
+        "8",
+        "4",
+        "A",
+        "A",
+        "5"
+      ],
+      "dealer": {
+        "cards": [
+          "4",
+          "A",
+          "5"
+        ],
+        "total": 20,
+        "busted": false,
+        "upcard": "4",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "8",
+          "A"
+        ],
+        "total": 19,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "50.2"
+    },
+    {
+      "roundNumber": 41,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -14,
+      "runningCountEnd": -12,
+      "trueCountStart": "-3.52",
+      "trueCountEnd": "-3.10",
+      "cardsDealtInRound": [
+        "5",
+        "7",
+        "3",
+        "2",
+        "9",
+        "A"
+      ],
+      "dealer": {
+        "cards": [
+          "7",
+          "2",
+          "A"
+        ],
+        "total": 20,
+        "busted": false,
+        "upcard": "7",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "5",
+          "3",
+          "9"
+        ],
+        "total": 17,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "51.7"
+    },
+    {
+      "roundNumber": 42,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -12,
+      "runningCountEnd": -11,
+      "trueCountStart": "-3.10",
+      "trueCountEnd": "-2.92",
+      "cardsDealtInRound": [
+        "7",
+        "4",
+        "9",
+        "3",
+        "A"
+      ],
+      "dealer": {
+        "cards": [
+          "4",
+          "3",
+          "A"
+        ],
+        "total": 18,
+        "busted": false,
+        "upcard": "4",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "7",
+          "9"
+        ],
+        "total": 16,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "52.9"
+    },
+    {
+      "roundNumber": 43,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -11,
+      "runningCountEnd": -12,
+      "trueCountStart": "-2.92",
+      "trueCountEnd": "-3.28",
+      "cardsDealtInRound": [
+        "2",
+        "K",
+        "A",
+        "2",
+        "7",
+        "10"
+      ],
+      "dealer": {
+        "cards": [
+          "K",
+          "2",
+          "10"
+        ],
+        "total": 22,
+        "busted": true,
+        "upcard": "K",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "2",
+          "A",
+          "7"
+        ],
+        "total": 20,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "54.3"
+    },
+    {
+      "roundNumber": 44,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -12,
+      "runningCountEnd": -12,
+      "trueCountStart": "-3.28",
+      "trueCountEnd": "-3.37",
+      "cardsDealtInRound": [
+        "4",
+        "8",
+        "5",
+        "K",
+        "10"
+      ],
+      "dealer": {
+        "cards": [
+          "8",
+          "K"
+        ],
+        "total": 18,
+        "busted": false,
+        "upcard": "8",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "4",
+          "5",
+          "10"
+        ],
+        "total": 19,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "55.5"
+    },
+    {
+      "roundNumber": 45,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -12,
+      "runningCountEnd": -12,
+      "trueCountStart": "-3.37",
+      "trueCountEnd": "-3.47",
+      "cardsDealtInRound": [
+        "J",
+        "8",
+        "2",
+        "2",
+        "10"
+      ],
+      "dealer": {
+        "cards": [
+          "8",
+          "2"
+        ],
+        "total": 10,
+        "busted": false,
+        "upcard": "8",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "J",
+          "2",
+          "10"
+        ],
+        "total": 22,
+        "busted": true,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "LOSS",
+      "penetration": "56.7"
+    },
+    {
+      "roundNumber": 46,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -12,
+      "runningCountEnd": -10,
+      "trueCountStart": "-3.47",
+      "trueCountEnd": "-3.01",
+      "cardsDealtInRound": [
+        "9",
+        "4",
+        "2",
+        "3",
+        "K",
+        "5",
+        "Q"
+      ],
+      "dealer": {
+        "cards": [
+          "4",
+          "3",
+          "5",
+          "Q"
+        ],
+        "total": 22,
+        "busted": true,
+        "upcard": "4",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "9",
+          "2",
+          "K"
+        ],
+        "total": 21,
+        "busted": false,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "WIN",
+      "penetration": "58.4"
+    },
+    {
+      "roundNumber": 47,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -10,
+      "runningCountEnd": -8,
+      "trueCountStart": "-3.01",
+      "trueCountEnd": "-2.49",
+      "cardsDealtInRound": [
+        "Q",
+        "3",
+        "6",
+        "7",
+        "4",
+        "7"
+      ],
+      "dealer": {
+        "cards": [
+          "3",
+          "7",
+          "4",
+          "7"
+        ],
+        "total": 21,
+        "busted": false,
+        "upcard": "3",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "Q",
+          "6"
+        ],
+        "total": 16,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "59.9"
+    },
+    {
+      "roundNumber": 48,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -8,
+      "runningCountEnd": -9,
+      "trueCountStart": "-2.49",
+      "trueCountEnd": "-2.89",
+      "cardsDealtInRound": [
+        "10",
+        "Q",
+        "4",
+        "K",
+        "4"
+      ],
+      "dealer": {
+        "cards": [
+          "Q",
+          "K"
+        ],
+        "total": 20,
+        "busted": false,
+        "upcard": "Q",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "10",
+          "4",
+          "4"
+        ],
+        "total": 18,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "61.1"
+    },
+    {
+      "roundNumber": 49,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -9,
+      "runningCountEnd": -8,
+      "trueCountStart": "-2.89",
+      "trueCountEnd": "-2.65",
+      "cardsDealtInRound": [
+        "8",
+        "7",
+        "7",
+        "3",
+        "8"
+      ],
+      "dealer": {
+        "cards": [
+          "7",
+          "3"
+        ],
+        "total": 10,
+        "busted": false,
+        "upcard": "7",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "8",
+          "7",
+          "8"
+        ],
+        "total": 23,
+        "busted": true,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "LOSS",
+      "penetration": "62.3"
+    },
+    {
+      "roundNumber": 50,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -8,
+      "runningCountEnd": -10,
+      "trueCountStart": "-2.65",
+      "trueCountEnd": "-3.42",
+      "cardsDealtInRound": [
+        "10",
+        "Q",
+        "Q",
+        "2",
+        "9"
+      ],
+      "dealer": {
+        "cards": [
+          "Q",
+          "2",
+          "9"
+        ],
+        "total": 21,
+        "busted": false,
+        "upcard": "Q",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "10",
+          "Q"
+        ],
+        "total": 20,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "63.5"
+    },
+    {
+      "roundNumber": 51,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -10,
+      "runningCountEnd": -9,
+      "trueCountStart": "-3.42",
+      "trueCountEnd": "-3.18",
+      "cardsDealtInRound": [
+        "10",
+        "9",
+        "9",
+        "3",
+        "6"
+      ],
+      "dealer": {
+        "cards": [
+          "9",
+          "3",
+          "6"
+        ],
+        "total": 18,
+        "busted": false,
+        "upcard": "9",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "10",
+          "9"
+        ],
+        "total": 19,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "64.7"
+    },
+    {
+      "roundNumber": 52,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -9,
+      "runningCountEnd": -10,
+      "trueCountStart": "-3.18",
+      "trueCountEnd": "-3.66",
+      "cardsDealtInRound": [
+        "4",
+        "A",
+        "K",
+        "4",
+        "Q"
+      ],
+      "dealer": {
+        "cards": [
+          "A",
+          "4"
+        ],
+        "total": 15,
+        "busted": false,
+        "upcard": "A",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "4",
+          "K",
+          "Q"
+        ],
+        "total": 24,
+        "busted": true,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "LOSS",
+      "penetration": "65.9"
+    },
+    {
+      "roundNumber": 53,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -10,
+      "runningCountEnd": -8,
+      "trueCountStart": "-3.66",
+      "trueCountEnd": "-3.06",
+      "cardsDealtInRound": [
+        "7",
+        "3",
+        "J",
+        "5",
+        "7",
+        "4"
+      ],
+      "dealer": {
+        "cards": [
+          "3",
+          "5",
+          "7",
+          "4"
+        ],
+        "total": 19,
+        "busted": false,
+        "upcard": "3",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "7",
+          "J"
+        ],
+        "total": 17,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "67.3"
+    },
+    {
+      "roundNumber": 54,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -8,
+      "runningCountEnd": -7,
+      "trueCountStart": "-3.06",
+      "trueCountEnd": "-2.80",
+      "cardsDealtInRound": [
+        "3",
+        "J",
+        "4",
+        "2",
+        "J",
+        "7"
+      ],
+      "dealer": {
+        "cards": [
+          "J",
+          "2",
+          "7"
+        ],
+        "total": 19,
+        "busted": false,
+        "upcard": "J",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "3",
+          "4",
+          "J"
+        ],
+        "total": 17,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "68.8"
+    },
+    {
+      "roundNumber": 55,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -7,
+      "runningCountEnd": -9,
+      "trueCountStart": "-2.80",
+      "trueCountEnd": "-3.74",
+      "cardsDealtInRound": [
+        "Q",
+        "Q",
+        "6",
+        "7",
+        "A"
+      ],
+      "dealer": {
+        "cards": [
+          "Q",
+          "7"
+        ],
+        "total": 17,
+        "busted": false,
+        "upcard": "Q",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "Q",
+          "6",
+          "A"
+        ],
+        "total": 17,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "PUSH",
+      "penetration": "70.0"
+    },
+    {
+      "roundNumber": 56,
+      "timestamp": "2026-01-08T21:11:38.806Z",
+      "runningCountStart": -9,
+      "runningCountEnd": -12,
+      "trueCountStart": "-3.74",
+      "trueCountEnd": "-5.16",
+      "cardsDealtInRound": [
+        "10",
+        "7",
+        "10",
+        "J"
+      ],
+      "dealer": {
+        "cards": [
+          "7",
+          "J"
+        ],
+        "total": 17,
+        "busted": false,
+        "upcard": "7",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "10",
+          "10"
+        ],
+        "total": 20,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "70.9"
+    },
+    {
+      "roundNumber": 57,
+      "timestamp": "2026-01-08T21:11:38.807Z",
+      "runningCountStart": -12,
+      "runningCountEnd": -11,
+      "trueCountStart": "-5.16",
+      "trueCountEnd": "-4.93",
+      "cardsDealtInRound": [
+        "10",
+        "4",
+        "3",
+        "9",
+        "9"
+      ],
+      "dealer": {
+        "cards": [
+          "4",
+          "9",
+          "9"
+        ],
+        "total": 22,
+        "busted": true,
+        "upcard": "4",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "10",
+          "3"
+        ],
+        "total": 13,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "72.1"
+    },
+    {
+      "roundNumber": 58,
+      "timestamp": "2026-01-08T21:11:38.807Z",
+      "runningCountStart": -11,
+      "runningCountEnd": -10,
+      "trueCountStart": "-4.93",
+      "trueCountEnd": "-4.77",
+      "cardsDealtInRound": [
+        "2",
+        "9",
+        "3",
+        "6",
+        "9",
+        "A",
+        "J"
+      ],
+      "dealer": {
+        "cards": [
+          "9",
+          "6"
+        ],
+        "total": 15,
+        "busted": false,
+        "upcard": "9",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "2",
+          "3",
+          "9",
+          "A",
+          "J"
+        ],
+        "total": 25,
+        "busted": true,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "LOSS",
+      "penetration": "73.8"
+    },
+    {
+      "roundNumber": 59,
+      "timestamp": "2026-01-08T21:11:38.807Z",
+      "runningCountStart": -10,
+      "runningCountEnd": -12,
+      "trueCountStart": "-4.77",
+      "trueCountEnd": "-6.00",
+      "cardsDealtInRound": [
+        "Q",
+        "9",
+        "6",
+        "10",
+        "K"
+      ],
+      "dealer": {
+        "cards": [
+          "9",
+          "10"
+        ],
+        "total": 19,
+        "busted": false,
+        "upcard": "9",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "Q",
+          "6",
+          "K"
+        ],
+        "total": 26,
+        "busted": true,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "LOSS",
+      "penetration": "75.0"
+    },
+    {
+      "roundNumber": 60,
+      "timestamp": "2026-01-08T21:11:38.807Z",
+      "runningCountStart": -12,
+      "runningCountEnd": -9,
+      "trueCountStart": "-6.00",
+      "trueCountEnd": "-4.78",
+      "cardsDealtInRound": [
+        "A",
+        "2",
+        "2",
+        "4",
+        "5",
+        "9"
+      ],
+      "dealer": {
+        "cards": [
+          "2",
+          "4",
+          "5",
+          "9"
+        ],
+        "total": 20,
+        "busted": false,
+        "upcard": "2",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "A",
+          "2"
+        ],
+        "total": 13,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "76.4"
+    },
+    {
+      "roundNumber": 61,
+      "timestamp": "2026-01-08T21:11:38.807Z",
+      "runningCountStart": 0,
+      "runningCountEnd": 1,
+      "trueCountStart": "0.00",
+      "trueCountEnd": "0.13",
+      "cardsDealtInRound": [
+        "2",
+        "7",
+        "5",
+        "10",
+        "7",
+        "9"
+      ],
+      "dealer": {
+        "cards": [
+          "7",
+          "10"
+        ],
+        "total": 17,
+        "busted": false,
+        "upcard": "7",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "2",
+          "5",
+          "7",
+          "9"
+        ],
+        "total": 23,
+        "busted": true,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "LOSS",
+      "penetration": "1.4"
+    },
+    {
+      "roundNumber": 62,
+      "timestamp": "2026-01-08T21:11:38.807Z",
+      "runningCountStart": 1,
+      "runningCountEnd": -2,
+      "trueCountStart": "0.13",
+      "trueCountEnd": "-0.26",
+      "cardsDealtInRound": [
+        "10",
+        "10",
+        "J",
+        "7"
+      ],
+      "dealer": {
+        "cards": [
+          "10",
+          "7"
+        ],
+        "total": 17,
+        "busted": false,
+        "upcard": "10",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "10",
+          "J"
+        ],
+        "total": 20,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "2.4"
+    },
+    {
+      "roundNumber": 63,
+      "timestamp": "2026-01-08T21:11:38.807Z",
+      "runningCountStart": -2,
+      "runningCountEnd": -5,
+      "trueCountStart": "-0.26",
+      "trueCountEnd": "-0.65",
+      "cardsDealtInRound": [
+        "K",
+        "9",
+        "Q",
+        "J"
+      ],
+      "dealer": {
+        "cards": [
+          "9",
+          "J"
+        ],
+        "total": 19,
+        "busted": false,
+        "upcard": "9",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "K",
+          "Q"
+        ],
+        "total": 20,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "3.4"
+    },
+    {
+      "roundNumber": 64,
+      "timestamp": "2026-01-08T21:11:38.808Z",
+      "runningCountStart": -5,
+      "runningCountEnd": -7,
+      "trueCountStart": "-0.65",
+      "trueCountEnd": "-0.92",
+      "cardsDealtInRound": [
+        "10",
+        "3",
+        "9",
+        "J",
+        "10"
+      ],
+      "dealer": {
+        "cards": [
+          "3",
+          "J",
+          "10"
+        ],
+        "total": 23,
+        "busted": true,
+        "upcard": "3",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "10",
+          "9"
+        ],
+        "total": 19,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "4.6"
+    },
+    {
+      "roundNumber": 65,
+      "timestamp": "2026-01-08T21:11:38.808Z",
+      "runningCountStart": -7,
+      "runningCountEnd": -9,
+      "trueCountStart": "-0.92",
+      "trueCountEnd": "-1.19",
+      "cardsDealtInRound": [
+        "7",
+        "8",
+        "J",
+        "K"
+      ],
+      "dealer": {
+        "cards": [
+          "8",
+          "K"
+        ],
+        "total": 18,
+        "busted": false,
+        "upcard": "8",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "7",
+          "J"
+        ],
+        "total": 17,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "5.5"
+    },
+    {
+      "roundNumber": 66,
+      "timestamp": "2026-01-08T21:11:38.808Z",
+      "runningCountStart": -9,
+      "runningCountEnd": -10,
+      "trueCountStart": "-1.19",
+      "trueCountEnd": "-1.34",
+      "cardsDealtInRound": [
+        "J",
+        "3",
+        "9",
+        "8",
+        "J"
+      ],
+      "dealer": {
+        "cards": [
+          "3",
+          "8",
+          "J"
+        ],
+        "total": 21,
+        "busted": false,
+        "upcard": "3",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "J",
+          "9"
+        ],
+        "total": 19,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "6.7"
+    },
+    {
+      "roundNumber": 67,
+      "timestamp": "2026-01-08T21:11:38.808Z",
+      "runningCountStart": -10,
+      "runningCountEnd": -8,
+      "trueCountStart": "-1.34",
+      "trueCountEnd": "-1.09",
+      "cardsDealtInRound": [
+        "6",
+        "5",
+        "4",
+        "K",
+        "Q",
+        "4"
+      ],
+      "dealer": {
+        "cards": [
+          "5",
+          "K",
+          "4"
+        ],
+        "total": 19,
+        "busted": false,
+        "upcard": "5",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "6",
+          "4",
+          "Q"
+        ],
+        "total": 20,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "8.2"
+    },
+    {
+      "roundNumber": 68,
+      "timestamp": "2026-01-08T21:11:38.808Z",
+      "runningCountStart": -8,
+      "runningCountEnd": -6,
+      "trueCountStart": "-1.09",
+      "trueCountEnd": "-0.83",
+      "cardsDealtInRound": [
+        "4",
+        "3",
+        "5",
+        "A",
+        "10",
+        "5"
+      ],
+      "dealer": {
+        "cards": [
+          "3",
+          "A",
+          "5"
+        ],
+        "total": 19,
+        "busted": false,
+        "upcard": "3",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "4",
+          "5",
+          "10"
+        ],
+        "total": 19,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "PUSH",
+      "penetration": "9.6"
+    },
+    {
+      "roundNumber": 69,
+      "timestamp": "2026-01-08T21:11:38.808Z",
+      "runningCountStart": -6,
+      "runningCountEnd": -7,
+      "trueCountStart": "-0.83",
+      "trueCountEnd": "-0.98",
+      "cardsDealtInRound": [
+        "8",
+        "9",
+        "7",
+        "Q",
+        "8"
+      ],
+      "dealer": {
+        "cards": [
+          "9",
+          "Q"
+        ],
+        "total": 19,
+        "busted": false,
+        "upcard": "9",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "8",
+          "7",
+          "8"
+        ],
+        "total": 23,
+        "busted": true,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "LOSS",
+      "penetration": "10.8"
+    },
+    {
+      "roundNumber": 70,
+      "timestamp": "2026-01-08T21:11:38.808Z",
+      "runningCountStart": -7,
+      "runningCountEnd": -5,
+      "trueCountStart": "-0.98",
+      "trueCountEnd": "-0.71",
+      "cardsDealtInRound": [
+        "3",
+        "8",
+        "4",
+        "2",
+        "K",
+        "5",
+        "J"
+      ],
+      "dealer": {
+        "cards": [
+          "8",
+          "2",
+          "5",
+          "J"
+        ],
+        "total": 25,
+        "busted": true,
+        "upcard": "8",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "3",
+          "4",
+          "K"
+        ],
+        "total": 17,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "12.5"
+    },
+    {
+      "roundNumber": 71,
+      "timestamp": "2026-01-08T21:11:38.808Z",
+      "runningCountStart": -5,
+      "runningCountEnd": -8,
+      "trueCountStart": "-0.71",
+      "trueCountEnd": "-1.16",
+      "cardsDealtInRound": [
+        "2",
+        "Q",
+        "10",
+        "J",
+        "J"
+      ],
+      "dealer": {
+        "cards": [
+          "Q",
+          "J"
+        ],
+        "total": 20,
+        "busted": false,
+        "upcard": "Q",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "2",
+          "10",
+          "J"
+        ],
+        "total": 22,
+        "busted": true,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "LOSS",
+      "penetration": "13.7"
+    },
+    {
+      "roundNumber": 72,
+      "timestamp": "2026-01-08T21:11:38.808Z",
+      "runningCountStart": -8,
+      "runningCountEnd": -8,
+      "trueCountStart": "-1.16",
+      "trueCountEnd": "-1.18",
+      "cardsDealtInRound": [
+        "7",
+        "5",
+        "6",
+        "K",
+        "Q"
+      ],
+      "dealer": {
+        "cards": [
+          "5",
+          "K",
+          "Q"
+        ],
+        "total": 25,
+        "busted": true,
+        "upcard": "5",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "7",
+          "6"
+        ],
+        "total": 13,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "14.9"
+    },
+    {
+      "roundNumber": 73,
+      "timestamp": "2026-01-08T21:11:38.808Z",
+      "runningCountStart": -8,
+      "runningCountEnd": -4,
+      "trueCountStart": "-1.18",
+      "trueCountEnd": "-0.60",
+      "cardsDealtInRound": [
+        "3",
+        "4",
+        "A",
+        "2",
+        "4",
+        "2",
+        "7"
+      ],
+      "dealer": {
+        "cards": [
+          "4",
+          "2",
+          "4",
+          "2",
+          "7"
+        ],
+        "total": 19,
+        "busted": false,
+        "upcard": "4",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "3",
+          "A"
+        ],
+        "total": 14,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "16.6"
+    },
+    {
+      "roundNumber": 74,
+      "timestamp": "2026-01-08T21:11:38.808Z",
+      "runningCountStart": -4,
+      "runningCountEnd": -4,
+      "trueCountStart": "-0.60",
+      "trueCountEnd": "-0.61",
+      "cardsDealtInRound": [
+        "8",
+        "K",
+        "J",
+        "2",
+        "3",
+        "8"
+      ],
+      "dealer": {
+        "cards": [
+          "K",
+          "2",
+          "3",
+          "8"
+        ],
+        "total": 23,
+        "busted": true,
+        "upcard": "K",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "8",
+          "J"
+        ],
+        "total": 18,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "18.0"
+    },
+    {
+      "roundNumber": 75,
+      "timestamp": "2026-01-08T21:11:38.808Z",
+      "runningCountStart": -4,
+      "runningCountEnd": -4,
+      "trueCountStart": "-0.61",
+      "trueCountEnd": "-0.62",
+      "cardsDealtInRound": [
+        "A",
+        "5",
+        "3",
+        "Q",
+        "8"
+      ],
+      "dealer": {
+        "cards": [
+          "5",
+          "Q",
+          "8"
+        ],
+        "total": 23,
+        "busted": true,
+        "upcard": "5",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "A",
+          "3"
+        ],
+        "total": 14,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "19.2"
+    },
+    {
+      "roundNumber": 76,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": -4,
+      "runningCountEnd": -4,
+      "trueCountStart": "-0.62",
+      "trueCountEnd": "-0.63",
+      "cardsDealtInRound": [
+        "J",
+        "3",
+        "5",
+        "K",
+        "8"
+      ],
+      "dealer": {
+        "cards": [
+          "3",
+          "K",
+          "8"
+        ],
+        "total": 21,
+        "busted": false,
+        "upcard": "3",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "J",
+          "5"
+        ],
+        "total": 15,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "20.4"
+    },
+    {
+      "roundNumber": 77,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": -4,
+      "runningCountEnd": -4,
+      "trueCountStart": "-0.63",
+      "trueCountEnd": "-0.64",
+      "cardsDealtInRound": [
+        "10",
+        "4",
+        "8",
+        "A",
+        "7",
+        "6"
+      ],
+      "dealer": {
+        "cards": [
+          "4",
+          "A",
+          "7",
+          "6"
+        ],
+        "total": 18,
+        "busted": false,
+        "upcard": "4",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "10",
+          "8"
+        ],
+        "total": 18,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "PUSH",
+      "penetration": "21.9"
+    },
+    {
+      "roundNumber": 78,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": -4,
+      "runningCountEnd": 0,
+      "trueCountStart": "-0.64",
+      "trueCountEnd": "0.00",
+      "cardsDealtInRound": [
+        "6",
+        "2",
+        "7",
+        "7",
+        "5",
+        "5"
+      ],
+      "dealer": {
+        "cards": [
+          "2",
+          "7",
+          "5",
+          "5"
+        ],
+        "total": 19,
+        "busted": false,
+        "upcard": "2",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "6",
+          "7"
+        ],
+        "total": 13,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "23.3"
+    },
+    {
+      "roundNumber": 79,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": 0,
+      "runningCountEnd": -1,
+      "trueCountStart": "0.00",
+      "trueCountEnd": "-0.17",
+      "cardsDealtInRound": [
+        "4",
+        "K",
+        "7",
+        "A"
+      ],
+      "dealer": {
+        "cards": [
+          "K",
+          "A"
+        ],
+        "total": 21,
+        "busted": false,
+        "upcard": "K",
+        "blackjack": true
+      },
+      "player": {
+        "cards": [
+          "4",
+          "7"
+        ],
+        "total": 11,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "24.3"
+    },
+    {
+      "roundNumber": 80,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": -1,
+      "runningCountEnd": -1,
+      "trueCountStart": "-0.17",
+      "trueCountEnd": "-0.17",
+      "cardsDealtInRound": [
+        "8",
+        "6",
+        "7",
+        "A"
+      ],
+      "dealer": {
+        "cards": [
+          "6",
+          "A"
+        ],
+        "total": 17,
+        "busted": false,
+        "upcard": "6",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "8",
+          "7"
+        ],
+        "total": 15,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "25.2"
+    },
+    {
+      "roundNumber": 81,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": -1,
+      "runningCountEnd": 0,
+      "trueCountStart": "-0.17",
+      "trueCountEnd": "0.00",
+      "cardsDealtInRound": [
+        "K",
+        "6",
+        "2",
+        "J",
+        "2"
+      ],
+      "dealer": {
+        "cards": [
+          "6",
+          "J",
+          "2"
+        ],
+        "total": 18,
+        "busted": false,
+        "upcard": "6",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "K",
+          "2"
+        ],
+        "total": 12,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "26.4"
+    },
+    {
+      "roundNumber": 82,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": 0,
+      "runningCountEnd": 0,
+      "trueCountStart": "0.00",
+      "trueCountEnd": "0.00",
+      "cardsDealtInRound": [
+        "10",
+        "A",
+        "6",
+        "8",
+        "3"
+      ],
+      "dealer": {
+        "cards": [
+          "A",
+          "8"
+        ],
+        "total": 19,
+        "busted": false,
+        "upcard": "A",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "10",
+          "6",
+          "3"
+        ],
+        "total": 19,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "PUSH",
+      "penetration": "27.6"
+    },
+    {
+      "roundNumber": 83,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": 0,
+      "runningCountEnd": -1,
+      "trueCountStart": "0.00",
+      "trueCountEnd": "-0.18",
+      "cardsDealtInRound": [
+        "5",
+        "K",
+        "2",
+        "Q",
+        "K"
+      ],
+      "dealer": {
+        "cards": [
+          "K",
+          "Q"
+        ],
+        "total": 20,
+        "busted": false,
+        "upcard": "K",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "5",
+          "2",
+          "K"
+        ],
+        "total": 17,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "28.8"
+    },
+    {
+      "roundNumber": 84,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": -1,
+      "runningCountEnd": -5,
+      "trueCountStart": "-0.18",
+      "trueCountEnd": "-0.90",
+      "cardsDealtInRound": [
+        "J",
+        "A",
+        "J",
+        "5",
+        "Q",
+        "A"
+      ],
+      "dealer": {
+        "cards": [
+          "A",
+          "5",
+          "Q",
+          "A"
+        ],
+        "total": 17,
+        "busted": false,
+        "upcard": "A",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "J",
+          "J"
+        ],
+        "total": 20,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "30.3"
+    },
+    {
+      "roundNumber": 85,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": -5,
+      "runningCountEnd": 0,
+      "trueCountStart": "-0.90",
+      "trueCountEnd": "0.00",
+      "cardsDealtInRound": [
+        "2",
+        "6",
+        "3",
+        "6",
+        "6",
+        "4",
+        "Q"
+      ],
+      "dealer": {
+        "cards": [
+          "6",
+          "6",
+          "Q"
+        ],
+        "total": 22,
+        "busted": true,
+        "upcard": "6",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "2",
+          "3",
+          "6",
+          "4"
+        ],
+        "total": 15,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "32.0"
+    },
+    {
+      "roundNumber": 86,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": 0,
+      "runningCountEnd": 2,
+      "trueCountStart": "0.00",
+      "trueCountEnd": "0.38",
+      "cardsDealtInRound": [
+        "5",
+        "10",
+        "Q",
+        "6",
+        "4",
+        "2"
+      ],
+      "dealer": {
+        "cards": [
+          "10",
+          "6",
+          "2"
+        ],
+        "total": 18,
+        "busted": false,
+        "upcard": "10",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "5",
+          "Q",
+          "4"
+        ],
+        "total": 19,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "33.4"
+    },
+    {
+      "roundNumber": 87,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": 2,
+      "runningCountEnd": 4,
+      "trueCountStart": "0.38",
+      "trueCountEnd": "0.77",
+      "cardsDealtInRound": [
+        "3",
+        "2",
+        "8",
+        "8",
+        "4",
+        "A"
+      ],
+      "dealer": {
+        "cards": [
+          "2",
+          "8",
+          "A"
+        ],
+        "total": 21,
+        "busted": false,
+        "upcard": "2",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "3",
+          "8",
+          "4"
+        ],
+        "total": 15,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "34.9"
+    },
+    {
+      "roundNumber": 88,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": 4,
+      "runningCountEnd": 3,
+      "trueCountStart": "0.77",
+      "trueCountEnd": "0.59",
+      "cardsDealtInRound": [
+        "Q",
+        "4",
+        "J",
+        "6",
+        "J"
+      ],
+      "dealer": {
+        "cards": [
+          "4",
+          "6",
+          "J"
+        ],
+        "total": 20,
+        "busted": false,
+        "upcard": "4",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "Q",
+          "J"
+        ],
+        "total": 20,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "PUSH",
+      "penetration": "36.1"
+    },
+    {
+      "roundNumber": 89,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": 3,
+      "runningCountEnd": 0,
+      "trueCountStart": "0.59",
+      "trueCountEnd": "0.00",
+      "cardsDealtInRound": [
+        "J",
+        "2",
+        "Q",
+        "Q",
+        "A",
+        "8"
+      ],
+      "dealer": {
+        "cards": [
+          "2",
+          "Q",
+          "A",
+          "8"
+        ],
+        "total": 21,
+        "busted": false,
+        "upcard": "2",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "J",
+          "Q"
+        ],
+        "total": 20,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "37.5"
+    },
+    {
+      "roundNumber": 90,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": 0,
+      "runningCountEnd": -3,
+      "trueCountStart": "0.00",
+      "trueCountEnd": "-0.62",
+      "cardsDealtInRound": [
+        "4",
+        "Q",
+        "A",
+        "7",
+        "A",
+        "Q",
+        "9"
+      ],
+      "dealer": {
+        "cards": [
+          "Q",
+          "7"
+        ],
+        "total": 17,
+        "busted": false,
+        "upcard": "Q",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "4",
+          "A",
+          "A",
+          "Q",
+          "9"
+        ],
+        "total": 25,
+        "busted": true,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "LOSS",
+      "penetration": "39.2"
+    },
+    {
+      "roundNumber": 91,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": -3,
+      "runningCountEnd": -4,
+      "trueCountStart": "-0.62",
+      "trueCountEnd": "-0.84",
+      "cardsDealtInRound": [
+        "2",
+        "K",
+        "9",
+        "K",
+        "7"
+      ],
+      "dealer": {
+        "cards": [
+          "K",
+          "K"
+        ],
+        "total": 20,
+        "busted": false,
+        "upcard": "K",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "2",
+          "9",
+          "7"
+        ],
+        "total": 18,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "40.4"
+    },
+    {
+      "roundNumber": 92,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": -4,
+      "runningCountEnd": -6,
+      "trueCountStart": "-0.84",
+      "trueCountEnd": "-1.29",
+      "cardsDealtInRound": [
+        "3",
+        "3",
+        "K",
+        "A",
+        "10",
+        "10"
+      ],
+      "dealer": {
+        "cards": [
+          "3",
+          "A",
+          "10",
+          "10"
+        ],
+        "total": 24,
+        "busted": true,
+        "upcard": "3",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "3",
+          "K"
+        ],
+        "total": 13,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "41.8"
+    },
+    {
+      "roundNumber": 93,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": -6,
+      "runningCountEnd": -8,
+      "trueCountStart": "-1.29",
+      "trueCountEnd": "-1.76",
+      "cardsDealtInRound": [
+        "Q",
+        "10",
+        "9",
+        "6",
+        "K"
+      ],
+      "dealer": {
+        "cards": [
+          "10",
+          "6",
+          "K"
+        ],
+        "total": 26,
+        "busted": true,
+        "upcard": "10",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "Q",
+          "9"
+        ],
+        "total": 19,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "43.0"
+    },
+    {
+      "roundNumber": 94,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": -8,
+      "runningCountEnd": -10,
+      "trueCountStart": "-1.76",
+      "trueCountEnd": "-2.23",
+      "cardsDealtInRound": [
+        "A",
+        "5",
+        "J",
+        "J"
+      ],
+      "dealer": {
+        "cards": [
+          "5",
+          "J"
+        ],
+        "total": 15,
+        "busted": false,
+        "upcard": "5",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "A",
+          "J"
+        ],
+        "total": 21,
+        "busted": false,
+        "blackjack": true,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "44.0"
+    },
+    {
+      "roundNumber": 95,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": -10,
+      "runningCountEnd": -10,
+      "trueCountStart": "-2.23",
+      "trueCountEnd": "-2.28",
+      "cardsDealtInRound": [
+        "J",
+        "8",
+        "2",
+        "9",
+        "8"
+      ],
+      "dealer": {
+        "cards": [
+          "8",
+          "9"
+        ],
+        "total": 17,
+        "busted": false,
+        "upcard": "8",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "J",
+          "2",
+          "8"
+        ],
+        "total": 20,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "45.2"
+    },
+    {
+      "roundNumber": 96,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": -10,
+      "runningCountEnd": -12,
+      "trueCountStart": "-2.28",
+      "trueCountEnd": "-2.80",
+      "cardsDealtInRound": [
+        "7",
+        "6",
+        "K",
+        "Q",
+        "10"
+      ],
+      "dealer": {
+        "cards": [
+          "6",
+          "Q",
+          "10"
+        ],
+        "total": 26,
+        "busted": true,
+        "upcard": "6",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "7",
+          "K"
+        ],
+        "total": 17,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "46.4"
+    },
+    {
+      "roundNumber": 97,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": -12,
+      "runningCountEnd": -12,
+      "trueCountStart": "-2.80",
+      "trueCountEnd": "-2.88",
+      "cardsDealtInRound": [
+        "Q",
+        "2",
+        "5",
+        "A",
+        "J",
+        "5"
+      ],
+      "dealer": {
+        "cards": [
+          "2",
+          "A",
+          "J",
+          "5"
+        ],
+        "total": 18,
+        "busted": false,
+        "upcard": "2",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "Q",
+          "5"
+        ],
+        "total": 15,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "LOSS",
+      "penetration": "47.8"
+    },
+    {
+      "roundNumber": 98,
+      "timestamp": "2026-01-08T21:11:38.809Z",
+      "runningCountStart": -12,
+      "runningCountEnd": -14,
+      "trueCountStart": "-2.88",
+      "trueCountEnd": "-3.43",
+      "cardsDealtInRound": [
+        "3",
+        "A",
+        "Q",
+        "9",
+        "Q"
+      ],
+      "dealer": {
+        "cards": [
+          "A",
+          "9"
+        ],
+        "total": 20,
+        "busted": false,
+        "upcard": "A",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "3",
+          "Q",
+          "Q"
+        ],
+        "total": 23,
+        "busted": true,
+        "blackjack": false,
+        "decision": "HIT"
+      },
+      "outcome": "LOSS",
+      "penetration": "49.0"
+    },
+    {
+      "roundNumber": 99,
+      "timestamp": "2026-01-08T21:11:38.810Z",
+      "runningCountStart": -14,
+      "runningCountEnd": -11,
+      "trueCountStart": "-3.43",
+      "trueCountEnd": "-2.78",
+      "cardsDealtInRound": [
+        "8",
+        "9",
+        "9",
+        "4",
+        "3",
+        "6"
+      ],
+      "dealer": {
+        "cards": [
+          "9",
+          "4",
+          "3",
+          "6"
+        ],
+        "total": 22,
+        "busted": true,
+        "upcard": "9",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "8",
+          "9"
+        ],
+        "total": 17,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "50.5"
+    },
+    {
+      "roundNumber": 100,
+      "timestamp": "2026-01-08T21:11:38.810Z",
+      "runningCountStart": -11,
+      "runningCountEnd": -13,
+      "trueCountStart": "-2.78",
+      "trueCountEnd": "-3.35",
+      "cardsDealtInRound": [
+        "A",
+        "K",
+        "9",
+        "9"
+      ],
+      "dealer": {
+        "cards": [
+          "K",
+          "9"
+        ],
+        "total": 19,
+        "busted": false,
+        "upcard": "K",
+        "blackjack": false
+      },
+      "player": {
+        "cards": [
+          "A",
+          "9"
+        ],
+        "total": 20,
+        "busted": false,
+        "blackjack": false,
+        "decision": "STAY"
+      },
+      "outcome": "WIN",
+      "penetration": "51.4"
+    }
+  ],
+  "statistics": {
+    "totalRounds": 100,
+    "playerWins": 42,
+    "playerLosses": 51,
+    "pushes": 7,
+    "blackjacks": 3,
+    "playerBusts": 19,
+    "dealerBusts": 25,
+    "splits": 0,
+    "doubles": 0,
+    "surrenders": 0
+  },
+  "patterns": {
+    "dealerUpcardFrequency": {
+      "2": 6,
+      "3": 11,
+      "4": 11,
+      "5": 7,
+      "6": 5,
+      "7": 7,
+      "8": 10,
+      "9": 8,
+      "10": 27,
+      "A": 8
+    },
+    "dealerBustByUpcard": {
+      "2": 1,
+      "3": 5,
+      "4": 4,
+      "5": 4,
+      "6": 2,
+      "7": 0,
+      "8": 3,
+      "9": 1,
+      "10": 5,
+      "A": 0
+    },
+    "countAtWin": [
+      -5,
+      -7,
+      -10,
+      -12,
+      -12,
+      -8,
+      -14,
+      -15,
+      -17,
+      -17,
+      -19,
+      -17,
+      -15,
+      -13,
+      -14,
+      -14,
+      -16,
+      -19,
+      -11,
+      -12,
+      -12,
+      -10,
+      -9,
+      -12,
+      1,
+      -2,
+      -5,
+      -10,
+      -7,
+      -8,
+      -4,
+      -4,
+      -1,
+      -5,
+      0,
+      -4,
+      -6,
+      -8,
+      -10,
+      -10,
+      -14,
+      -11
+    ],
+    "countAtLoss": [
+      0,
+      -2,
+      -5,
+      -9,
+      -10,
+      -12,
+      -14,
+      -10,
+      -15,
+      -15,
+      -16,
+      -17,
+      -16,
+      -18,
+      -13,
+      -19,
+      -21,
+      -19,
+      -18,
+      -14,
+      -14,
+      -12,
+      -12,
+      -10,
+      -8,
+      -9,
+      -8,
+      -9,
+      -10,
+      -8,
+      -11,
+      -10,
+      -12,
+      0,
+      -7,
+      -9,
+      -6,
+      -5,
+      -8,
+      -4,
+      -4,
+      0,
+      -1,
+      -1,
+      0,
+      2,
+      3,
+      0,
+      -3,
+      -12,
+      -12
+    ],
+    "highCardClusters": [
+      {
+        "round": 1,
+        "cards": [
+          "5",
+          "A",
+          "K",
+          "8",
+          "10"
+        ],
+        "count": 3
+      },
+      {
+        "round": 2,
+        "cards": [
+          "6",
+          "A",
+          "K",
+          "A",
+          "10"
+        ],
+        "count": 4
+      },
+      {
+        "round": 4,
+        "cards": [
+          "3",
+          "A",
+          "10",
+          "Q"
+        ],
+        "count": 3
+      },
+      {
+        "round": 5,
+        "cards": [
+          "9",
+          "3",
+          "10",
+          "10",
+          "K"
+        ],
+        "count": 3
+      },
+      {
+        "round": 8,
+        "cards": [
+          "Q",
+          "4",
+          "A",
+          "J"
+        ],
+        "count": 3
+      },
+      {
+        "round": 10,
+        "cards": [
+          "J",
+          "8",
+          "K",
+          "3",
+          "K"
+        ],
+        "count": 3
+      },
+      {
+        "round": 14,
+        "cards": [
+          "Q",
+          "A",
+          "K",
+          "J"
+        ],
+        "count": 4
+      },
+      {
+        "round": 15,
+        "cards": [
+          "Q",
+          "Q",
+          "K",
+          "6",
+          "6"
+        ],
+        "count": 3
+      },
+      {
+        "round": 16,
+        "cards": [
+          "2",
+          "J",
+          "5",
+          "10",
+          "6",
+          "K"
+        ],
+        "count": 3
+      },
+      {
+        "round": 20,
+        "cards": [
+          "5",
+          "2",
+          "Q",
+          "2",
+          "A",
+          "K",
+          "8"
+        ],
+        "count": 3
+      },
+      {
+        "round": 23,
+        "cards": [
+          "J",
+          "10",
+          "6",
+          "K",
+          "3"
+        ],
+        "count": 3
+      },
+      {
+        "round": 29,
+        "cards": [
+          "Q",
+          "K",
+          "2",
+          "3",
+          "4",
+          "J"
+        ],
+        "count": 3
+      },
+      {
+        "round": 30,
+        "cards": [
+          "6",
+          "5",
+          "K",
+          "A",
+          "J",
+          "10"
+        ],
+        "count": 4
+      },
+      {
+        "round": 34,
+        "cards": [
+          "Q",
+          "4",
+          "Q",
+          "K",
+          "K"
+        ],
+        "count": 4
+      },
+      {
+        "round": 35,
+        "cards": [
+          "5",
+          "K",
+          "A",
+          "A"
+        ],
+        "count": 3
+      },
+      {
+        "round": 37,
+        "cards": [
+          "4",
+          "10",
+          "K",
+          "10",
+          "2",
+          "5"
+        ],
+        "count": 3
+      },
+      {
+        "round": 43,
+        "cards": [
+          "2",
+          "K",
+          "A",
+          "2",
+          "7",
+          "10"
+        ],
+        "count": 3
+      },
+      {
+        "round": 48,
+        "cards": [
+          "10",
+          "Q",
+          "4",
+          "K",
+          "4"
+        ],
+        "count": 3
+      },
+      {
+        "round": 50,
+        "cards": [
+          "10",
+          "Q",
+          "Q",
+          "2",
+          "9"
+        ],
+        "count": 3
+      },
+      {
+        "round": 52,
+        "cards": [
+          "4",
+          "A",
+          "K",
+          "4",
+          "Q"
+        ],
+        "count": 3
+      },
+      {
+        "round": 55,
+        "cards": [
+          "Q",
+          "Q",
+          "6",
+          "7",
+          "A"
+        ],
+        "count": 3
+      },
+      {
+        "round": 56,
+        "cards": [
+          "10",
+          "7",
+          "10",
+          "J"
+        ],
+        "count": 3
+      },
+      {
+        "round": 59,
+        "cards": [
+          "Q",
+          "9",
+          "6",
+          "10",
+          "K"
+        ],
+        "count": 3
+      },
+      {
+        "round": 62,
+        "cards": [
+          "10",
+          "10",
+          "J",
+          "7"
+        ],
+        "count": 3
+      },
+      {
+        "round": 63,
+        "cards": [
+          "K",
+          "9",
+          "Q",
+          "J"
+        ],
+        "count": 3
+      },
+      {
+        "round": 64,
+        "cards": [
+          "10",
+          "3",
+          "9",
+          "J",
+          "10"
+        ],
+        "count": 3
+      },
+      {
+        "round": 71,
+        "cards": [
+          "2",
+          "Q",
+          "10",
+          "J",
+          "J"
+        ],
+        "count": 4
+      },
+      {
+        "round": 83,
+        "cards": [
+          "5",
+          "K",
+          "2",
+          "Q",
+          "K"
+        ],
+        "count": 3
+      },
+      {
+        "round": 84,
+        "cards": [
+          "J",
+          "A",
+          "J",
+          "5",
+          "Q",
+          "A"
+        ],
+        "count": 5
+      },
+      {
+        "round": 88,
+        "cards": [
+          "Q",
+          "4",
+          "J",
+          "6",
+          "J"
+        ],
+        "count": 3
+      },
+      {
+        "round": 89,
+        "cards": [
+          "J",
+          "2",
+          "Q",
+          "Q",
+          "A",
+          "8"
+        ],
+        "count": 4
+      },
+      {
+        "round": 90,
+        "cards": [
+          "4",
+          "Q",
+          "A",
+          "7",
+          "A",
+          "Q",
+          "9"
+        ],
+        "count": 4
+      },
+      {
+        "round": 92,
+        "cards": [
+          "3",
+          "3",
+          "K",
+          "A",
+          "10",
+          "10"
+        ],
+        "count": 4
+      },
+      {
+        "round": 93,
+        "cards": [
+          "Q",
+          "10",
+          "9",
+          "6",
+          "K"
+        ],
+        "count": 3
+      },
+      {
+        "round": 94,
+        "cards": [
+          "A",
+          "5",
+          "J",
+          "J"
+        ],
+        "count": 3
+      },
+      {
+        "round": 96,
+        "cards": [
+          "7",
+          "6",
+          "K",
+          "Q",
+          "10"
+        ],
+        "count": 3
+      },
+      {
+        "round": 97,
+        "cards": [
+          "Q",
+          "2",
+          "5",
+          "A",
+          "J",
+          "5"
+        ],
+        "count": 3
+      },
+      {
+        "round": 98,
+        "cards": [
+          "3",
+          "A",
+          "Q",
+          "9",
+          "Q"
+        ],
+        "count": 3
+      }
+    ],
+    "lowCardClusters": [
+      {
+        "round": 11,
+        "cards": [
+          "5",
+          "7",
+          "2",
+          "6",
+          "8",
+          "10"
+        ],
+        "count": 3
+      },
+      {
+        "round": 12,
+        "cards": [
+          "J",
+          "3",
+          "2",
+          "3",
+          "4",
+          "5",
+          "9"
+        ],
+        "count": 5
+      },
+      {
+        "round": 16,
+        "cards": [
+          "2",
+          "J",
+          "5",
+          "10",
+          "6",
+          "K"
+        ],
+        "count": 3
+      },
+      {
+        "round": 20,
+        "cards": [
+          "5",
+          "2",
+          "Q",
+          "2",
+          "A",
+          "K",
+          "8"
+        ],
+        "count": 3
+      },
+      {
+        "round": 26,
+        "cards": [
+          "4",
+          "Q",
+          "6",
+          "4",
+          "Q",
+          "4"
+        ],
+        "count": 4
+      },
+      {
+        "round": 27,
+        "cards": [
+          "10",
+          "4",
+          "4",
+          "6",
+          "3",
+          "J"
+        ],
+        "count": 4
+      },
+      {
+        "round": 28,
+        "cards": [
+          "3",
+          "8",
+          "A",
+          "3",
+          "7",
+          "4",
+          "8"
+        ],
+        "count": 3
+      },
+      {
+        "round": 29,
+        "cards": [
+          "Q",
+          "K",
+          "2",
+          "3",
+          "4",
+          "J"
+        ],
+        "count": 3
+      },
+      {
+        "round": 31,
+        "cards": [
+          "5",
+          "9",
+          "6",
+          "2",
+          "Q",
+          "Q"
+        ],
+        "count": 3
+      },
+      {
+        "round": 36,
+        "cards": [
+          "6",
+          "7",
+          "8",
+          "2",
+          "3",
+          "A"
+        ],
+        "count": 3
+      },
+      {
+        "round": 37,
+        "cards": [
+          "4",
+          "10",
+          "K",
+          "10",
+          "2",
+          "5"
+        ],
+        "count": 3
+      },
+      {
+        "round": 38,
+        "cards": [
+          "3",
+          "5",
+          "K",
+          "2",
+          "J"
+        ],
+        "count": 3
+      },
+      {
+        "round": 39,
+        "cards": [
+          "2",
+          "4",
+          "6",
+          "A",
+          "5",
+          "6"
+        ],
+        "count": 5
+      },
+      {
+        "round": 41,
+        "cards": [
+          "5",
+          "7",
+          "3",
+          "2",
+          "9",
+          "A"
+        ],
+        "count": 3
+      },
+      {
+        "round": 46,
+        "cards": [
+          "9",
+          "4",
+          "2",
+          "3",
+          "K",
+          "5",
+          "Q"
+        ],
+        "count": 4
+      },
+      {
+        "round": 47,
+        "cards": [
+          "Q",
+          "3",
+          "6",
+          "7",
+          "4",
+          "7"
+        ],
+        "count": 3
+      },
+      {
+        "round": 53,
+        "cards": [
+          "7",
+          "3",
+          "J",
+          "5",
+          "7",
+          "4"
+        ],
+        "count": 3
+      },
+      {
+        "round": 54,
+        "cards": [
+          "3",
+          "J",
+          "4",
+          "2",
+          "J",
+          "7"
+        ],
+        "count": 3
+      },
+      {
+        "round": 58,
+        "cards": [
+          "2",
+          "9",
+          "3",
+          "6",
+          "9",
+          "A",
+          "J"
+        ],
+        "count": 3
+      },
+      {
+        "round": 60,
+        "cards": [
+          "A",
+          "2",
+          "2",
+          "4",
+          "5",
+          "9"
+        ],
+        "count": 4
+      },
+      {
+        "round": 67,
+        "cards": [
+          "6",
+          "5",
+          "4",
+          "K",
+          "Q",
+          "4"
+        ],
+        "count": 4
+      },
+      {
+        "round": 68,
+        "cards": [
+          "4",
+          "3",
+          "5",
+          "A",
+          "10",
+          "5"
+        ],
+        "count": 4
+      },
+      {
+        "round": 70,
+        "cards": [
+          "3",
+          "8",
+          "4",
+          "2",
+          "K",
+          "5",
+          "J"
+        ],
+        "count": 4
+      },
+      {
+        "round": 73,
+        "cards": [
+          "3",
+          "4",
+          "A",
+          "2",
+          "4",
+          "2",
+          "7"
+        ],
+        "count": 5
+      },
+      {
+        "round": 78,
+        "cards": [
+          "6",
+          "2",
+          "7",
+          "7",
+          "5",
+          "5"
+        ],
+        "count": 4
+      },
+      {
+        "round": 81,
+        "cards": [
+          "K",
+          "6",
+          "2",
+          "J",
+          "2"
+        ],
+        "count": 3
+      },
+      {
+        "round": 85,
+        "cards": [
+          "2",
+          "6",
+          "3",
+          "6",
+          "6",
+          "4",
+          "Q"
+        ],
+        "count": 6
+      },
+      {
+        "round": 86,
+        "cards": [
+          "5",
+          "10",
+          "Q",
+          "6",
+          "4",
+          "2"
+        ],
+        "count": 4
+      },
+      {
+        "round": 87,
+        "cards": [
+          "3",
+          "2",
+          "8",
+          "8",
+          "4",
+          "A"
+        ],
+        "count": 3
+      },
+      {
+        "round": 97,
+        "cards": [
+          "Q",
+          "2",
+          "5",
+          "A",
+          "J",
+          "5"
+        ],
+        "count": 3
+      },
+      {
+        "round": 99,
+        "cards": [
+          "8",
+          "9",
+          "9",
+          "4",
+          "3",
+          "6"
+        ],
+        "count": 3
+      }
+    ],
+    "winStreaks": [
+      {
+        "start": 26,
+        "count": 3
+      },
+      {
+        "start": 32,
+        "count": 3
+      },
+      {
+        "start": 62,
+        "count": 3
+      },
+      {
+        "start": 84,
+        "count": 3
+      },
+      {
+        "start": 92,
+        "count": 5
+      }
+    ],
+    "lossStreaks": [
+      {
+        "start": 38,
+        "count": 5
+      },
+      {
+        "start": 47,
+        "count": 4
+      },
+      {
+        "start": 52,
+        "count": 3
+      },
+      {
+        "start": 58,
+        "count": 4
+      },
+      {
+        "start": 78,
+        "count": 4
+      },
+      {
+        "start": 89,
+        "count": 3
+      }
+    ]
+  },
+  "alerts": [],
+  "analysis": {
+    "dealerBustRate": "25.0%",
+    "playerBustRate": "19.0%",
+    "winRate": "45.2%",
+    "blackjackRate": "3.0%",
+    "avgCountAtWin": "-9.95",
+    "avgCountAtLoss": "-9.08",
+    "countCorrelation": "NEGATIVE",
+    "highCardClusters": 38,
+    "lowCardClusters": 31,
+    "longestWinStreak": 5,
+    "longestLossStreak": 5
+  },
+  "recommendations": [
+    "Dealer with 3 upcard busts 45% - stand more aggressively",
+    "Dealer with 5 upcard busts 57% - stand more aggressively",
+    "Dealer with 7 upcard rarely busts (0%) - be cautious",
+    "Dealer with 9 upcard rarely busts (13%) - be cautious",
+    "Dealer with A upcard rarely busts (0%) - be cautious",
+    "High card clustering detected - watch for unfavorable shoe sections"
+  ]
+}

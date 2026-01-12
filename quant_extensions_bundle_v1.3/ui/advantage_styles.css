@@ -1,0 +1,35 @@
+/* Player Advantage Dashboard additions (v1.3) */
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 900px) {
+  .grid2 { grid-template-columns: 1fr; }
+}
+
+.h3 {
+  margin: 6px 0 10px 0;
+  font-size: 14px;
+  letter-spacing: .2px;
+  color: var(--text);
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.kv .k {
+  display: inline-block;
+  min-width: 160px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.kv .v {
+  color: var(--text);
+  font-weight: 700;
+  margin-left: 10px;
+}
