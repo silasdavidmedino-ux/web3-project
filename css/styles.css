@@ -922,15 +922,15 @@ body {
 
 .player-box .position-badge {
   position: absolute;
-  top: -42px;
-  left: 170px;
+  top: -38px;
+  left: 50%;
   transform: translateX(-50%);
-  min-width: 36px;
-  height: 36px;
-  padding: 0 8px;
-  font-size: 18px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  font-size: 16px;
   font-weight: 800;
-  border-radius: 18px;
+  border-radius: 16px;
   box-shadow: 0 3px 10px rgba(0, 212, 255, 0.7);
   z-index: 10;
   display: flex;
