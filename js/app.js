@@ -13211,9 +13211,12 @@ const CardDetectionModel = {
   isLoaded: false,
   isLoading: false,
   classNames: null,
-  inputSize: 200,  // Model expects 200x200 images
+  inputSize: 224,  // Model expects 224x224 images (MobileNetV3)
   modelPath: 'training_data/models/card_classifier.onnx',
-  classNamesPath: 'training_data/models/class_names.json'
+  classNamesPath: 'training_data/models/class_names.json',
+  // ImageNet normalization values used during training
+  mean: [0.485, 0.456, 0.406],
+  std: [0.229, 0.224, 0.225]
 };
 
 // Class names mapping (fallback if JSON fails to load)
@@ -13306,6 +13309,8 @@ function updateModelStatus(status) {
 // Preprocess image for model inference
 function preprocessImage(canvas) {
   const size = CardDetectionModel.inputSize;
+  const mean = CardDetectionModel.mean;
+  const std = CardDetectionModel.std;
 
   // Create a temporary canvas for resizing
   const tempCanvas = document.createElement('canvas');
@@ -13313,23 +13318,29 @@ function preprocessImage(canvas) {
   tempCanvas.height = size;
   const ctx = tempCanvas.getContext('2d');
 
-  // Draw and resize image
-  ctx.drawImage(canvas, 0, 0, size, size);
+  // Draw and resize image (maintain aspect ratio by center cropping)
+  const srcWidth = canvas.width;
+  const srcHeight = canvas.height;
+  const srcSize = Math.min(srcWidth, srcHeight);
+  const srcX = (srcWidth - srcSize) / 2;
+  const srcY = (srcHeight - srcSize) / 2;
+
+  ctx.drawImage(canvas, srcX, srcY, srcSize, srcSize, 0, 0, size, size);
 
   // Get image data
   const imageData = ctx.getImageData(0, 0, size, size);
   const data = imageData.data;
 
   // Create tensor data (NCHW format: batch, channels, height, width)
-  // Normalize to [0, 1] range
+  // Apply ImageNet normalization: (pixel/255 - mean) / std
   const floatData = new Float32Array(3 * size * size);
 
   for (let i = 0; i < size * size; i++) {
     const pixelIndex = i * 4;
-    // RGB channels normalized to [0, 1]
-    floatData[i] = data[pixelIndex] / 255.0;                    // R
-    floatData[size * size + i] = data[pixelIndex + 1] / 255.0;  // G
-    floatData[2 * size * size + i] = data[pixelIndex + 2] / 255.0; // B
+    // RGB channels with ImageNet normalization
+    floatData[i] = (data[pixelIndex] / 255.0 - mean[0]) / std[0];                    // R
+    floatData[size * size + i] = (data[pixelIndex + 1] / 255.0 - mean[1]) / std[1];  // G
+    floatData[2 * size * size + i] = (data[pixelIndex + 2] / 255.0 - mean[2]) / std[2]; // B
   }
 
   return floatData;
