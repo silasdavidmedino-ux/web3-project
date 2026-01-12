@@ -696,48 +696,34 @@ function handleCardClick(card) {
     const dealerCards = AppState.positions.dealer;
     if (dealerCards && dealerCards.length >= 2) {
       const dealerTotal = calculateHandTotal(dealerCards);
-      console.log(`[AUTO-SETTLE] Dealer total: ${dealerTotal}, cards: ${dealerCards.length}`);
       if (dealerTotal >= 17 || dealerTotal > 21) {
-        // Check if at least one player has cards (including split hands!)
         let hasPlayers = false;
 
-        // ALSO check completedSplits (more reliable - saved when split finishes)
-        console.log(`[AUTO-SETTLE] completedSplits:`, JSON.stringify(AppState.completedSplits));
-        console.log(`[AUTO-SETTLE] splitHands keys:`, Object.keys(AppState.splitHands || {}));
-
-        // First check completedSplits
+        // Check completedSplits first
         if (AppState.completedSplits && Object.keys(AppState.completedSplits).length > 0) {
           hasPlayers = true;
-          console.log(`[AUTO-SETTLE] Found completedSplits with keys:`, Object.keys(AppState.completedSplits));
         }
 
         // Then check regular positions and splitHands
         if (!hasPlayers) {
           for (let i = 1; i <= 8; i++) {
             const pCards = AppState.positions[`player${i}`] || [];
-            // Check regular positions
             if (pCards.length >= 2) {
               hasPlayers = true;
-              console.log(`[AUTO-SETTLE] Player ${i} has ${pCards.length} cards in positions`);
               break;
             }
-            // ALSO check split hands (cards moved to splitHands when split)
-            const split = AppState.splitHands[i];
+            const split = AppState.splitHands ? AppState.splitHands[i] : null;
             if (split && split.hand1 && split.hand1.length >= 1) {
               hasPlayers = true;
-              console.log(`[AUTO-SETTLE] Player ${i} has SPLIT hands - hand1: ${split.hand1.length} cards, hand2: ${split.hand2?.length || 0} cards`);
               break;
             }
           }
         }
-        console.log(`[AUTO-SETTLE] Has players with cards: ${hasPlayers}`);
+
         if (hasPlayers) {
-          // Mark round as settled to prevent duplicates
           AppState.roundSettled = true;
-          // Auto-settle the round
           setTimeout(() => {
             autoTrackQuantEvRound('auto');
-            console.log('[AUTO-SETTLE] Round recorded to betting history');
             showToast('Round auto-settled', 'success');
           }, 100);
         }
@@ -4029,14 +4015,10 @@ function updateDecisionPanels() {
 
 // Handle split action
 function handleSplit(playerNum) {
-  console.log(`[SPLIT] handleSplit called for player ${playerNum}, type: ${typeof playerNum}`);
-  console.log(`[SPLIT] BEFORE - splitHands:`, JSON.stringify(AppState.splitHands));
-  console.log(`[SPLIT] BEFORE - completedSplits:`, JSON.stringify(AppState.completedSplits));
-
   const playerKey = `player${playerNum}`;
   const originalCards = AppState.positions[playerKey];
 
-  if (originalCards.length !== 2) {
+  if (!originalCards || originalCards.length !== 2) {
     showToast('Cannot split - need exactly 2 cards', 'warning');
     return;
   }
@@ -4044,15 +4026,12 @@ function handleSplit(playerNum) {
   // Create split hands - each starts with one card from the pair
   AppState.splitHands[playerNum] = {
     active: true,
-    activeHand: 1,  // Start with Hand 1
+    activeHand: 1,
     hand1: [originalCards[0]],
     hand2: [originalCards[1]],
     decision1: null,
     decision2: null
   };
-
-  console.log(`[SPLIT] AFTER - splitHands keys:`, Object.keys(AppState.splitHands));
-  console.log(`[SPLIT] splitHands content:`, JSON.stringify(AppState.splitHands));
 
   // Clear original position
   AppState.positions[playerKey] = [];
@@ -4207,28 +4186,20 @@ function renderSplitDecisions(playerNum, panel) {
 
 // Handle stay on a split hand
 function handleSplitStay(playerNum, handNum) {
-  console.log(`[SPLIT-STAY] Called: playerNum=${playerNum} (type: ${typeof playerNum}), handNum=${handNum}`);
-
   const split = AppState.splitHands[playerNum];
-  if (!split) {
-    console.log(`[SPLIT-STAY] ERROR: No split found for player ${playerNum}`);
-    console.log(`[SPLIT-STAY] splitHands keys:`, Object.keys(AppState.splitHands));
-    return;
-  }
+  if (!split) return;
 
   split[`decision${handNum}`] = 'STAY';
-
   const hand = handNum === 1 ? split.hand1 : split.hand2;
   const total = calculateHandTotal(hand);
 
   showToast(`Hand ${handNum} stays on ${total}`, 'success');
 
   if (handNum === 1) {
-    // Move to Hand 2
     split.activeHand = 2;
     showToast(`Hand 2 active - click cards to hit`, 'info');
   } else {
-    // Both hands done - SAVE A COPY to completedSplits before marking inactive
+    // Save completed split data
     if (!AppState.completedSplits) AppState.completedSplits = {};
     AppState.completedSplits[playerNum] = {
       hand1: [...split.hand1],
@@ -4236,9 +4207,6 @@ function handleSplitStay(playerNum, handNum) {
       decision1: split.decision1,
       decision2: split.decision2
     };
-    console.log(`[SPLIT-STAY] Saved completed split for Player ${playerNum}:`, AppState.completedSplits[playerNum]);
-    console.log(`[SPLIT-STAY] All completedSplits keys:`, Object.keys(AppState.completedSplits));
-
     split.active = false;
     AppState.activeSplitPlayer = null;
     showToast(`Split complete for Player ${playerNum}`, 'success');
@@ -4300,9 +4268,6 @@ function recordSplitDecision(playerNum, handNum, decision) {
 }
 
 function clearPlayerDecisions() {
-  console.log('[CLEAR] clearPlayerDecisions called - CLEARING ALL SPLIT HANDS!');
-  console.log('[CLEAR] Stack trace:', new Error().stack);
-
   // Reset all decisions
   for (let i = 1; i <= 8; i++) {
     AppState.playerDecisions[i] = null;
@@ -6153,21 +6118,15 @@ function startNewGame(playerCount = 8) {
     };
   }
 
-  console.log(`[BETTING HISTORY] Game ${history.currentGameNumber} started`);
   updateBettingHistoryPanel();
 }
 
 // Record a round to betting history
 function recordBettingHistoryRound(roundData, playerCount = 5, quantEvPlayer = 4) {
-  console.log('[BETTING HISTORY] recordBettingHistoryRound called', { playerCount, roundData });
   const history = AppState.bettingHistory;
-  if (!history.currentGame) {
-    console.log('[BETTING HISTORY] No current game - skipping');
-    return;
-  }
+  if (!history.currentGame) return;
 
   history.currentGame.totalRounds++;
-  console.log('[BETTING HISTORY] Round', history.currentGame.totalRounds);
 
   let playersRecorded = 0;
   for (let p = 1; p <= playerCount; p++) {
@@ -6183,8 +6142,6 @@ function recordBettingHistoryRound(roundData, playerCount = 5, quantEvPlayer = 4
 
     // Handle split hands - record both hands
     if (playerRound.isSplit) {
-      console.log(`[BETTING HISTORY] Player ${p} SPLIT: Hand1=${playerRound.hand1Result}, Hand2=${playerRound.hand2Result}`);
-
       // Process Hand 1
       let payout1 = 0;
       if (playerRound.hand1Result === 'WIN') {
@@ -6225,7 +6182,6 @@ function recordBettingHistoryRound(roundData, playerCount = 5, quantEvPlayer = 4
     }
 
     // Regular hand
-    console.log(`[BETTING HISTORY] Player ${p}: ${playerRound.result}`);
     let payout = 0;
 
     // Calculate payout
@@ -6258,8 +6214,6 @@ function recordBettingHistoryRound(roundData, playerCount = 5, quantEvPlayer = 4
     playersRecorded++;
   }
 
-  console.log(`[BETTING HISTORY] Recorded ${playersRecorded} players this round`);
-
   // Update panel
   updateBettingHistoryPanel();
 
@@ -6285,8 +6239,6 @@ function endCurrentGame() {
 
   // Save to games array
   history.games.push(JSON.parse(JSON.stringify(history.currentGame)));
-
-  console.log(`[BETTING HISTORY] Game ${history.currentGame.gameNumber} ended. Total rounds: ${history.currentGame.totalRounds}`);
 
   history.currentGame = null;
   updateBettingHistoryPanel();
@@ -6395,8 +6347,6 @@ function exportBettingHistoryCSV() {
   link.href = URL.createObjectURL(blob);
   link.download = `betting_history_${timestamp}.csv`;
   link.click();
-
-  console.log('[BETTING HISTORY] Exported to CSV');
 }
 
 // Reset betting history (start fresh)
@@ -6413,7 +6363,6 @@ function resetBettingHistory() {
     5: history.defaultStartingCapital
   };
 
-  console.log('[BETTING HISTORY] Reset complete');
   updateBettingHistoryPanel();
 }
 
@@ -6424,16 +6373,11 @@ function toggleBettingHistoryPanel() {
 
 // Update betting history panel display
 function updateBettingHistoryPanel() {
-  console.log('[BETTING HISTORY] updateBettingHistoryPanel called');
   const panel = document.getElementById('bettingHistoryPanel');
-  if (!panel) {
-    console.log('[BETTING HISTORY] Panel element not found!');
-    return;
-  }
+  if (!panel) return;
 
   const history = AppState.bettingHistory;
   const game = history.currentGame;
-  console.log('[BETTING HISTORY] currentGame:', game ? `Game ${game.gameNumber}, ${game.totalRounds} rounds` : 'null');
 
   if (!game) {
     panel.innerHTML = `
@@ -8440,12 +8384,8 @@ const originalUpdateUI = typeof updateUI === 'function' ? updateUI : null;
 
 // AUTO TRACKING - Called automatically when Win/Lose/Push buttons are clicked
 function autoTrackQuantEvRound(result) {
-  console.log('[AUTO-TRACK] autoTrackQuantEvRound called with result:', result);
   const tracker = AppState.quantEvTracker;
-  if (!tracker.enabled) {
-    console.log('[AUTO-TRACK] Tracker not enabled - skipping');
-    return;
-  }
+  if (!tracker.enabled) return;
 
   // Auto-init if not started
   if (!tracker.sessionId) {
@@ -8477,7 +8417,6 @@ function autoTrackQuantEvRound(result) {
 
   // Use completedSplits (saved when each split finishes) - this is reliable
   const splitsToProcess = AppState.completedSplits || {};
-  console.log('[AUTO-TRACK] completedSplits:', JSON.stringify(splitsToProcess));
 
   for (const key of Object.keys(splitsToProcess)) {
     const split = splitsToProcess[key];
@@ -8485,8 +8424,6 @@ function autoTrackQuantEvRound(result) {
 
     if (!split || isNaN(playerNum)) continue;
     if (!split.hand1 || split.hand1.length < 1) continue;
-
-    console.log(`[AUTO-TRACK] >>> PROCESSING SPLIT for Player ${playerNum}, hand1=${split.hand1}, hand2=${split.hand2}`);
     processedSplitPlayers.add(playerNum);
 
     const dealerTotal = roundData.dealerTotal;
@@ -8550,7 +8487,6 @@ function autoTrackQuantEvRound(result) {
     else if (hand2Result === 'PUSH') { player.pushes++; player.correctDecisions++; }
 
     player.hands.push(roundData.players[playerNum]);
-    console.log(`[AUTO-TRACK] Player ${playerNum} SPLIT RECORDED: Hand1=${hand1Result}, Hand2=${hand2Result}`);
   }
 
   // SECOND: Process regular (non-split) hands
@@ -8624,22 +8560,11 @@ function autoTrackQuantEvRound(result) {
   updateQuantEvPanel();
   logQuantEvRound(roundData);
 
-  // DEBUG: Show which players are in roundData before recording
-  console.log('[AUTO-TRACK] === ROUND DATA SUMMARY ===');
-  console.log('[AUTO-TRACK] Players in roundData:', Object.keys(roundData.players));
-  for (const pNum of Object.keys(roundData.players)) {
-    const pd = roundData.players[pNum];
-    console.log(`[AUTO-TRACK] Player ${pNum}: isSplit=${pd.isSplit}, result=${pd.result}, hand1=${pd.hand1Result}, hand2=${pd.hand2Result}`);
-  }
-
   // BETTING HISTORY - Auto-start game if needed and record round
   if (AppState.bettingHistory.enabled) {
-    // Auto-start a new game if not already active
     if (!AppState.bettingHistory.currentGame) {
       startNewGame(8);
-      console.log('[BETTING HISTORY] Auto-started new game for manual tracking');
     }
-    // Record round to betting history (use 8 players max)
     recordBettingHistoryRound(roundData, 8, 4);
   }
 
@@ -8648,48 +8573,16 @@ function autoTrackQuantEvRound(result) {
     recordDealerBustHistory(roundData, roundData.dealerTotal, 5);
   }
 
-  // CLEAR split data after recording to prevent interference with next round
-  // Re-initialize as objects to ensure they work for the next round
+  // Clear split data after recording
   AppState.completedSplits = {};
   AppState.splitHands = {};
   for (let i = 1; i <= 8; i++) {
-    AppState.splitHands[i] = null;  // Initialize all slots
+    AppState.splitHands[i] = null;
   }
 
-  // IMPORTANT: Reset roundSettled flag so next round can trigger auto-settle
+  // Reset roundSettled flag for next round
   AppState.roundSettled = false;
-
-  console.log('[AUTO-TRACK] Cleared splits and reset roundSettled flag');
 }
-
-// DEBUG: Test betting history (call from console: testBettingHistory())
-window.testBettingHistory = function() {
-  console.log('=== BETTING HISTORY DEBUG ===');
-  console.log('bettingHistory.enabled:', AppState.bettingHistory.enabled);
-  console.log('bettingHistory.currentGame:', AppState.bettingHistory.currentGame);
-  console.log('Panel element:', document.getElementById('bettingHistoryPanel'));
-
-  // Try to start a new game if not active
-  if (!AppState.bettingHistory.currentGame) {
-    console.log('Starting new game...');
-    startNewGame(8);
-  }
-
-  // Create mock round data
-  const mockRound = {
-    players: {
-      1: { result: 'WIN', betAmount: 100 },
-      2: { result: 'LOSS', betAmount: 100 }
-    }
-  };
-
-  console.log('Recording mock round...');
-  recordBettingHistoryRound(mockRound, 8, 4);
-
-  console.log('After recording:');
-  console.log('currentGame.totalRounds:', AppState.bettingHistory.currentGame?.totalRounds);
-  console.log('=== END DEBUG ===');
-};
 
 // AUTO SETTLE ROUND - Manually settle the current round based on dealt cards
 function autoSettleRound() {
@@ -8765,7 +8658,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Auto-start betting history game
     if (AppState.bettingHistory.enabled && !AppState.bettingHistory.currentGame) {
       startNewGame(8);
-      console.log('[BETTING HISTORY] Auto-started new game on page load');
     }
   }, 1000);
 });
@@ -12368,36 +12260,19 @@ async function detectCards() {
   const canvas = AICardDetector.canvas;
   const ctx = AICardDetector.ctx;
 
-  // DEBUG: Log video state to diagnose why detection isn't working
+  if (!video) return;
+
   const hasStream = video?.srcObject instanceof MediaStream;
   const streamActive = hasStream && video.srcObject.active;
-  console.log(`[AI DEBUG] Video: exists=${!!video}, hasStream=${hasStream}, streamActive=${streamActive}, paused=${video?.paused}, readyState=${video?.readyState}, w=${video?.videoWidth}, h=${video?.videoHeight}`);
 
-  // For screen capture streams, we check if stream is active rather than paused state
-  if (!video) {
-    console.log('[AI DEBUG] No video element');
-    return;
-  }
+  // For screen capture streams, check if stream is active
+  if (hasStream && !streamActive) return;
 
-  // If using MediaStream (screen capture), check if stream is active
-  if (hasStream) {
-    if (!streamActive) {
-      console.log('[AI DEBUG] Stream not active');
-      return;
-    }
-  } else {
-    // Normal video file - check paused/ended
-    if (video.paused || video.ended) {
-      console.log('[AI DEBUG] Video paused or ended');
-      return;
-    }
-  }
+  // Normal video file - check paused/ended
+  if (!hasStream && (video.paused || video.ended)) return;
 
   // Make sure we have valid video dimensions
-  if (!video.videoWidth || !video.videoHeight) {
-    console.log('[AI DEBUG] No video dimensions yet');
-    return;
-  }
+  if (!video.videoWidth || !video.videoHeight) return;
 
   // Update canvas size if needed
   if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
@@ -12411,11 +12286,8 @@ async function detectCards() {
   // Draw video frame to canvas for analysis
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  console.log(`[AI DEBUG] Drawing frame to canvas: ${canvas.width}x${canvas.height}`);
-
   // Get detections - scan card zones continuously (async for ONNX model)
   let detections = await detectCardsInZones(ctx, canvas.width, canvas.height);
-  console.log(`[AI DEBUG] detectCardsInZones returned ${detections.length} detections`);
 
   // Process detections and AUTO-TRACK recognized cards!
   AICardDetector.detectedThisFrame = [];
@@ -12489,14 +12361,6 @@ async function detectCardsInZones(ctx, width, height) {
         colorProfile: analysis.colorProfile,
         autoDetected: cardValue !== 'unknown' && cardValue !== null
       });
-    }
-
-    // ALWAYS log for debugging
-    console.log(`[AI] Scanned ${cardZones.length} zones, found ${zonesWithCards} cards, recognized ${detections.filter(d => d.autoDetected).length}`);
-
-    // Log first few analysis results
-    if (analysisResults.length > 0) {
-      console.log('[AI] Sample zones:', analysisResults.slice(0, 3));
     }
 
   } catch (err) {
@@ -12726,9 +12590,6 @@ function analyzeCornerPattern(pixels, width, height, colorProfile) {
   // Normalize sector data
   const sectorRatios = sectors.map((s, i) => s / (sectorCounts[i] + 1));
 
-  // Debug: Log preprocessing info
-  console.log(`[Preprocess] Threshold: ${adaptiveThreshold.toFixed(0)} (range: ${minGray}-${maxGray}), Dark: ${darkPixels}/${totalPixels}`);
-
   return {
     darkRatio,
     topBottomRatio,
@@ -12903,9 +12764,6 @@ function matchPatternToCard(pattern) {
       bestCard = card;
     }
   }
-
-  // Debug: Log pattern details
-  console.log(`[AI Pattern] dark:${darkRatio.toFixed(3)} topBot:${topBottomRatio.toFixed(2)} LR:${leftRightRatio.toFixed(2)} sym:${verticalSymmetry.toFixed(2)} => ${bestCard} (${bestScore})`);
 
   return bestCard;
 }
@@ -13415,11 +13273,6 @@ function analyzeCardRegion(data, width, region) {
   const isCard = (hasCardBackground && hasSymbols && isProperSize) ||
                  (hasHighContrast && isProperSize);
   const confidence = Math.min(0.95, whiteRatio * 0.6 + (redRatio + blackRatio) * 2.5 + 0.2);
-
-  // Debug logging for single zone mode
-  if (isInSingleZoneMode && region.name === 'dealing_zone') {
-    console.log(`[Zone Analysis] white:${(whiteRatio*100).toFixed(1)}% red:${(redRatio*100).toFixed(1)}% black:${(blackRatio*100).toFixed(1)}% → isCard:${isCard}`);
-  }
 
   return {
     isCard,
