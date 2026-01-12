@@ -7885,8 +7885,8 @@ function showQuantEvPanel() {
     position: fixed !important;
     bottom: 20px !important;
     right: 20px !important;
-    width: 660px !important;
-    max-height: 780px !important;
+    width: 480px !important;
+    max-height: 600px !important;
     background: #1a1a2e !important;
     border: 3px solid #8b5cf6 !important;
     border-radius: 14px !important;

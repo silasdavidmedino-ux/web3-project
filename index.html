@@ -500,11 +500,11 @@
           <!-- Header with Toggle -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;cursor:pointer;" onclick="toggleSettingsPanel()">
             <span style="color:#8b5cf6;font-weight:bold;font-size:14px;">⚙️ SIMULATION SETTINGS</span>
-            <span id="settingsToggleIcon" style="color:#8b5cf6;font-size:16px;">▼</span>
+            <span id="settingsToggleIcon" style="color:#8b5cf6;font-size:16px;">▶</span>
           </div>
 
           <!-- Collapsible Settings Content -->
-          <div id="settingsContent" style="display:block;">
+          <div id="settingsContent" style="display:none;">
 
             <!-- SECTION 1: Table Settings -->
             <div style="background:#1a1a2e;border:1px solid #22d3ee;border-radius:6px;padding:10px;margin-bottom:10px;">
@@ -849,9 +849,9 @@
     <div class="dealer-bust-history-container" id="dealerBustHistoryContainer">
       <div class="dealer-bust-toggle" onclick="toggleDealerBustHistoryPanel()">
         <span>💥 DEALER BUST HISTORY</span>
-        <span id="dealerBustToggleIcon">▲</span>
+        <span id="dealerBustToggleIcon">▼</span>
       </div>
-      <div class="dealer-bust-history-panel" id="dealerBustHistoryPanel">
+      <div class="dealer-bust-history-panel" id="dealerBustHistoryPanel" style="display:none;">
         <div class="bust-history-header">
           <div class="bust-rate-main">
             <span class="bust-rate-label">DEALER BUST RATE</span>

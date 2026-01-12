@@ -691,7 +691,7 @@ body {
 .insurance-line {
   position: absolute;
   top: 25%;
-  left: 10%;
+  left: 10px;
   right: 10%;
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(255,215,0,0.2), transparent);
@@ -5375,7 +5375,7 @@ body {
   box-shadow: 0 20px 60px rgba(139, 92, 246, 0.4),
               0 0 40px rgba(139, 92, 246, 0.2);
   animation: prompt-appear 0.3s ease-out;
-  max-width: 420px;
+  max-width: 320px;
   width: 90%;
 }
 
@@ -7315,7 +7315,7 @@ body.touch-mode .input-group select {
   position: fixed;
   bottom: 0;
   left: 20px;
-  width: 630px;
+  width: 400px;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-bottom: none;
@@ -7464,9 +7464,9 @@ body.touch-mode .input-group select {
 
 .dealer-bust-history-container {
   position: fixed;
-  top: 80px;
-  left: 10%;
-  width: 420px;
+  top: 60px;
+  left: 10px;
+  width: 320px;
   z-index: 1000;
   background: var(--bg-card);
   border-radius: var(--radius-lg);
