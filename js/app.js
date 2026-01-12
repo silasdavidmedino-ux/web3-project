@@ -5090,16 +5090,11 @@ async function startRealtimeSimulationByDecks(totalDecks = 8) {
       }
       if (!realtimeSimRunning) break;
 
-      // SHUFFLE ONLY IF FLAGGED from previous round hitting 75%
-      // This ensures the round that hit 75% was the LAST round of that shoe
+      // 75% PENETRATION = END GAME (no shuffle, finish the round and end)
       if (needsShuffle) {
-        shoeCount++;
-        console.log(`[SIM] Previous round hit 75% - SHUFFLING before new shoe (Shoe #${shoeCount + 1})`);
-        await showReshuffleAnimation();
-        reshuffleShoeOnly();  // Resets RC=0, TC=0, cardsDealt=0
-        logShuffleEvent(shoeCount);  // Log shuffle in tracker
-        await diceCardBurn(); // Dice card rule after reshuffle
-        needsShuffle = false;  // Reset flag
+        console.log(`[SIM] 75% penetration reached - ENDING GAME (last round completed)`);
+        showToast('75% penetration reached - Game Over!', 'info');
+        break;  // Exit the loop, end the game
       }
 
       simRoundCount++;
@@ -5182,15 +5177,11 @@ async function startRealtimeSimulation(numGames = 100) {
     }
     if (!realtimeSimRunning) break;
 
-    // SHUFFLE ONLY IF FLAGGED from previous round hitting 75%
-    // This ensures the round that hit 75% was the LAST round of that shoe
+    // 75% PENETRATION = END GAME (no shuffle, finish the round and end)
     if (needsShuffle) {
-      shoeCount++;
-      console.log(`[SIM] Previous round hit 75% - SHUFFLING before new shoe (Shoe #${shoeCount + 1})`);
-      await showReshuffleAnimation();
-      reshuffleShoeOnly();  // Resets RC=0, TC=0, cardsDealt=0
-      await diceCardBurn(); // Dice card rule after reshuffle
-      needsShuffle = false;  // Reset flag
+      console.log(`[SIM] 75% penetration reached - ENDING GAME (last round completed)`);
+      showToast('75% penetration reached - Game Over!', 'info');
+      break;  // Exit the loop, end the game
     }
 
     updateSimStatus(`Round ${round}/${numGames}`);
