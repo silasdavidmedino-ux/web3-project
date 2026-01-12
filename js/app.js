@@ -935,7 +935,7 @@ function setNumPlayers(num) {
         box.style.display = '';  // Reset to CSS default (flex)
         box.classList.remove('hidden-player');
       } else {
-        box.style.display = 'none';
+        box.style.setProperty('display', 'none', 'important');
         box.classList.add('hidden-player');
       }
     }
@@ -944,7 +944,11 @@ function setNumPlayers(num) {
   // Update player count for responsive scaling
   updatePlayerCountAttribute();
 
+  // Initialize dealing sequence for the new player count
+  initDealingSequence(num);
+
   console.log(`[Players] Set to ${num} players`);
+  showToast(`Set to ${num} players`, 'info');
   updateAll();
 }
 
@@ -5768,19 +5772,199 @@ function updateDealerBustHistoryPanel() {
 }
 
 function toggleDealerBustHistoryPanel() {
-  const container = document.getElementById('dealerBustHistoryContainer');
-  const panel = document.getElementById('dealerBustHistoryPanel');
-  const icon = document.getElementById('dealerBustToggleIcon');
+  toggleHistoryPanel('dealerBust');
+}
 
-  if (!container || !panel) return;
+// Generic toggle function for bottom history panels
+function toggleHistoryPanel(panelType) {
+  const cardIds = {
+    'dealerBust': 'dealerBustHistoryCard',
+    'qev': 'qevTrackerCard',
+    'betting': 'bettingHistoryCard'
+  };
 
-  const isHidden = panel.style.display === 'none';
-  panel.style.display = isHidden ? 'block' : 'none';
-  if (icon) icon.textContent = isHidden ? '▼' : '▲';
+  const iconIds = {
+    'dealerBust': 'dealerBustToggleIcon',
+    'qev': 'qevToggleIcon',
+    'betting': 'bettingHistoryToggleIcon'
+  };
 
-  if (isHidden) {
-    updateDealerBustHistoryPanel();
+  const card = document.getElementById(cardIds[panelType]);
+  const icon = document.getElementById(iconIds[panelType]);
+
+  if (!card) return;
+
+  card.classList.toggle('collapsed');
+
+  if (icon) {
+    icon.textContent = card.classList.contains('collapsed') ? '▶' : '▼';
   }
+
+  // Update content when expanding
+  if (!card.classList.contains('collapsed')) {
+    if (panelType === 'dealerBust') {
+      updateDealerBustHistoryPanel();
+    } else if (panelType === 'qev') {
+      updateQEVTracker();
+    } else if (panelType === 'betting') {
+      updateBettingHistoryPanel();
+    }
+  }
+}
+
+// ============================================
+// QEV LIVE TRACKER FUNCTIONS
+// ============================================
+
+// QEV Tracker State
+const QEVTracker = {
+  round: 0,
+  streak: 0,
+  players: [
+    { id: 1, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'BS' },
+    { id: 2, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'BS' },
+    { id: 3, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'BOOST' },
+    { id: 4, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'QEV' },
+    { id: 5, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'SAC' }
+  ],
+  roundHistory: []
+};
+
+// Format bank amount
+function formatBank(amount) {
+  if (amount >= 1000000) return '$' + (amount / 1000000).toFixed(1) + 'M';
+  if (amount >= 1000) return '$' + (amount / 1000).toFixed(0) + 'k';
+  return '$' + amount;
+}
+
+// Calculate win rate
+function calcWinRate(p) {
+  const total = p.wins + p.losses + p.pushes;
+  if (total === 0) return '0%';
+  return Math.round((p.wins / total) * 100) + '%';
+}
+
+// Update QEV tracker panel
+function updateQEVTracker() {
+  const roundTitle = document.getElementById('qevRoundTitle');
+  const streakEl = document.getElementById('qevStreak');
+  const rolesRow = document.getElementById('qevRolesRow');
+  const tableBody = document.getElementById('qevTableBody');
+  const roundLog = document.getElementById('qevRoundLog');
+
+  // Update header
+  if (roundTitle) {
+    roundTitle.textContent = `TEAMPLAY | Round ${QEVTracker.round}`;
+  }
+  if (streakEl) {
+    streakEl.textContent = `Streak: ${QEVTracker.streak}`;
+    streakEl.style.color = QEVTracker.streak > 0 ? 'var(--accent-green)' :
+                           QEVTracker.streak < 0 ? '#f87171' : 'var(--accent-orange)';
+  }
+
+  // Update roles row based on player count
+  if (rolesRow) {
+    const numPlayers = AppState.config?.playersSeated || 5;
+    const roles = QEVTracker.players.slice(0, numPlayers).map((p, i) => `P${i+1}: ${p.role}`);
+    rolesRow.textContent = roles.join(' | ');
+  }
+
+  // Update players table
+  if (tableBody) {
+    const numPlayers = AppState.config?.playersSeated || 5;
+    const roleClasses = { 'BS': 'role-bs', 'BOOST': 'role-boost', 'QEV': 'role-qev', 'SAC': 'role-sac' };
+
+    tableBody.innerHTML = QEVTracker.players.slice(0, numPlayers).map((p, i) => `
+      <tr>
+        <td>P${i + 1}</td>
+        <td>${formatBank(p.bank)}</td>
+        <td style="color: var(--accent-green)">${p.wins}</td>
+        <td style="color: #f87171">${p.losses}</td>
+        <td style="color: var(--accent-orange)">${p.pushes}</td>
+        <td>${calcWinRate(p)}</td>
+        <td class="${roleClasses[p.role] || ''}">${p.role}</td>
+      </tr>
+    `).join('');
+  }
+
+  // Update round log
+  if (roundLog) {
+    if (QEVTracker.roundHistory.length === 0) {
+      roundLog.innerHTML = '<div class="qev-empty">Round history will appear here</div>';
+    } else {
+      const recentRounds = QEVTracker.roundHistory.slice(-5).reverse();
+      roundLog.innerHTML = recentRounds.map(r => `
+        <div class="qev-round-entry">
+          <div class="qev-round-header">R${r.round} | TC:${r.tc.toFixed(2)} | D:[${r.dealerCards}]=${r.dealerTotal}</div>
+          ${r.playerResults.map(pr => `
+            <div class="qev-round-line">
+              P${pr.player}:${pr.bet ? ' $' + pr.bet.toLocaleString() + ':' : ''}[${pr.cards}]=${pr.total}-${pr.action}-<span class="${pr.result.toLowerCase()}">${pr.result}</span> [${pr.role}]
+            </div>
+          `).join('')}
+        </div>
+      `).join('');
+    }
+  }
+}
+
+// Record a round result
+function recordQEVRound(roundData) {
+  QEVTracker.round++;
+  QEVTracker.roundHistory.push({
+    round: QEVTracker.round,
+    tc: roundData.tc || 0,
+    dealerCards: roundData.dealerCards || '',
+    dealerTotal: roundData.dealerTotal || 0,
+    playerResults: roundData.playerResults || []
+  });
+
+  // Update player stats
+  if (roundData.playerResults) {
+    roundData.playerResults.forEach(pr => {
+      const player = QEVTracker.players[pr.player - 1];
+      if (player) {
+        if (pr.result === 'WIN' || pr.result === 'BLACKJACK') {
+          player.wins++;
+          player.bank += pr.winAmount || 0;
+        } else if (pr.result === 'LOSS' || pr.result === 'BUST') {
+          player.losses++;
+          player.bank -= pr.betAmount || 0;
+        } else if (pr.result === 'PUSH') {
+          player.pushes++;
+        }
+      }
+    });
+  }
+
+  // Keep only last 20 rounds
+  if (QEVTracker.roundHistory.length > 20) {
+    QEVTracker.roundHistory.shift();
+  }
+
+  updateQEVTracker();
+}
+
+// Update player role
+function setQEVPlayerRole(playerNum, role) {
+  if (playerNum >= 1 && playerNum <= QEVTracker.players.length) {
+    QEVTracker.players[playerNum - 1].role = role;
+    updateQEVTracker();
+  }
+}
+
+// Reset QEV tracker
+function resetQEVTracker() {
+  QEVTracker.round = 0;
+  QEVTracker.streak = 0;
+  QEVTracker.players = [
+    { id: 1, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'BS' },
+    { id: 2, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'BS' },
+    { id: 3, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'BOOST' },
+    { id: 4, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'QEV' },
+    { id: 5, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'SAC' }
+  ];
+  QEVTracker.roundHistory = [];
+  updateQEVTracker();
 }
 
 // ============================================
@@ -6027,17 +6211,7 @@ function resetBettingHistory() {
 
 // Toggle betting history panel visibility
 function toggleBettingHistoryPanel() {
-  const panel = document.getElementById('bettingHistoryPanel');
-  const icon = document.getElementById('bettingHistoryToggleIcon');
-  if (!panel) return;
-
-  panel.classList.toggle('expanded');
-  if (panel.classList.contains('expanded')) {
-    icon.textContent = '▲';
-    updateBettingHistoryPanel();
-  } else {
-    icon.textContent = '▼';
-  }
+  toggleHistoryPanel('betting');
 }
 
 // Update betting history panel display
@@ -7832,198 +8006,177 @@ function resolveQuantEvRound(playerResults) {
 }
 
 function showQuantEvPanel() {
-  console.log('[Quant EV] showQuantEvPanel called');
+  console.log('[Quant EV] showQuantEvPanel called - using bottom panel');
 
-  // Remove existing panel
-  let panel = document.getElementById('quantEvTrackerPanel');
-  if (panel) {
-    console.log('[Quant EV] Removing existing panel');
-    panel.remove();
+  // Remove any old floating panel if it exists
+  const oldPanel = document.getElementById('quantEvTrackerPanel');
+  if (oldPanel && oldPanel.style.position === 'fixed') {
+    oldPanel.remove();
   }
 
-  // Create new panel
-  panel = document.createElement('div');
-  panel.id = 'quantEvTrackerPanel';
-
-  // Build panel HTML - 50% larger
-  panel.innerHTML = `
-    <div style="background:linear-gradient(135deg,#8b5cf6,#6366f1);color:white;padding:16px 20px;font-weight:bold;display:flex;justify-content:space-between;align-items:center;border-radius:14px 14px 0 0;">
-      <span style="font-size:18px;">QUANT EV LIVE TRACKER</span>
-      <div>
-        <button onclick="exportQuantEvHistory()" style="background:rgba(255,255,255,0.2);border:none;color:white;cursor:pointer;font-size:13px;padding:6px 12px;border-radius:6px;margin-right:10px;">Export</button>
-        <button onclick="document.getElementById('quantEvTrackerPanel').style.display='none'" style="background:none;border:none;color:white;cursor:pointer;font-size:24px;line-height:1;">×</button>
-      </div>
-    </div>
-    <div id="qevBody" style="padding:16px;max-height:650px;overflow-y:auto;background:#1a1a2e;">
-      <div id="qevStats" style="color:#e0e0e0;"></div>
-      <div id="qevLog" style="margin-top:14px;border-top:1px solid #333;padding-top:14px;color:#ccc;"></div>
-    </div>
-  `;
-
-  // Apply styles - 50% larger
-  panel.style.cssText = `
-    position: fixed !important;
-    top: 60px !important;
-    right: 250px !important;
-    width: 480px !important;
-    max-height: 600px !important;
-    background: #1a1a2e !important;
-    border: 3px solid #8b5cf6 !important;
-    border-radius: 14px !important;
-    z-index: 999999 !important;
-    font-family: 'Courier New', monospace !important;
-    font-size: 14px !important;
-    overflow: hidden !important;
-    box-shadow: 0 10px 40px rgba(139,92,246,0.5) !important;
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-  `;
-
-  // Append to body
-  document.body.appendChild(panel);
-  console.log('[Quant EV] Panel appended to body');
-
-  // Update toggle button state
-  const btn = document.getElementById('trackerToggleBtn');
-  if (btn) {
-    btn.textContent = 'Hide Tracker';
-    btn.style.background = '#ef4444';
+  // Make sure the bottom panel is visible (not collapsed)
+  const bottomCard = document.getElementById('qevTrackerCard');
+  if (bottomCard) {
+    bottomCard.classList.remove('collapsed');
+    const icon = document.getElementById('qevToggleIcon');
+    if (icon) icon.textContent = '▼';
   }
 
-  // Force repaint
-  panel.offsetHeight;
-
-  // Update panel content after a small delay to ensure DOM is ready
-  setTimeout(() => {
-    updateQuantEvPanel();
-    console.log('[Quant EV] Panel updated');
-  }, 50);
+  // Update the bottom panel content
+  updateQuantEvPanel();
+  console.log('[Quant EV] Bottom panel updated');
 }
 
 function updateQuantEvPanel() {
   const tracker = AppState.quantEvTracker;
-  const statsEl = document.getElementById('qevStats');
-  if (!statsEl) return;
 
-  const playerCount = simPlayerCount || 5;
-  const settings = AppState.quantEvSettings;
-  const currentBet = settings.martingaleCurrentBet;
-  const baseUnit = settings.baseUnit;
-  const lossStreak = settings.martingaleLossStreak;
+  // Update bottom panel elements
+  const roundTitle = document.getElementById('qevRoundTitle');
+  const streakEl = document.getElementById('qevStreak');
+  const rolesRow = document.getElementById('qevRolesRow');
+  const tableBody = document.getElementById('qevTableBody');
+
+  const playerCount = simPlayerCount || AppState.config?.playersSeated || 5;
+  const settings = AppState.quantEvSettings || {};
+  const lossStreak = settings.martingaleLossStreak || 0;
   const quantEvPlayer = settings.quantEvPlayerIndex || 4;
-  const sacrificePlayer = settings.sacrificePlayerIndex || 5;
-  const sacrificePlayers = settings.sacrificePlayers || [3, 5];  // P3 and P5 are sacrifice players
 
-  let html = `<div style="color:#8b5cf6;font-weight:bold;margin-bottom:8px;font-size:16px;">TEAMPLAY ALWAYS WINS | Round ${tracker.roundNumber}</div>`;
-  html += `<div style="color:#60a5fa;font-size:10px;margin-bottom:6px;">P1-P2: BS | P3: BOOST | P4: QEV+MG | P5: SAC</div>`;
-  html += `<div style="color:#22d3ee;font-size:11px;margin-bottom:8px;padding:4px;background:#1a1a3e;border-radius:4px;">P${quantEvPlayer}: QEV+MG+T25 | Bet: $${currentBet.toLocaleString()} (${(currentBet/baseUnit).toFixed(0)}x) | Streak: ${lossStreak}</div>`;
-  html += `<table style="width:100%;border-collapse:collapse;color:#ccc;font-size:13px;">`;
-  html += `<tr style="color:#888;font-size:11px;"><th style="padding:6px 2px;">P</th><th style="padding:6px 2px;">Bank</th><th style="padding:6px 2px;">W</th><th style="padding:6px 2px;">L</th><th style="padding:6px 2px;">P</th><th style="padding:6px 2px;">WR%</th><th style="padding:6px 2px;">Role</th></tr>`;
-
-  for (let i = 1; i <= playerCount; i++) {
-    const p = tracker.players[i];
-    if (!p) continue;
-    const decided = p.wins + p.losses;  // W/(W+L) - excludes pushes
-    const wr = decided > 0 ? ((p.wins / decided) * 100).toFixed(0) : '0';
-    const color = p.bankroll >= 100000 ? '#22c55e' : '#ef4444';
-    // TEAMPLAY labels: P1-P2=BS, P3=BOOST, P4=QEV, P5=SAC
-    let stratLabel;
-    if (i === quantEvPlayer) {
-      stratLabel = '<span style="color:#22d3ee;font-size:9px;">QEV</span>';
-    } else if (i === 3) {
-      // P3 = P4 Booster (green - synergy with P4)
-      stratLabel = '<span style="color:#10b981;font-size:9px;">BOOST</span>';
-    } else if (i === 5) {
-      // P5 = Late Sacrifice
-      stratLabel = '<span style="color:#f97316;font-size:9px;">SAC</span>';
-    } else {
-      stratLabel = '<span style="color:#a78bfa;font-size:9px;">BS</span>';
-    }
-
-    html += `<tr style="text-align:center;">
-      <td style="color:#8b5cf6;padding:4px 2px;font-weight:bold;">P${i}</td>
-      <td style="color:${color};padding:4px 2px;font-weight:bold;">$${(p.bankroll/1000).toFixed(0)}k</td>
-      <td style="color:#22c55e;padding:4px 2px;">${p.wins}</td>
-      <td style="color:#ef4444;padding:4px 2px;">${p.losses}</td>
-      <td style="color:#f59e0b;padding:4px 2px;">${p.pushes}</td>
-      <td style="padding:4px 2px;">${wr}%</td>
-      <td style="padding:4px 2px;">${stratLabel}</td>
-    </tr>`;
+  // Update header info
+  if (roundTitle) {
+    roundTitle.textContent = `TEAMPLAY | Round ${tracker.roundNumber}`;
   }
-  html += `</table>`;
 
-  statsEl.innerHTML = html;
+  if (streakEl) {
+    streakEl.textContent = `Streak: ${lossStreak}`;
+    streakEl.style.color = lossStreak > 0 ? '#f87171' : lossStreak < 0 ? 'var(--accent-green)' : 'var(--accent-orange)';
+  }
+
+  if (rolesRow) {
+    rolesRow.textContent = 'P1-P2: BS | P3: BOOST | P4: QEV+MG | P5: SAC';
+  }
+
+  // Update players table
+  if (tableBody) {
+    let html = '';
+    for (let i = 1; i <= playerCount; i++) {
+      const p = tracker.players[i];
+      if (!p) continue;
+
+      const decided = p.wins + p.losses;
+      const wr = decided > 0 ? ((p.wins / decided) * 100).toFixed(0) : '0';
+
+      let roleClass = 'role-bs';
+      let roleLabel = 'BS';
+      if (i === quantEvPlayer) {
+        roleClass = 'role-qev';
+        roleLabel = 'QEV';
+      } else if (i === 3) {
+        roleClass = 'role-boost';
+        roleLabel = 'BOOST';
+      } else if (i === 5) {
+        roleClass = 'role-sac';
+        roleLabel = 'SAC';
+      }
+
+      html += `<tr>
+        <td>P${i}</td>
+        <td>$${(p.bankroll/1000).toFixed(0)}k</td>
+        <td style="color: var(--accent-green)">${p.wins}</td>
+        <td style="color: #f87171">${p.losses}</td>
+        <td style="color: var(--accent-orange)">${p.pushes}</td>
+        <td>${wr}%</td>
+        <td class="${roleClass}">${roleLabel}</td>
+      </tr>`;
+    }
+    tableBody.innerHTML = html;
+  }
+
+  // Also update old panel if it exists (for backwards compatibility)
+  const statsEl = document.getElementById('qevStats');
+  if (statsEl) {
+    // Old panel exists, update it too (will be removed eventually)
+  }
 }
 
 function logQuantEvRound(round) {
-  const logEl = document.getElementById('qevLog');
-  if (!logEl) return;
+  // Update bottom panel round log
+  const roundLog = document.getElementById('qevRoundLog');
 
-  const playerCount = simPlayerCount || 5;
-  const settings = AppState.quantEvSettings;
+  const playerCount = simPlayerCount || AppState.config?.playersSeated || 5;
+  const settings = AppState.quantEvSettings || {};
   const quantEvPlayer = settings.quantEvPlayerIndex || 4;
-  const sacrificePlayer = settings.sacrificePlayerIndex || 5;
-  const sacrificePlayers = settings.sacrificePlayers || [3, 5];  // P3 and P5 are sacrifice players
-  const baseUnit = settings.baseUnit;
-  let html = `<div style="margin-bottom:8px;padding:8px;background:#252540;border-radius:6px;font-size:11px;">`;
-  html += `<div style="color:#60a5fa;font-size:12px;font-weight:bold;margin-bottom:4px;">R${round.round} | TC:${round.tc.toFixed(2)} | D:[${round.dealerCards.join(' ')}]=${round.dealerTotal}</div>`;
+
+  let html = `<div class="qev-round-entry">`;
+  html += `<div class="qev-round-header">R${round.round} | TC:${round.tc.toFixed(2)} | D:[${round.dealerCards.join(' ')}]=${round.dealerTotal}</div>`;
 
   for (let i = 1; i <= playerCount; i++) {
     const p = round.players[i];
     if (p) {
       if (p.result === 'SAT OUT') {
-        // Quant EV player (P4) sat out this round
-        html += `<div style="color:#666;padding:1px 0;font-style:italic;">P${quantEvPlayer}: <span style="color:#f59e0b;">SAT OUT</span> (TC ≤ ${settings.quantEvReentryThreshold}) [QEV+MG+T25]</div>`;
+        html += `<div class="qev-round-line">P${quantEvPlayer}: <span class="push">SAT OUT</span> (TC ≤ ${settings.quantEvReentryThreshold || 0.9}) [QEV+MG+T25]</div>`;
       } else {
-        const resultColor = p.result === 'WIN' || p.result === 'BLACKJACK' ? '#22c55e' : p.result === 'LOSS' || p.result === 'BUST' ? '#ef4444' : '#f59e0b';
-        const devBadge = p.isDeviation ? `<span style="color:#f472b6;">[D]</span>` : '';
-        // TEAMPLAY badges: P1-P2=BS, P3=BOOST, P4=QEV, P5=SAC
+        const resultClass = (p.result === 'WIN' || p.result === 'BLACKJACK') ? 'win' :
+                           (p.result === 'LOSS' || p.result === 'BUST') ? 'loss' : 'push';
+        const resultDisplay = p.result === 'BLACKJACK' ? '<span class="blackjack">BLACKJACK</span>' :
+                             p.result === 'BUST' ? '<span class="bust">BUST</span>' :
+                             `<span class="${resultClass}">${p.result || '?'}</span>`;
+
         let stratBadge;
         if (i === quantEvPlayer) {
-          stratBadge = `<span style="color:#22d3ee;">[QEV+MG+T25]</span>`;
+          stratBadge = '[QEV+MG+T25]';
         } else if (i === 3) {
-          // P3 = P4 Booster with intent info
           const boostIntent = p.boosterIntent ? ` ${p.boosterIntent.replace(/_/g, ' ')}` : '';
-          stratBadge = `<span style="color:#10b981;">[BOOST${boostIntent}]</span>`;
+          stratBadge = `[BOOST${boostIntent}]`;
         } else if (i === 5) {
-          // P5 = Late Sacrifice
           const sacIntent = p.sacrificeIntent ? ` ${p.sacrificeIntent.replace(/_/g, ' ')}` : '';
-          stratBadge = `<span style="color:#f97316;">[SAC${sacIntent}]</span>`;
+          stratBadge = `[SAC${sacIntent}]`;
         } else {
-          stratBadge = `<span style="color:#a78bfa;">[BS]</span>`;
+          stratBadge = '[BS]';
         }
-        const betStr = (i === quantEvPlayer && p.betAmount) ? ` $${p.betAmount.toLocaleString()}` : '';
-        html += `<div style="color:#aaa;padding:1px 0;">P${i}${betStr}:[${p.cards.join('')}]=${p.total}→<span style="color:#8b5cf6;">${p.quantEvAction}</span>${devBadge}→<span style="color:${resultColor};">${p.result || '?'}</span> ${stratBadge}</div>`;
+
+        const betStr = (i === quantEvPlayer && p.betAmount) ? ` $${p.betAmount.toLocaleString()}:` : '';
+        html += `<div class="qev-round-line">P${i}${betStr}[${p.cards.join('')}]=${p.total}-${p.quantEvAction}-${resultDisplay} ${stratBadge}</div>`;
       }
     }
   }
   html += `</div>`;
 
-  logEl.innerHTML = html + logEl.innerHTML;
+  if (roundLog) {
+    // Remove empty message if present
+    const emptyMsg = roundLog.querySelector('.qev-empty');
+    if (emptyMsg) emptyMsg.remove();
 
-  // Keep only last 15 rounds in display (more players = more data)
-  const entries = logEl.children;
-  while (entries.length > 15) {
-    logEl.removeChild(entries[entries.length - 1]);
+    // Add new round at the top
+    roundLog.insertAdjacentHTML('afterbegin', html);
+
+    // Keep only last 10 rounds
+    const entries = roundLog.querySelectorAll('.qev-round-entry');
+    while (entries.length > 10) {
+      entries[entries.length - 1].remove();
+    }
+  }
+
+  // Also update old panel if it exists
+  const oldLogEl = document.getElementById('qevLog');
+  if (oldLogEl) {
+    // Old panel exists - will be removed eventually
   }
 }
 
 // Log shuffle event in tracker panel
 function logShuffleEvent(shoeNum) {
-  const logEl = document.getElementById('qevLog');
-  if (!logEl) return;
-
-  const html = `<div style="margin-bottom:8px;padding:8px;background:linear-gradient(90deg,#f59e0b,#ef4444);border-radius:6px;text-align:center;">
-    <span style="color:white;font-weight:bold;font-size:12px;">🔄 SHUFFLE - NEW SHOE #${shoeNum} - TC RESET TO 0</span>
-  </div>`;
-
-  logEl.innerHTML = html + logEl.innerHTML;
+  const roundLog = document.getElementById('qevRoundLog');
+  if (roundLog) {
+    const html = `<div class="qev-round-entry" style="background:linear-gradient(90deg,rgba(249,115,22,0.3),rgba(239,68,68,0.3));text-align:center;padding:6px;">
+      <span style="color:#fbbf24;font-weight:bold;">🔄 SHUFFLE - NEW SHOE #${shoeNum} - TC RESET TO 0</span>
+    </div>`;
+    roundLog.insertAdjacentHTML('afterbegin', html);
+  }
 }
 
 function toggleQuantEvPanel() {
-  const body = document.getElementById('qevBody');
-  if (body) body.style.display = body.style.display === 'none' ? 'block' : 'none';
+  // Toggle the bottom panel
+  toggleHistoryPanel('qev');
 }
 
 function exportQuantEvHistory() {
@@ -8504,24 +8657,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Toggle tracker panel show/hide
 function toggleTrackerPanel() {
-  const panel = document.getElementById('quantEvTrackerPanel');
-  const btn = document.getElementById('trackerToggleBtn');
+  // Remove old floating panel if it exists
+  const oldPanel = document.getElementById('quantEvTrackerPanel');
+  if (oldPanel && oldPanel.style.position === 'fixed') {
+    oldPanel.remove();
+  }
 
-  if (panel && panel.style.display !== 'none') {
-    // Hide panel
-    panel.style.display = 'none';
-    if (btn) {
+  // Toggle the bottom QEV panel
+  toggleHistoryPanel('qev');
+
+  // Update button state
+  const btn = document.getElementById('trackerToggleBtn');
+  const bottomCard = document.getElementById('qevTrackerCard');
+  if (btn && bottomCard) {
+    if (bottomCard.classList.contains('collapsed')) {
       btn.textContent = 'Show Tracker';
       btn.style.background = '#8b5cf6';
-    }
-  } else {
-    // Show panel
-    if (panel) {
-      panel.style.display = 'block';
     } else {
-      showQuantEvPanel();
-    }
-    if (btn) {
       btn.textContent = 'Hide Tracker';
       btn.style.background = '#ef4444';
     }
@@ -10098,7 +10250,20 @@ function initMobileMode() {
 // ============================================
 function toggleAdvancedTools() {
   const panel = document.getElementById('advancedToolsPanel');
-  panel.classList.toggle('collapsed');
+  if (panel) panel.classList.toggle('collapsed');
+}
+
+// Toggle Advanced Tools section in Composition Metrics panel
+function toggleAdvancedToolsSection() {
+  const grid = document.getElementById('toolsSectionGrid');
+  const toggle = document.getElementById('toolsSectionToggle');
+  if (grid) {
+    const isCollapsed = grid.style.display === 'none';
+    grid.style.display = isCollapsed ? 'grid' : 'none';
+    if (toggle) {
+      toggle.textContent = isCollapsed ? '▼' : '▶';
+    }
+  }
 }
 
 // ============================================
@@ -12412,11 +12577,6 @@ function updateDealingSequenceDisplay() {
     });
     visualDisplay.innerHTML = html;
   }
-}
-
-function setNumPlayers(num) {
-  initDealingSequence(num);
-  showToast(`Set to ${num} players`, 'info');
 }
 
 // Zone adjustment functions

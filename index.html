@@ -827,45 +827,167 @@
         <span><strong>S-Score:</strong> Composition edge proxy</span>
         <span><strong>Deep Pen:</strong> 4+ decks for surrender bias</span>
       </div>
+
+      <!-- Advanced Tools Section -->
+      <div class="advanced-tools-section">
+        <div class="tools-section-header" onclick="toggleAdvancedToolsSection()">
+          <span class="tools-icon">⚡</span>
+          <span>Advanced Tools</span>
+          <span class="tools-toggle" id="toolsSectionToggle">▼</span>
+        </div>
+        <div class="tools-section-grid" id="toolsSectionGrid">
+          <button class="btn-tool-sm" onclick="showHandAnalyzer()">
+            <span class="tool-icon">🎯</span>
+            <span class="tool-label">Hand Analyzer</span>
+          </button>
+          <button class="btn-tool-sm" onclick="showRiskOfRuinCalculator()">
+            <span class="tool-icon">📉</span>
+            <span class="tool-label">Risk of Ruin</span>
+          </button>
+          <button class="btn-tool-sm" onclick="showVarianceCalculator()">
+            <span class="tool-icon">📊</span>
+            <span class="tool-label">Variance Calc</span>
+          </button>
+          <button class="btn-tool-sm" onclick="startTrainingMode()">
+            <span class="tool-icon">🎓</span>
+            <span class="tool-label">Training Mode</span>
+          </button>
+          <button class="btn-tool-sm" onclick="showSessionTrackerPanel()">
+            <span class="tool-icon">💰</span>
+            <span class="tool-label">Session Tracker</span>
+          </button>
+          <button class="btn-tool-sm" onclick="showBetSpreadOptimizer()">
+            <span class="tool-icon">📈</span>
+            <span class="tool-label">Bet Optimizer</span>
+          </button>
+          <button class="btn-tool-sm" onclick="showCountSystemsPanel()">
+            <span class="tool-icon">🔢</span>
+            <span class="tool-label">Count Systems</span>
+          </button>
+          <button class="btn-tool-sm" onclick="showAceSequencer()">
+            <span class="tool-icon">🃏</span>
+            <span class="tool-label">Ace Sequencing</span>
+          </button>
+          <button class="btn-tool-sm" onclick="showHeatIndexPanel()">
+            <span class="tool-icon">🔥</span>
+            <span class="tool-label">Heat Index</span>
+          </button>
+          <button class="btn-tool-sm" onclick="showWongingSignals()">
+            <span class="tool-icon">🚦</span>
+            <span class="tool-label">Wonging</span>
+          </button>
+          <button class="btn-tool-sm" onclick="showShoeReplay()">
+            <span class="tool-icon">🔄</span>
+            <span class="tool-label">Shoe Replay</span>
+          </button>
+          <button class="btn-tool-sm" onclick="showVideoTracker()">
+            <span class="tool-icon">🎥</span>
+            <span class="tool-label">Video Tracker</span>
+          </button>
+          <button class="btn-tool-sm" id="btnThemeToggle2" onclick="toggleTheme()">
+            <span class="tool-icon">🌙</span>
+            <span class="tool-label">Dark/Light</span>
+          </button>
+          <button class="btn-tool-sm" id="btnAudioToggle2" onclick="toggleAudio()">
+            <span class="tool-icon">🔊</span>
+            <span class="tool-label">Audio Alerts</span>
+          </button>
+          <button class="btn-tool-sm" id="btnTouchMode2" onclick="toggleMobileTouchMode()">
+            <span class="tool-icon">👆</span>
+            <span class="tool-label">Touch Mode</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Bottom History Section -->
+  <section class="bottom-history-section" id="bottomHistorySection">
+    <!-- Dealer Bust History Panel -->
+    <div class="history-panel-card" id="dealerBustHistoryCard">
+      <div class="history-panel-header" onclick="toggleHistoryPanel('dealerBust')">
+        <span class="history-panel-title">💥 DEALER BUST HISTORY</span>
+        <span class="history-panel-toggle" id="dealerBustToggleIcon">▼</span>
+      </div>
+      <div class="history-panel-body" id="dealerBustHistoryPanel">
+        <div class="bust-history-header">
+          <div class="bust-rate-main">
+            <span class="bust-rate-label">DEALER BUST RATE</span>
+            <span class="bust-rate-value" id="bustRateValue">0.0%</span>
+            <span class="bust-rate-count" id="bustRateCount">(0/0)</span>
+          </div>
+          <div class="expected-rate">Expected: 28.0%</div>
+        </div>
+        <div class="bust-history-grid" id="bustHistoryGrid">
+          <div class="bust-empty">Start simulation to track dealer busts</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QEV Live Tracker Panel -->
+    <div class="history-panel-card" id="qevTrackerCard">
+      <div class="history-panel-header" onclick="toggleHistoryPanel('qev')">
+        <span class="history-panel-title">📈 QUANT EV LIVE TRACKER</span>
+        <span class="history-panel-toggle" id="qevToggleIcon">▼</span>
+      </div>
+      <div class="history-panel-body" id="qevTrackerPanel">
+        <div class="qev-header-info">
+          <div class="qev-title-row">
+            <span class="qev-round-title" id="qevRoundTitle">TEAMPLAY | Round 0</span>
+            <span class="qev-streak" id="qevStreak">Streak: 0</span>
+          </div>
+          <div class="qev-roles-row" id="qevRolesRow">P1-P2: BS | P3: BOOST | P4: QEV+MG | P5: SAC</div>
+        </div>
+        <div class="qev-players-table">
+          <table class="qev-table" id="qevPlayersTable">
+            <thead>
+              <tr>
+                <th>P</th>
+                <th>Bank</th>
+                <th>W</th>
+                <th>L</th>
+                <th>P</th>
+                <th>WR%</th>
+                <th>Role</th>
+              </tr>
+            </thead>
+            <tbody id="qevTableBody">
+              <tr><td>P1</td><td>$100k</td><td>0</td><td>0</td><td>0</td><td>0%</td><td class="role-bs">BS</td></tr>
+              <tr><td>P2</td><td>$100k</td><td>0</td><td>0</td><td>0</td><td>0%</td><td class="role-bs">BS</td></tr>
+              <tr><td>P3</td><td>$100k</td><td>0</td><td>0</td><td>0</td><td>0%</td><td class="role-boost">BOOST</td></tr>
+              <tr><td>P4</td><td>$100k</td><td>0</td><td>0</td><td>0</td><td>0%</td><td class="role-qev">QEV</td></tr>
+              <tr><td>P5</td><td>$100k</td><td>0</td><td>0</td><td>0</td><td>0%</td><td class="role-sac">SAC</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="qev-round-log" id="qevRoundLog">
+          <div class="qev-empty">Round history will appear here</div>
+        </div>
+      </div>
     </div>
 
     <!-- Betting History Panel -->
-    <div class="betting-history-container" id="bettingHistoryContainer">
-      <div class="betting-history-toggle" onclick="toggleBettingHistoryPanel()">
-        <span>📊 BETTING HISTORY</span>
-        <span id="bettingHistoryToggleIcon">▼</span>
+    <div class="history-panel-card" id="bettingHistoryCard">
+      <div class="history-panel-header" onclick="toggleHistoryPanel('betting')">
+        <span class="history-panel-title">📊 BETTING HISTORY</span>
+        <span class="history-panel-toggle" id="bettingHistoryToggleIcon">▼</span>
       </div>
-      <div class="betting-history-panel" id="bettingHistoryPanel">
+      <div class="history-panel-body" id="bettingHistoryPanel">
         <div class="history-header">
           <span>BETTING HISTORY</span>
-          <span>No Active Game</span>
+          <span id="bettingGameStatus">No Active Game</span>
         </div>
         <div class="history-actions">
           <button onclick="startNewGame(5)" class="btn-small">Start New Game</button>
           <button onclick="exportBettingHistoryCSV()" class="btn-small">Export CSV</button>
         </div>
-      </div>
-    </div>
-
-    <!-- Dealer Bust History Panel -->
-    <div class="dealer-bust-history-container" id="dealerBustHistoryContainer">
-      <div class="dealer-bust-toggle" onclick="toggleDealerBustHistoryPanel()">
-        <span>💥 DEALER BUST HISTORY</span>
-        <span id="dealerBustToggleIcon">▼</span>
-      </div>
-      <div class="dealer-bust-history-panel" id="dealerBustHistoryPanel" style="display:none;">
-        <div class="bust-history-header">
-          <div class="bust-rate-main">
-            <span class="bust-rate-label">DEALER BUST RATE</span>
-            <span class="bust-rate-value">0.0%</span>
-            <span class="bust-rate-count">(0/0)</span>
-          </div>
-          <div class="expected-rate">Expected: 28.0%</div>
+        <div class="betting-history-list" id="bettingHistoryList">
+          <!-- Betting history entries will be added here -->
         </div>
-        <div class="bust-empty">Start simulation to track dealer busts</div>
       </div>
     </div>
-  </main>
+  </section>
 
   <!-- Config Page (hidden by default) -->
   <div id="configPage" class="full-page-panel" style="display: none;">
@@ -2482,77 +2604,6 @@
           </div>
         </div>
       </div>
-    </div>
-  </div>
-
-  <!-- Advanced Tools Panel (Fixed Lower Right) - Collapsed by default -->
-  <div class="advanced-tools-panel collapsed" id="advancedToolsPanel">
-    <div class="tools-header" onclick="toggleAdvancedTools()">
-      <span class="tools-icon">⚡</span>
-      <span>Advanced Tools</span>
-      <span class="tools-toggle" id="toolsToggle">▼</span>
-    </div>
-    <div class="tools-grid" id="toolsGrid">
-      <button class="btn-tool" onclick="showHandAnalyzer()">
-        <span class="tool-icon">🎯</span>
-        <span class="tool-label">Hand Analyzer</span>
-      </button>
-      <button class="btn-tool" onclick="showRiskOfRuinCalculator()">
-        <span class="tool-icon">📉</span>
-        <span class="tool-label">Risk of Ruin</span>
-      </button>
-      <button class="btn-tool" onclick="showVarianceCalculator()">
-        <span class="tool-icon">📊</span>
-        <span class="tool-label">Variance Calc</span>
-      </button>
-      <button class="btn-tool" onclick="startTrainingMode()">
-        <span class="tool-icon">🎓</span>
-        <span class="tool-label">Training Mode</span>
-      </button>
-      <button class="btn-tool" onclick="showSessionTrackerPanel()">
-        <span class="tool-icon">💰</span>
-        <span class="tool-label">Session Tracker</span>
-      </button>
-      <button class="btn-tool" onclick="showBetSpreadOptimizer()">
-        <span class="tool-icon">📈</span>
-        <span class="tool-label">Bet Optimizer</span>
-      </button>
-      <button class="btn-tool" onclick="showCountSystemsPanel()">
-        <span class="tool-icon">🔢</span>
-        <span class="tool-label">Count Systems</span>
-      </button>
-      <button class="btn-tool" onclick="showAceSequencer()">
-        <span class="tool-icon">🃏</span>
-        <span class="tool-label">Ace Sequencing</span>
-      </button>
-      <button class="btn-tool" onclick="showHeatIndexPanel()">
-        <span class="tool-icon">🔥</span>
-        <span class="tool-label">Heat Index</span>
-      </button>
-      <button class="btn-tool" onclick="showWongingSignals()">
-        <span class="tool-icon">🚦</span>
-        <span class="tool-label">Wonging</span>
-      </button>
-      <button class="btn-tool" onclick="showShoeReplay()">
-        <span class="tool-icon">🔄</span>
-        <span class="tool-label">Shoe Replay</span>
-      </button>
-      <button class="btn-tool" onclick="showVideoTracker()">
-        <span class="tool-icon">🎥</span>
-        <span class="tool-label">Video Tracker</span>
-      </button>
-      <button class="btn-tool" id="btnThemeToggle" onclick="toggleTheme()">
-        <span class="tool-icon">🌙</span>
-        <span class="tool-label">Dark/Light</span>
-      </button>
-      <button class="btn-tool" id="btnAudioToggle" onclick="toggleAudio()">
-        <span class="tool-icon">🔊</span>
-        <span class="tool-label">Audio Alerts</span>
-      </button>
-      <button class="btn-tool" id="btnTouchMode" onclick="toggleMobileTouchMode()">
-        <span class="tool-icon">👆</span>
-        <span class="tool-label">Touch Mode</span>
-      </button>
     </div>
   </div>
 
