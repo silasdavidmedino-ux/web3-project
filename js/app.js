@@ -267,7 +267,8 @@ const AppState = {
       4: { bankroll: 100000, hands: [], wins: 0, losses: 0, pushes: 0, bjs: 0, correctDecisions: 0, totalDecisions: 0 },
       5: { bankroll: 100000, hands: [], wins: 0, losses: 0, pushes: 0, bjs: 0, correctDecisions: 0, totalDecisions: 0 },
       6: { bankroll: 100000, hands: [], wins: 0, losses: 0, pushes: 0, bjs: 0, correctDecisions: 0, totalDecisions: 0 },
-      7: { bankroll: 100000, hands: [], wins: 0, losses: 0, pushes: 0, bjs: 0, correctDecisions: 0, totalDecisions: 0 }
+      7: { bankroll: 100000, hands: [], wins: 0, losses: 0, pushes: 0, bjs: 0, correctDecisions: 0, totalDecisions: 0 },
+      8: { bankroll: 100000, hands: [], wins: 0, losses: 0, pushes: 0, bjs: 0, correctDecisions: 0, totalDecisions: 0 }
     },
     currentRound: {
       tc: 0,
@@ -436,7 +437,10 @@ const AppState = {
       2: 100000,
       3: 100000,
       4: 100000,
-      5: 100000
+      5: 100000,
+      6: 100000,
+      7: 100000,
+      8: 100000
     }
   }
 };
@@ -637,6 +641,7 @@ function handleCardClick(card) {
       });
 
       updateAll();
+      // Note: Split hands don't trigger auto-settle (dealer settles all)
       return;
     }
   }
@@ -691,16 +696,27 @@ function handleCardClick(card) {
     const dealerCards = AppState.positions.dealer;
     if (dealerCards && dealerCards.length >= 2) {
       const dealerTotal = calculateHandTotal(dealerCards);
+      console.log(`[AUTO-SETTLE] Dealer total: ${dealerTotal}, cards: ${dealerCards.length}`);
       if (dealerTotal >= 17 || dealerTotal > 21) {
-        // Check if at least one player has cards
+        // Check if at least one player has cards (including split hands!)
         let hasPlayers = false;
         for (let i = 1; i <= 8; i++) {
           const pCards = AppState.positions[`player${i}`] || [];
+          // Check regular positions
           if (pCards.length >= 2) {
             hasPlayers = true;
+            console.log(`[AUTO-SETTLE] Player ${i} has ${pCards.length} cards in positions`);
+            break;
+          }
+          // ALSO check split hands (cards moved to splitHands when split)
+          const split = AppState.splitHands[i];
+          if (split && split.hand1 && split.hand1.length >= 1) {
+            hasPlayers = true;
+            console.log(`[AUTO-SETTLE] Player ${i} has SPLIT hands - hand1: ${split.hand1.length} cards, hand2: ${split.hand2?.length || 0} cards`);
             break;
           }
         }
+        console.log(`[AUTO-SETTLE] Has players with cards: ${hasPlayers}`);
         if (hasPlayers) {
           // Mark round as settled to prevent duplicates
           AppState.roundSettled = true;
@@ -708,6 +724,7 @@ function handleCardClick(card) {
           setTimeout(() => {
             autoTrackQuantEvRound('auto');
             console.log('[AUTO-SETTLE] Round recorded to betting history');
+            showToast('Round auto-settled', 'success');
           }, 100);
         }
       }
@@ -6061,7 +6078,7 @@ function resetQEVTracker() {
 // ============================================
 
 // Start a new game session
-function startNewGame(playerCount = 5) {
+function startNewGame(playerCount = 8) {
   const history = AppState.bettingHistory;
 
   // End any current game first
@@ -6102,19 +6119,73 @@ function startNewGame(playerCount = 5) {
 
 // Record a round to betting history
 function recordBettingHistoryRound(roundData, playerCount = 5, quantEvPlayer = 4) {
+  console.log('[BETTING HISTORY] recordBettingHistoryRound called', { playerCount, roundData });
   const history = AppState.bettingHistory;
-  if (!history.currentGame) return;
+  if (!history.currentGame) {
+    console.log('[BETTING HISTORY] No current game - skipping');
+    return;
+  }
 
   history.currentGame.totalRounds++;
+  console.log('[BETTING HISTORY] Round', history.currentGame.totalRounds);
 
+  let playersRecorded = 0;
   for (let p = 1; p <= playerCount; p++) {
     const playerRound = roundData.players[p];
-    if (!playerRound || playerRound.result === 'SAT OUT') continue;
+    if (!playerRound || playerRound.result === 'SAT OUT') {
+      continue;
+    }
 
     const playerGame = history.currentGame.players[p];
     if (!playerGame) continue;
 
     const betAmount = playerRound.betAmount || AppState.quantEvSettings.baseUnit;
+
+    // Handle split hands - record both hands
+    if (playerRound.isSplit) {
+      console.log(`[BETTING HISTORY] Player ${p} SPLIT: Hand1=${playerRound.hand1Result}, Hand2=${playerRound.hand2Result}`);
+
+      // Process Hand 1
+      let payout1 = 0;
+      if (playerRound.hand1Result === 'WIN') {
+        payout1 = betAmount;
+        playerGame.roundsWin++;
+      } else if (playerRound.hand1Result === 'LOSS' || playerRound.hand1Result === 'BUST') {
+        payout1 = -betAmount;
+        playerGame.roundsLost++;
+      } else if (playerRound.hand1Result === 'PUSH') {
+        playerGame.roundsPush++;
+      }
+
+      // Process Hand 2
+      let payout2 = 0;
+      if (playerRound.hand2Result === 'WIN') {
+        payout2 = betAmount;
+        playerGame.roundsWin++;
+      } else if (playerRound.hand2Result === 'LOSS' || playerRound.hand2Result === 'BUST') {
+        payout2 = -betAmount;
+        playerGame.roundsLost++;
+      } else if (playerRound.hand2Result === 'PUSH') {
+        playerGame.roundsPush++;
+      }
+
+      const totalPayout = payout1 + payout2;
+      playerGame.accumulatedCapital += totalPayout;
+      playerGame.profitLoss = playerGame.accumulatedCapital - playerGame.startingCapital;
+
+      playerGame.roundDetails.push({
+        round: history.currentGame.totalRounds,
+        bet: betAmount * 2,
+        result: `SPLIT: ${playerRound.hand1Result}/${playerRound.hand2Result}`,
+        payout: totalPayout,
+        capital: playerGame.accumulatedCapital
+      });
+      playersRecorded++;
+      continue;
+    }
+
+    // Regular hand
+    console.log(`[BETTING HISTORY] Player ${p}: ${playerRound.result}`);
     let payout = 0;
 
     // Calculate payout
@@ -6144,10 +6215,18 @@ function recordBettingHistoryRound(roundData, playerCount = 5, quantEvPlayer = 4
       payout: payout,
       capital: playerGame.accumulatedCapital
     });
+    playersRecorded++;
   }
+
+  console.log(`[BETTING HISTORY] Recorded ${playersRecorded} players this round`);
 
   // Update panel
   updateBettingHistoryPanel();
+
+  // Show visual feedback
+  if (playersRecorded > 0) {
+    showToast(`Betting history: Round ${history.currentGame.totalRounds} recorded (${playersRecorded} players)`, 'success');
+  }
 }
 
 // End current game and save to history
@@ -6158,7 +6237,7 @@ function endCurrentGame() {
   history.currentGame.endTime = new Date().toISOString();
 
   // Update player capitals for next game (progressive)
-  for (let p = 1; p <= 5; p++) {
+  for (let p = 1; p <= 8; p++) {
     if (history.currentGame.players[p]) {
       history.playerCapitals[p] = history.currentGame.players[p].accumulatedCapital;
     }
@@ -6305,11 +6384,16 @@ function toggleBettingHistoryPanel() {
 
 // Update betting history panel display
 function updateBettingHistoryPanel() {
+  console.log('[BETTING HISTORY] updateBettingHistoryPanel called');
   const panel = document.getElementById('bettingHistoryPanel');
-  if (!panel) return;
+  if (!panel) {
+    console.log('[BETTING HISTORY] Panel element not found!');
+    return;
+  }
 
   const history = AppState.bettingHistory;
   const game = history.currentGame;
+  console.log('[BETTING HISTORY] currentGame:', game ? `Game ${game.gameNumber}, ${game.totalRounds} rounds` : 'null');
 
   if (!game) {
     panel.innerHTML = `
@@ -6318,7 +6402,7 @@ function updateBettingHistoryPanel() {
         <span>No Active Game</span>
       </div>
       <div class="history-actions">
-        <button onclick="startNewGame(5)" class="btn-small">Start New Game</button>
+        <button onclick="startNewGame(8)" class="btn-small">Start New Game</button>
         <button onclick="exportBettingHistoryCSV()" class="btn-small">Export CSV</button>
       </div>
     `;
@@ -6352,7 +6436,7 @@ function updateBettingHistoryPanel() {
   let totalStart = 0, totalCurrent = 0, totalPL = 0;
   let totalW = 0, totalL = 0, totalP = 0;
 
-  for (let p = 1; p <= 5; p++) {
+  for (let p = 1; p <= 8; p++) {
     const player = game.players[p];
     if (!player) continue;
 
@@ -8316,8 +8400,12 @@ const originalUpdateUI = typeof updateUI === 'function' ? updateUI : null;
 
 // AUTO TRACKING - Called automatically when Win/Lose/Push buttons are clicked
 function autoTrackQuantEvRound(result) {
+  console.log('[AUTO-TRACK] autoTrackQuantEvRound called with result:', result);
   const tracker = AppState.quantEvTracker;
-  if (!tracker.enabled) return;
+  if (!tracker.enabled) {
+    console.log('[AUTO-TRACK] Tracker not enabled - skipping');
+    return;
+  }
 
   // Auto-init if not started
   if (!tracker.sessionId) {
@@ -8343,9 +8431,126 @@ function autoTrackQuantEvRound(result) {
     players: {}
   };
 
+  // DEBUG: Log ALL split hands before processing
+  console.log('[AUTO-TRACK] === SPLIT HANDS DEBUG ===');
+  console.log('[AUTO-TRACK] splitHands object:', AppState.splitHands);
+  console.log('[AUTO-TRACK] splitHands keys:', Object.keys(AppState.splitHands));
+  for (const key in AppState.splitHands) {
+    console.log(`[AUTO-TRACK] splitHands[${key}] (type: ${typeof key}):`, AppState.splitHands[key]);
+  }
+  console.log('[AUTO-TRACK] === END SPLIT DEBUG ===');
+
   // Record each player's hand and determine result based on cards
-  for (let i = 1; i <= 7; i++) {
-    const cards = AppState.positions[`player${i}`] || [];
+  for (let i = 1; i <= 8; i++) {
+    let cards = AppState.positions[`player${i}`] || [];
+
+    // Try both numeric and string key access for split hands
+    let split = AppState.splitHands[i];
+    if (!split) {
+      split = AppState.splitHands[String(i)];
+    }
+
+    // Debug split info
+    console.log(`[AUTO-TRACK] Player ${i}: positions cards=${cards.length}, split=${split ? 'YES' : 'NO'}`);
+    if (split) {
+      console.log(`[AUTO-TRACK] Player ${i} split details:`, {
+        active: split.active,
+        hand1: split.hand1,
+        hand2: split.hand2,
+        hand1Length: split.hand1?.length,
+        hand2Length: split.hand2?.length,
+        condition: split.hand1 && split.hand1.length >= 2
+      });
+    }
+
+    // Check if player has split hands (check hand1 has cards, not necessarily active)
+    if (split && split.hand1 && split.hand1.length >= 2) {
+      // Process split hands - record each hand separately
+      const dealerTotal = roundData.dealerTotal;
+      const player = tracker.players[i];
+
+      // Process Hand 1
+      const hand1Cards = split.hand1;
+      const hand1Total = calculateHandTotal(hand1Cards);
+      let hand1Result;
+      if (hand1Total > 21) {
+        hand1Result = 'BUST';
+      } else if (dealerTotal > 21) {
+        hand1Result = 'WIN';
+      } else if (hand1Total > dealerTotal) {
+        hand1Result = 'WIN';
+      } else if (hand1Total < dealerTotal) {
+        hand1Result = 'LOSS';
+      } else {
+        hand1Result = 'PUSH';
+      }
+
+      // Process Hand 2 if exists
+      let hand2Result = null;
+      let hand2Total = 0;
+      if (split.hand2 && split.hand2.length >= 1) {
+        const hand2Cards = split.hand2;
+        hand2Total = calculateHandTotal(hand2Cards);
+        if (hand2Total > 21) {
+          hand2Result = 'BUST';
+        } else if (dealerTotal > 21) {
+          hand2Result = 'WIN';
+        } else if (hand2Total > dealerTotal) {
+          hand2Result = 'WIN';
+        } else if (hand2Total < dealerTotal) {
+          hand2Result = 'LOSS';
+        } else {
+          hand2Result = 'PUSH';
+        }
+      }
+
+      // Combine results - count each hand as a separate result
+      roundData.players[i] = {
+        cards: [...hand1Cards, '|', ...(split.hand2 || [])],
+        total: `${hand1Total}/${hand2Total}`,
+        isBJ: false,
+        isSplit: true,
+        hand1Result: hand1Result,
+        hand2Result: hand2Result,
+        result: hand1Result, // Primary result for betting history
+        payout: 0
+      };
+
+      // Update stats for both hands
+      player.totalDecisions += 2;
+
+      // Hand 1 stats
+      if (hand1Result === 'WIN') {
+        player.wins++;
+        player.bankroll += 100;
+        player.correctDecisions++;
+      } else if (hand1Result === 'LOSS' || hand1Result === 'BUST') {
+        player.losses++;
+        player.bankroll -= 100;
+      } else if (hand1Result === 'PUSH') {
+        player.pushes++;
+        player.correctDecisions++;
+      }
+
+      // Hand 2 stats
+      if (hand2Result === 'WIN') {
+        player.wins++;
+        player.bankroll += 100;
+        player.correctDecisions++;
+      } else if (hand2Result === 'LOSS' || hand2Result === 'BUST') {
+        player.losses++;
+        player.bankroll -= 100;
+      } else if (hand2Result === 'PUSH') {
+        player.pushes++;
+        player.correctDecisions++;
+      }
+
+      player.hands.push(roundData.players[i]);
+      console.log(`[AUTO-TRACK] Player ${i} SPLIT: Hand1=${hand1Result}, Hand2=${hand2Result}`);
+      continue;
+    }
+
+    // Regular (non-split) hand
     if (cards.length >= 2) {
       const decision = getUnifiedDecision(i);
       const total = calculateHandTotal(cards);
@@ -8413,12 +8618,11 @@ function autoTrackQuantEvRound(result) {
   if (AppState.bettingHistory.enabled) {
     // Auto-start a new game if not already active
     if (!AppState.bettingHistory.currentGame) {
-      const playerCount = AppState.config.playersSeated || 5;
-      startNewGame(playerCount);
+      startNewGame(8);
       console.log('[BETTING HISTORY] Auto-started new game for manual tracking');
     }
-    // Record round to betting history
-    recordBettingHistoryRound(roundData, 7, 4);
+    // Record round to betting history (use 8 players max)
+    recordBettingHistoryRound(roundData, 8, 4);
   }
 
   // DEALER BUST HISTORY - Record dealer bust
@@ -8426,6 +8630,35 @@ function autoTrackQuantEvRound(result) {
     recordDealerBustHistory(roundData, roundData.dealerTotal, 5);
   }
 }
+
+// DEBUG: Test betting history (call from console: testBettingHistory())
+window.testBettingHistory = function() {
+  console.log('=== BETTING HISTORY DEBUG ===');
+  console.log('bettingHistory.enabled:', AppState.bettingHistory.enabled);
+  console.log('bettingHistory.currentGame:', AppState.bettingHistory.currentGame);
+  console.log('Panel element:', document.getElementById('bettingHistoryPanel'));
+
+  // Try to start a new game if not active
+  if (!AppState.bettingHistory.currentGame) {
+    console.log('Starting new game...');
+    startNewGame(8);
+  }
+
+  // Create mock round data
+  const mockRound = {
+    players: {
+      1: { result: 'WIN', betAmount: 100 },
+      2: { result: 'LOSS', betAmount: 100 }
+    }
+  };
+
+  console.log('Recording mock round...');
+  recordBettingHistoryRound(mockRound, 8, 4);
+
+  console.log('After recording:');
+  console.log('currentGame.totalRounds:', AppState.bettingHistory.currentGame?.totalRounds);
+  console.log('=== END DEBUG ===');
+};
 
 // AUTO SETTLE ROUND - Manually settle the current round based on dealt cards
 function autoSettleRound() {
@@ -8496,6 +8729,11 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     if (AppState.quantEvTracker.enabled) {
       showQuantEvPanel();
+    }
+    // Auto-start betting history game
+    if (AppState.bettingHistory.enabled && !AppState.bettingHistory.currentGame) {
+      startNewGame(8);
+      console.log('[BETTING HISTORY] Auto-started new game on page load');
     }
   }, 1000);
 });
