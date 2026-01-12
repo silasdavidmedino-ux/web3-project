@@ -700,20 +700,34 @@ function handleCardClick(card) {
       if (dealerTotal >= 17 || dealerTotal > 21) {
         // Check if at least one player has cards (including split hands!)
         let hasPlayers = false;
-        for (let i = 1; i <= 8; i++) {
-          const pCards = AppState.positions[`player${i}`] || [];
-          // Check regular positions
-          if (pCards.length >= 2) {
-            hasPlayers = true;
-            console.log(`[AUTO-SETTLE] Player ${i} has ${pCards.length} cards in positions`);
-            break;
-          }
-          // ALSO check split hands (cards moved to splitHands when split)
-          const split = AppState.splitHands[i];
-          if (split && split.hand1 && split.hand1.length >= 1) {
-            hasPlayers = true;
-            console.log(`[AUTO-SETTLE] Player ${i} has SPLIT hands - hand1: ${split.hand1.length} cards, hand2: ${split.hand2?.length || 0} cards`);
-            break;
+
+        // ALSO check completedSplits (more reliable - saved when split finishes)
+        console.log(`[AUTO-SETTLE] completedSplits:`, JSON.stringify(AppState.completedSplits));
+        console.log(`[AUTO-SETTLE] splitHands keys:`, Object.keys(AppState.splitHands || {}));
+
+        // First check completedSplits
+        if (AppState.completedSplits && Object.keys(AppState.completedSplits).length > 0) {
+          hasPlayers = true;
+          console.log(`[AUTO-SETTLE] Found completedSplits with keys:`, Object.keys(AppState.completedSplits));
+        }
+
+        // Then check regular positions and splitHands
+        if (!hasPlayers) {
+          for (let i = 1; i <= 8; i++) {
+            const pCards = AppState.positions[`player${i}`] || [];
+            // Check regular positions
+            if (pCards.length >= 2) {
+              hasPlayers = true;
+              console.log(`[AUTO-SETTLE] Player ${i} has ${pCards.length} cards in positions`);
+              break;
+            }
+            // ALSO check split hands (cards moved to splitHands when split)
+            const split = AppState.splitHands[i];
+            if (split && split.hand1 && split.hand1.length >= 1) {
+              hasPlayers = true;
+              console.log(`[AUTO-SETTLE] Player ${i} has SPLIT hands - hand1: ${split.hand1.length} cards, hand2: ${split.hand2?.length || 0} cards`);
+              break;
+            }
           }
         }
         console.log(`[AUTO-SETTLE] Has players with cards: ${hasPlayers}`);
@@ -4015,6 +4029,10 @@ function updateDecisionPanels() {
 
 // Handle split action
 function handleSplit(playerNum) {
+  console.log(`[SPLIT] handleSplit called for player ${playerNum}, type: ${typeof playerNum}`);
+  console.log(`[SPLIT] BEFORE - splitHands:`, JSON.stringify(AppState.splitHands));
+  console.log(`[SPLIT] BEFORE - completedSplits:`, JSON.stringify(AppState.completedSplits));
+
   const playerKey = `player${playerNum}`;
   const originalCards = AppState.positions[playerKey];
 
@@ -4032,6 +4050,9 @@ function handleSplit(playerNum) {
     decision1: null,
     decision2: null
   };
+
+  console.log(`[SPLIT] AFTER - splitHands keys:`, Object.keys(AppState.splitHands));
+  console.log(`[SPLIT] splitHands content:`, JSON.stringify(AppState.splitHands));
 
   // Clear original position
   AppState.positions[playerKey] = [];
@@ -4186,8 +4207,14 @@ function renderSplitDecisions(playerNum, panel) {
 
 // Handle stay on a split hand
 function handleSplitStay(playerNum, handNum) {
+  console.log(`[SPLIT-STAY] Called: playerNum=${playerNum} (type: ${typeof playerNum}), handNum=${handNum}`);
+
   const split = AppState.splitHands[playerNum];
-  if (!split) return;
+  if (!split) {
+    console.log(`[SPLIT-STAY] ERROR: No split found for player ${playerNum}`);
+    console.log(`[SPLIT-STAY] splitHands keys:`, Object.keys(AppState.splitHands));
+    return;
+  }
 
   split[`decision${handNum}`] = 'STAY';
 
@@ -4201,7 +4228,17 @@ function handleSplitStay(playerNum, handNum) {
     split.activeHand = 2;
     showToast(`Hand 2 active - click cards to hit`, 'info');
   } else {
-    // Both hands done
+    // Both hands done - SAVE A COPY to completedSplits before marking inactive
+    if (!AppState.completedSplits) AppState.completedSplits = {};
+    AppState.completedSplits[playerNum] = {
+      hand1: [...split.hand1],
+      hand2: [...split.hand2],
+      decision1: split.decision1,
+      decision2: split.decision2
+    };
+    console.log(`[SPLIT-STAY] Saved completed split for Player ${playerNum}:`, AppState.completedSplits[playerNum]);
+    console.log(`[SPLIT-STAY] All completedSplits keys:`, Object.keys(AppState.completedSplits));
+
     split.active = false;
     AppState.activeSplitPlayer = null;
     showToast(`Split complete for Player ${playerNum}`, 'success');
@@ -4263,6 +4300,9 @@ function recordSplitDecision(playerNum, handNum, decision) {
 }
 
 function clearPlayerDecisions() {
+  console.log('[CLEAR] clearPlayerDecisions called - CLEARING ALL SPLIT HANDS!');
+  console.log('[CLEAR] Stack trace:', new Error().stack);
+
   // Reset all decisions
   for (let i = 1; i <= 8; i++) {
     AppState.playerDecisions[i] = null;
@@ -8431,124 +8471,94 @@ function autoTrackQuantEvRound(result) {
     players: {}
   };
 
-  // DEBUG: Log ALL split hands before processing
-  console.log('[AUTO-TRACK] === SPLIT HANDS DEBUG ===');
-  console.log('[AUTO-TRACK] splitHands object:', AppState.splitHands);
-  console.log('[AUTO-TRACK] splitHands keys:', Object.keys(AppState.splitHands));
-  for (const key in AppState.splitHands) {
-    console.log(`[AUTO-TRACK] splitHands[${key}] (type: ${typeof key}):`, AppState.splitHands[key]);
-  }
-  console.log('[AUTO-TRACK] === END SPLIT DEBUG ===');
+  // FIRST: Process ALL split hands by iterating over splitHands object directly
+  // This ensures we don't miss any splits regardless of key type
+  const processedSplitPlayers = new Set();
 
-  // Record each player's hand and determine result based on cards
-  for (let i = 1; i <= 8; i++) {
-    let cards = AppState.positions[`player${i}`] || [];
+  // Use completedSplits (saved when each split finishes) - this is reliable
+  const splitsToProcess = AppState.completedSplits || {};
+  console.log('[AUTO-TRACK] completedSplits:', JSON.stringify(splitsToProcess));
 
-    // Try both numeric and string key access for split hands
-    let split = AppState.splitHands[i];
-    if (!split) {
-      split = AppState.splitHands[String(i)];
+  for (const key of Object.keys(splitsToProcess)) {
+    const split = splitsToProcess[key];
+    const playerNum = parseInt(key, 10);
+
+    if (!split || isNaN(playerNum)) continue;
+    if (!split.hand1 || split.hand1.length < 1) continue;
+
+    console.log(`[AUTO-TRACK] >>> PROCESSING SPLIT for Player ${playerNum}, hand1=${split.hand1}, hand2=${split.hand2}`);
+    processedSplitPlayers.add(playerNum);
+
+    const dealerTotal = roundData.dealerTotal;
+    const player = tracker.players[playerNum];
+    if (!player) continue;
+
+    // Process Hand 1
+    const hand1Cards = split.hand1;
+    const hand1Total = calculateHandTotal(hand1Cards);
+    let hand1Result;
+    if (hand1Total > 21) {
+      hand1Result = 'BUST';
+    } else if (dealerTotal > 21) {
+      hand1Result = 'WIN';
+    } else if (hand1Total > dealerTotal) {
+      hand1Result = 'WIN';
+    } else if (hand1Total < dealerTotal) {
+      hand1Result = 'LOSS';
+    } else {
+      hand1Result = 'PUSH';
     }
 
-    // Debug split info
-    console.log(`[AUTO-TRACK] Player ${i}: positions cards=${cards.length}, split=${split ? 'YES' : 'NO'}`);
-    if (split) {
-      console.log(`[AUTO-TRACK] Player ${i} split details:`, {
-        active: split.active,
-        hand1: split.hand1,
-        hand2: split.hand2,
-        hand1Length: split.hand1?.length,
-        hand2Length: split.hand2?.length,
-        condition: split.hand1 && split.hand1.length >= 2
-      });
-    }
-
-    // Check if player has split hands (check hand1 has cards, not necessarily active)
-    if (split && split.hand1 && split.hand1.length >= 2) {
-      // Process split hands - record each hand separately
-      const dealerTotal = roundData.dealerTotal;
-      const player = tracker.players[i];
-
-      // Process Hand 1
-      const hand1Cards = split.hand1;
-      const hand1Total = calculateHandTotal(hand1Cards);
-      let hand1Result;
-      if (hand1Total > 21) {
-        hand1Result = 'BUST';
+    // Process Hand 2
+    let hand2Result = null;
+    let hand2Total = 0;
+    if (split.hand2 && split.hand2.length >= 1) {
+      hand2Total = calculateHandTotal(split.hand2);
+      if (hand2Total > 21) {
+        hand2Result = 'BUST';
       } else if (dealerTotal > 21) {
-        hand1Result = 'WIN';
-      } else if (hand1Total > dealerTotal) {
-        hand1Result = 'WIN';
-      } else if (hand1Total < dealerTotal) {
-        hand1Result = 'LOSS';
+        hand2Result = 'WIN';
+      } else if (hand2Total > dealerTotal) {
+        hand2Result = 'WIN';
+      } else if (hand2Total < dealerTotal) {
+        hand2Result = 'LOSS';
       } else {
-        hand1Result = 'PUSH';
+        hand2Result = 'PUSH';
       }
-
-      // Process Hand 2 if exists
-      let hand2Result = null;
-      let hand2Total = 0;
-      if (split.hand2 && split.hand2.length >= 1) {
-        const hand2Cards = split.hand2;
-        hand2Total = calculateHandTotal(hand2Cards);
-        if (hand2Total > 21) {
-          hand2Result = 'BUST';
-        } else if (dealerTotal > 21) {
-          hand2Result = 'WIN';
-        } else if (hand2Total > dealerTotal) {
-          hand2Result = 'WIN';
-        } else if (hand2Total < dealerTotal) {
-          hand2Result = 'LOSS';
-        } else {
-          hand2Result = 'PUSH';
-        }
-      }
-
-      // Combine results - count each hand as a separate result
-      roundData.players[i] = {
-        cards: [...hand1Cards, '|', ...(split.hand2 || [])],
-        total: `${hand1Total}/${hand2Total}`,
-        isBJ: false,
-        isSplit: true,
-        hand1Result: hand1Result,
-        hand2Result: hand2Result,
-        result: hand1Result, // Primary result for betting history
-        payout: 0
-      };
-
-      // Update stats for both hands
-      player.totalDecisions += 2;
-
-      // Hand 1 stats
-      if (hand1Result === 'WIN') {
-        player.wins++;
-        player.bankroll += 100;
-        player.correctDecisions++;
-      } else if (hand1Result === 'LOSS' || hand1Result === 'BUST') {
-        player.losses++;
-        player.bankroll -= 100;
-      } else if (hand1Result === 'PUSH') {
-        player.pushes++;
-        player.correctDecisions++;
-      }
-
-      // Hand 2 stats
-      if (hand2Result === 'WIN') {
-        player.wins++;
-        player.bankroll += 100;
-        player.correctDecisions++;
-      } else if (hand2Result === 'LOSS' || hand2Result === 'BUST') {
-        player.losses++;
-        player.bankroll -= 100;
-      } else if (hand2Result === 'PUSH') {
-        player.pushes++;
-        player.correctDecisions++;
-      }
-
-      player.hands.push(roundData.players[i]);
-      console.log(`[AUTO-TRACK] Player ${i} SPLIT: Hand1=${hand1Result}, Hand2=${hand2Result}`);
-      continue;
     }
+
+    // Record split data
+    roundData.players[playerNum] = {
+      cards: [...hand1Cards, '|', ...(split.hand2 || [])],
+      total: `${hand1Total}/${hand2Total}`,
+      isBJ: false,
+      isSplit: true,
+      hand1Result: hand1Result,
+      hand2Result: hand2Result,
+      result: hand1Result,
+      payout: 0
+    };
+
+    // Update stats
+    player.totalDecisions += 2;
+    if (hand1Result === 'WIN') { player.wins++; player.bankroll += 100; player.correctDecisions++; }
+    else if (hand1Result === 'LOSS' || hand1Result === 'BUST') { player.losses++; player.bankroll -= 100; }
+    else if (hand1Result === 'PUSH') { player.pushes++; player.correctDecisions++; }
+
+    if (hand2Result === 'WIN') { player.wins++; player.bankroll += 100; player.correctDecisions++; }
+    else if (hand2Result === 'LOSS' || hand2Result === 'BUST') { player.losses++; player.bankroll -= 100; }
+    else if (hand2Result === 'PUSH') { player.pushes++; player.correctDecisions++; }
+
+    player.hands.push(roundData.players[playerNum]);
+    console.log(`[AUTO-TRACK] Player ${playerNum} SPLIT RECORDED: Hand1=${hand1Result}, Hand2=${hand2Result}`);
+  }
+
+  // SECOND: Process regular (non-split) hands
+  for (let i = 1; i <= 8; i++) {
+    // Skip if already processed as split
+    if (processedSplitPlayers.has(i)) continue;
+
+    let cards = AppState.positions[`player${i}`] || [];
 
     // Regular (non-split) hand
     if (cards.length >= 2) {
@@ -8614,6 +8624,14 @@ function autoTrackQuantEvRound(result) {
   updateQuantEvPanel();
   logQuantEvRound(roundData);
 
+  // DEBUG: Show which players are in roundData before recording
+  console.log('[AUTO-TRACK] === ROUND DATA SUMMARY ===');
+  console.log('[AUTO-TRACK] Players in roundData:', Object.keys(roundData.players));
+  for (const pNum of Object.keys(roundData.players)) {
+    const pd = roundData.players[pNum];
+    console.log(`[AUTO-TRACK] Player ${pNum}: isSplit=${pd.isSplit}, result=${pd.result}, hand1=${pd.hand1Result}, hand2=${pd.hand2Result}`);
+  }
+
   // BETTING HISTORY - Auto-start game if needed and record round
   if (AppState.bettingHistory.enabled) {
     // Auto-start a new game if not already active
@@ -8629,6 +8647,19 @@ function autoTrackQuantEvRound(result) {
   if (AppState.dealerBustHistory.enabled) {
     recordDealerBustHistory(roundData, roundData.dealerTotal, 5);
   }
+
+  // CLEAR split data after recording to prevent interference with next round
+  // Re-initialize as objects to ensure they work for the next round
+  AppState.completedSplits = {};
+  AppState.splitHands = {};
+  for (let i = 1; i <= 8; i++) {
+    AppState.splitHands[i] = null;  // Initialize all slots
+  }
+
+  // IMPORTANT: Reset roundSettled flag so next round can trigger auto-settle
+  AppState.roundSettled = false;
+
+  console.log('[AUTO-TRACK] Cleared splits and reset roundSettled flag');
 }
 
 // DEBUG: Test betting history (call from console: testBettingHistory())
@@ -8712,6 +8743,7 @@ function newRound() {
     AppState.splitHands[i] = null;
   }
   AppState.activeSplitPlayer = null;
+  AppState.completedSplits = {};  // Clear completed splits for new round
 
   // Reset active position to player 1
   AppState.activePosition = 1;
