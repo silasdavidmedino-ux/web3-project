@@ -854,9 +854,9 @@ body {
 
 .player-box {
   position: relative;
-  width: 90px;
+  flex: 1 1 0;
   min-width: 60px;
-  flex: 0 1 auto;
+  max-width: 150px;
   padding: 8px 4px 5px 4px;
   margin-top: 45px;
   max-height: 120px;
@@ -1000,130 +1000,34 @@ body {
   display: block;
 }
 
-/* Responsive player count scaling - single row only */
+/* Responsive player count scaling - flex-based */
 .players-row[data-player-count="1"] .player-box {
-  width: 150px;
-  padding: 8px;
-  max-height: 100px;
-}
-.players-row[data-player-count="1"] .player-box .position-label {
-  font-size: 12px;
-}
-.players-row[data-player-count="1"] .player-box .position-badge {
-  min-width: 42px;
-  height: 42px;
-  font-size: 22px;
-  top: -46px;
-}
-
-.players-row[data-player-count="2"] {
-  gap: 12px;
+  flex: 0 1 20%;
+  max-width: 150px;
 }
 .players-row[data-player-count="2"] .player-box {
-  width: 130px;
-  padding: 7px;
-  max-height: 100px;
-}
-.players-row[data-player-count="2"] .player-box .position-label {
-  font-size: 11px;
-}
-.players-row[data-player-count="2"] .player-box .position-badge {
-  min-width: 40px;
-  height: 40px;
-  font-size: 20px;
-  top: -44px;
-}
-
-.players-row[data-player-count="3"] {
-  gap: 10px;
+  flex: 0 1 18%;
+  max-width: 140px;
 }
 .players-row[data-player-count="3"] .player-box {
-  width: 115px;
-  padding: 6px;
-  max-height: 100px;
-}
-.players-row[data-player-count="3"] .player-box .position-label {
-  font-size: 10px;
-}
-.players-row[data-player-count="3"] .player-box .position-badge {
-  min-width: 38px;
-  height: 38px;
-  font-size: 18px;
-  top: -42px;
-}
-
-.players-row[data-player-count="4"] {
-  gap: 8px;
+  flex: 0 1 15%;
+  max-width: 130px;
 }
 .players-row[data-player-count="4"] .player-box {
-  width: 100px;
-  padding: 5px;
-  max-height: 95px;
-}
-.players-row[data-player-count="4"] .player-box .position-label {
-  font-size: 9px;
-}
-.players-row[data-player-count="4"] .player-box .position-badge {
-  min-width: 36px;
-  height: 36px;
-  font-size: 17px;
-  top: -40px;
-}
-
-.players-row[data-player-count="5"] {
-  gap: 6px;
+  flex: 0 1 12%;
+  max-width: 120px;
 }
 .players-row[data-player-count="5"] .player-box {
-  width: 95px;
-  padding: 5px;
-  max-height: 90px;
-}
-.players-row[data-player-count="5"] .player-box .position-label {
-  font-size: 9px;
-}
-.players-row[data-player-count="5"] .player-box .position-badge {
-  min-width: 34px;
-  height: 34px;
-  font-size: 16px;
-  top: -38px;
-}
-
-.players-row[data-player-count="6"] {
-  gap: 5px;
+  flex: 0 1 10%;
+  max-width: 110px;
 }
 .players-row[data-player-count="6"] .player-box {
-  width: 88px;
-  padding: 4px;
-  max-height: 85px;
-}
-.players-row[data-player-count="6"] .player-box .position-label {
-  font-size: 8px;
-}
-.players-row[data-player-count="6"] .player-box .position-badge {
-  min-width: 32px;
-  height: 32px;
-  font-size: 15px;
-  top: -36px;
-}
-
-/* 7 players - most compact */
-.players-row[data-player-count="7"] {
-  gap: 4px;
+  flex: 0 1 9%;
+  max-width: 100px;
 }
 .players-row[data-player-count="7"] .player-box {
-  width: 80px;
-  min-width: 55px;
-  padding: 4px;
-  max-height: 80px;
-}
-.players-row[data-player-count="7"] .player-box .position-label {
-  font-size: 7px;
-}
-.players-row[data-player-count="7"] .player-box .position-badge {
-  min-width: 30px;
-  height: 30px;
-  font-size: 14px;
-  top: -34px;
+  flex: 0 1 8%;
+  max-width: 90px;
 }
 
 /* Card chip display */
@@ -1976,8 +1880,9 @@ body {
   }
 
   .player-box {
-    width: 100px;
-    min-width: 80px;
+    flex: 1 1 auto;
+    min-width: 70px;
+    max-width: 120px;
   }
 
   .players-row {
@@ -1989,11 +1894,13 @@ body {
   .players-row {
     flex-wrap: wrap;
     gap: 6px;
+    justify-content: center;
   }
 
   .player-box {
-    width: calc(25% - 6px);
-    min-width: 100px;
+    flex: 1 1 calc(20% - 6px);
+    min-width: 80px;
+    max-width: 120px;
   }
 }
 
@@ -2009,11 +1916,13 @@ body {
 
   .players-row {
     flex-wrap: wrap;
+    justify-content: center;
   }
 
   .player-box {
-    width: calc(50% - 4px);
-    min-width: 140px;
+    flex: 1 1 calc(30% - 6px);
+    min-width: 90px;
+    max-width: 140px;
   }
 
   .metrics-grid {
