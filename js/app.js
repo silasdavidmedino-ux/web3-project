@@ -11604,37 +11604,51 @@ const AICardDetector = {
 // ============================================
 async function initAIDetector() {
   try {
-    updateAIStatus('Loading TensorFlow.js...');
+    updateAIStatus('Loading Card Classifier...');
 
-    // Check if TensorFlow.js is loaded
-    if (typeof tf === 'undefined') {
-      console.warn('TensorFlow.js not loaded, using fallback detection');
-      updateAIStatus('AI Ready (Fallback)');
-      AICardDetector.isModelLoaded = true;
-      document.getElementById('aiModelName').textContent = 'Pattern';
-      return;
+    // Try to load our trained ONNX card classifier
+    if (typeof ort !== 'undefined' && !CardDetectionModel.isLoaded) {
+      try {
+        console.log('[AI] Loading ONNX card classifier...');
+
+        // Load class names
+        try {
+          const response = await fetch(CardDetectionModel.classNamesPath);
+          if (response.ok) {
+            CardDetectionModel.classNames = await response.json();
+          }
+        } catch (e) {
+          CardDetectionModel.classNames = CARD_CLASSES;
+        }
+        if (!CardDetectionModel.classNames) {
+          CardDetectionModel.classNames = CARD_CLASSES;
+        }
+
+        // Load ONNX model
+        CardDetectionModel.session = await ort.InferenceSession.create(
+          CardDetectionModel.modelPath,
+          { executionProviders: ['wasm'] }
+        );
+
+        CardDetectionModel.isLoaded = true;
+        AICardDetector.isModelLoaded = true;
+        document.getElementById('aiModelName').textContent = 'Card-CNN';
+        updateAIStatus('AI Ready');
+        showToast('Card Classifier loaded!', 'success');
+        console.log('[AI] ONNX Card classifier loaded successfully');
+        return;
+
+      } catch (onnxError) {
+        console.warn('[AI] ONNX model failed, falling back:', onnxError);
+      }
     }
 
-    updateAIStatus('Loading AI Model...');
-
-    // Set backend to WebGL for GPU acceleration
-    await tf.setBackend('webgl');
-    await tf.ready();
-
-    // Load COCO-SSD model (can detect general objects)
-    // For production, you'd load a custom-trained card detection model
-    if (typeof cocoSsd !== 'undefined') {
-      AICardDetector.model = await cocoSsd.load({
-        base: 'mobilenet_v2'
-      });
-      document.getElementById('aiModelName').textContent = 'COCO-SSD';
-    }
-
+    // Fallback to pattern-based detection
+    updateAIStatus('AI Ready (Pattern)');
     AICardDetector.isModelLoaded = true;
-    updateAIStatus('AI Ready');
-    showToast('AI Model loaded successfully!', 'success');
+    document.getElementById('aiModelName').textContent = 'Pattern';
+    console.log('[AI] Using pattern-based fallback');
 
-    console.log('[AI] Card detection model loaded');
   } catch (error) {
     console.error('[AI] Model loading error:', error);
     updateAIStatus('AI Ready (Fallback)');
@@ -11805,8 +11819,8 @@ async function detectCards() {
 
   console.log(`[AI DEBUG] Drawing frame to canvas: ${canvas.width}x${canvas.height}`);
 
-  // Get detections - scan card zones continuously
-  let detections = detectCardsInZones(ctx, canvas.width, canvas.height);
+  // Get detections - scan card zones continuously (async for ONNX model)
+  let detections = await detectCardsInZones(ctx, canvas.width, canvas.height);
   console.log(`[AI DEBUG] detectCardsInZones returned ${detections.length} detections`);
 
   // Process detections and AUTO-TRACK recognized cards!
@@ -11845,7 +11859,7 @@ async function detectCards() {
 // ============================================
 // AI DETECTOR - SMART CARD RECOGNITION
 // ============================================
-function detectCardsInZones(ctx, width, height) {
+async function detectCardsInZones(ctx, width, height) {
   const detections = [];
 
   try {
@@ -11857,26 +11871,31 @@ function detectCardsInZones(ctx, width, height) {
     let zonesWithCards = 0;
     let analysisResults = [];
 
+    // Process zones with potential cards
+    const zonesToProcess = [];
     cardZones.forEach(zone => {
       const analysis = analyzeCardRegion(data, width, zone);
       analysisResults.push({ zone: zone.name, isCard: analysis.isCard, conf: analysis.confidence.toFixed(2) });
 
-      // Very low threshold - detect anything that might be a card
       if (analysis.isCard) {
         zonesWithCards++;
-        // Try to recognize the actual card value
-        const cardValue = recognizeCardValue(ctx, zone, analysis.colorProfile);
-
-        detections.push({
-          label: cardValue || '?',
-          confidence: analysis.confidence,
-          bbox: [zone.x, zone.y, zone.w, zone.h],
-          region: zone.name,
-          colorProfile: analysis.colorProfile,
-          autoDetected: cardValue !== 'unknown' && cardValue !== null
-        });
+        zonesToProcess.push({ zone, analysis });
       }
     });
+
+    // Process card recognition (async for ONNX model)
+    for (const { zone, analysis } of zonesToProcess) {
+      const cardValue = await recognizeCardValue(ctx, zone, analysis.colorProfile);
+
+      detections.push({
+        label: cardValue || '?',
+        confidence: analysis.confidence,
+        bbox: [zone.x, zone.y, zone.w, zone.h],
+        region: zone.name,
+        colorProfile: analysis.colorProfile,
+        autoDetected: cardValue !== 'unknown' && cardValue !== null
+      });
+    }
 
     // ALWAYS log for debugging
     console.log(`[AI] Scanned ${cardZones.length} zones, found ${zonesWithCards} cards, recognized ${detections.filter(d => d.autoDetected).length}`);
@@ -11896,51 +11915,127 @@ function detectCardsInZones(ctx, width, height) {
 // ============================================
 // AI CARD VALUE RECOGNITION - THE BRAIN
 // ============================================
-function recognizeCardValue(ctx, zone, colorProfile) {
+async function recognizeCardValue(ctx, zone, colorProfile) {
   try {
-    // SINGLE ZONE MODE: The zone captures the CENTER of the card
-    // The card's rank is in the TOP-LEFT CORNER of the actual card
-    // We need to look ABOVE and LEFT of the zone center to find it
-
-    if (AICardDetector.singleZoneMode) {
-      // In single zone mode, the zone is on card CENTER
-      // Card corner is approximately:
-      // - Left of zone by ~30% of zone width
-      // - Above zone by ~20% of zone height
-      // Analyze the TOP-LEFT quadrant of the zone (which should have the rank)
-      const cornerX = zone.x;  // Start at zone left edge
-      const cornerY = zone.y;  // Start at zone top edge
-      const cornerW = zone.w * 0.5;  // Left half of zone
-      const cornerH = zone.h * 0.5;  // Top half of zone
-
-      const cornerData = ctx.getImageData(cornerX, cornerY, cornerW, cornerH);
-      const pixels = cornerData.data;
-      const pattern = analyzeCornerPattern(pixels, cornerW, cornerH, colorProfile);
-
-      console.log(`[Pattern] dark:${(pattern.darkRatio*100).toFixed(1)}% T/B:${pattern.topBottomRatio.toFixed(2)} L/R:${pattern.leftRightRatio.toFixed(2)}`);
-
-      return matchPatternToCard(pattern);
+    // If ONNX model is loaded, use CNN-based recognition
+    if (CardDetectionModel.isLoaded && CardDetectionModel.session) {
+      return await recognizeCardWithONNX(ctx, zone);
     }
 
-    // MULTI-ZONE MODE (legacy): Zone captures entire card, corner is top-left
-    const cornerX = zone.x + zone.w * 0.05;
-    const cornerY = zone.y + zone.h * 0.05;
-    const cornerW = zone.w * 0.35;
-    const cornerH = zone.h * 0.30;
-
-    // Get corner pixel data
-    const cornerData = ctx.getImageData(cornerX, cornerY, cornerW, cornerH);
-    const pixels = cornerData.data;
-
-    // Analyze the corner for card value
-    const pattern = analyzeCornerPattern(pixels, cornerW, cornerH, colorProfile);
-
-    // Match pattern to card value
-    return matchPatternToCard(pattern);
+    // Fallback to pattern-based recognition
+    return recognizeCardWithPattern(ctx, zone, colorProfile);
 
   } catch (err) {
+    console.error('[AI] Recognition error:', err);
     return 'unknown';
   }
+}
+
+// ONNX Model-based card recognition
+async function recognizeCardWithONNX(ctx, zone) {
+  try {
+    const size = CardDetectionModel.inputSize;
+    const mean = CardDetectionModel.mean;
+    const std = CardDetectionModel.std;
+
+    // Create temp canvas for the card zone
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = size;
+    tempCanvas.height = size;
+    const tempCtx = tempCanvas.getContext('2d');
+
+    // Extract and resize the zone to model input size
+    tempCtx.drawImage(
+      ctx.canvas,
+      zone.x, zone.y, zone.w, zone.h,  // Source rectangle
+      0, 0, size, size                   // Destination (224x224)
+    );
+
+    // Get image data and preprocess
+    const imageData = tempCtx.getImageData(0, 0, size, size);
+    const data = imageData.data;
+    const floatData = new Float32Array(3 * size * size);
+
+    // Apply ImageNet normalization
+    for (let i = 0; i < size * size; i++) {
+      const pixelIndex = i * 4;
+      floatData[i] = (data[pixelIndex] / 255.0 - mean[0]) / std[0];
+      floatData[size * size + i] = (data[pixelIndex + 1] / 255.0 - mean[1]) / std[1];
+      floatData[2 * size * size + i] = (data[pixelIndex + 2] / 255.0 - mean[2]) / std[2];
+    }
+
+    // Create tensor and run inference
+    const tensor = new ort.Tensor('float32', floatData, [1, 3, size, size]);
+    const inputName = CardDetectionModel.session.inputNames[0];
+    const feeds = {};
+    feeds[inputName] = tensor;
+
+    const results = await CardDetectionModel.session.run(feeds);
+    const outputName = CardDetectionModel.session.outputNames[0];
+    const logits = Array.from(results[outputName].data);
+
+    // Apply softmax
+    const maxLogit = Math.max(...logits);
+    const exps = logits.map(x => Math.exp(x - maxLogit));
+    const sumExps = exps.reduce((a, b) => a + b, 0);
+    const probs = exps.map(x => x / sumExps);
+
+    // Find top prediction
+    let maxProb = 0;
+    let maxIdx = 0;
+    probs.forEach((p, i) => {
+      if (p > maxProb) {
+        maxProb = p;
+        maxIdx = i;
+      }
+    });
+
+    // Check confidence threshold
+    const threshold = AICardDetector.confidenceThreshold || 0.5;
+    if (maxProb < threshold) {
+      return 'unknown';
+    }
+
+    // Get card class name (e.g., "K_hearts")
+    const className = CardDetectionModel.classNames[maxIdx] || CARD_CLASSES[maxIdx];
+    const parts = className.split('_');
+    const rank = parts[0];
+
+    console.log(`[ONNX] Detected: ${rank} (${(maxProb * 100).toFixed(1)}%)`);
+
+    return rank;
+
+  } catch (err) {
+    console.error('[ONNX] Recognition error:', err);
+    return 'unknown';
+  }
+}
+
+// Pattern-based fallback recognition
+function recognizeCardWithPattern(ctx, zone, colorProfile) {
+  if (AICardDetector.singleZoneMode) {
+    const cornerX = zone.x;
+    const cornerY = zone.y;
+    const cornerW = zone.w * 0.5;
+    const cornerH = zone.h * 0.5;
+
+    const cornerData = ctx.getImageData(cornerX, cornerY, cornerW, cornerH);
+    const pixels = cornerData.data;
+    const pattern = analyzeCornerPattern(pixels, cornerW, cornerH, colorProfile);
+
+    return matchPatternToCard(pattern);
+  }
+
+  const cornerX = zone.x + zone.w * 0.05;
+  const cornerY = zone.y + zone.h * 0.05;
+  const cornerW = zone.w * 0.35;
+  const cornerH = zone.h * 0.30;
+
+  const cornerData = ctx.getImageData(cornerX, cornerY, cornerW, cornerH);
+  const pixels = cornerData.data;
+  const pattern = analyzeCornerPattern(pixels, cornerW, cornerH, colorProfile);
+
+  return matchPatternToCard(pattern);
 }
 
 function analyzeCornerPattern(pixels, width, height, colorProfile) {
