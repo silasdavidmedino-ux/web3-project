@@ -4016,34 +4016,29 @@ function renderSplitDecisions(playerNum, panel) {
       return `<span class="split-waiting">WAIT</span>`;
     }
 
+    const handTotal = calculateHandTotal(hand);
     const optimal = getOptimalDecision(hand, dealerUpcard);
-    if (!optimal.action) return '';
 
-    const btnConfig = {
-      'STAY': { class: 'stay', label: 'S', action: 'STAY' },
-      'HIT': { class: 'hit', label: 'H', action: 'HIT' },
-      'DBL': { class: 'double', label: 'D', action: 'DBL' },
-      'SURRENDER': { class: 'surrender', label: 'R', action: 'SURRENDER' }
-    };
+    // Always show STAY button + optimal recommendation after 2 cards
+    const optimalLabel = optimal.action === 'STAY' ? 'S' :
+                         optimal.action === 'HIT' ? 'H' :
+                         optimal.action === 'DBL' ? 'D' : 'H';
+    const optimalClass = optimal.action === 'STAY' ? 'stay' :
+                         optimal.action === 'HIT' ? 'hit' :
+                         optimal.action === 'DBL' ? 'double' : 'hit';
 
-    const config = btnConfig[optimal.action] || { class: 'hit', label: 'H', action: 'HIT' };
-
-    // For HIT - player clicks cards manually, for STAY - click button
-    if (optimal.action === 'STAY') {
-      return `
-        <button class="decision-btn ${config.class} recommended"
+    return `
+      <div class="split-actions">
+        <button class="decision-btn stay"
                 onclick="handleSplitStay(${playerNum}, ${handNum})"
-                title="Stay on ${hand1Total}">
-          ${config.label}
+                title="Stay on ${handTotal}">
+          S
         </button>
-      `;
-    } else {
-      return `
-        <span class="decision-btn ${config.class} recommended" title="${optimal.reason} - Click cards to hit">
-          ${config.label}
+        <span class="optimal-hint ${optimalClass}" title="${optimal.reason || 'Optimal play'}">
+          ${optimalLabel}
         </span>
-      `;
-    }
+      </div>
+    `;
   };
 
   const hand1Active = isActivePlayer && split.activeHand === 1;
