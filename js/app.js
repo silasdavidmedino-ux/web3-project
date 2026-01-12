@@ -57,6 +57,9 @@ const AppState = {
   // Deal history for undo
   dealHistory: [],
 
+  // Flag to track if current round has been auto-settled
+  roundSettled: false,
+
   // Dealer cards history (per round)
   dealerHistory: [],
   currentRoundNum: 0,
@@ -682,6 +685,34 @@ function handleCardClick(card) {
 
   // Update UI
   updateAll();
+
+  // AUTO-SETTLE: Check if round is complete (dealer 17+ or bust with players having cards)
+  if (AppState.activePosition === 'dealer' && !AppState.roundSettled) {
+    const dealerCards = AppState.positions.dealer;
+    if (dealerCards && dealerCards.length >= 2) {
+      const dealerTotal = calculateHandTotal(dealerCards);
+      if (dealerTotal >= 17 || dealerTotal > 21) {
+        // Check if at least one player has cards
+        let hasPlayers = false;
+        for (let i = 1; i <= 8; i++) {
+          const pCards = AppState.positions[`player${i}`] || [];
+          if (pCards.length >= 2) {
+            hasPlayers = true;
+            break;
+          }
+        }
+        if (hasPlayers) {
+          // Mark round as settled to prevent duplicates
+          AppState.roundSettled = true;
+          // Auto-settle the round
+          setTimeout(() => {
+            autoTrackQuantEvRound('auto');
+            console.log('[AUTO-SETTLE] Round recorded to betting history');
+          }, 100);
+        }
+      }
+    }
+  }
 }
 
 function handleUndo() {
@@ -700,14 +731,36 @@ function handleUndo() {
   if (AppState.activeSplitPlayer !== null) {
     const split = AppState.splitHands[AppState.activeSplitPlayer];
     if (split && split.active) {
-      // Look for split hand position in history
-      const splitPos = `split_${AppState.activeSplitPlayer}_${split.activeHand}`;
+      // Look for ANY split hand position for this player (hand 1 or 2)
+      const splitPos1 = `split_${AppState.activeSplitPlayer}_1`;
+      const splitPos2 = `split_${AppState.activeSplitPlayer}_2`;
       for (let i = AppState.dealHistory.length - 1; i >= 0; i--) {
-        if (AppState.dealHistory[i].position === splitPos) {
+        const pos = AppState.dealHistory[i].position;
+        if (pos === splitPos1 || pos === splitPos2) {
           lastDealIndex = i;
           isSplitUndo = true;
           splitPlayerNum = AppState.activeSplitPlayer;
-          splitHandNum = split.activeHand;
+          // Extract the hand number from the position string
+          splitHandNum = parseInt(pos.split('_')[2]);
+          break;
+        }
+      }
+    }
+  }
+
+  // Also check for split hands on the active position (non-active split player)
+  if (lastDealIndex === -1 && typeof activePos === 'number') {
+    const split = AppState.splitHands[activePos];
+    if (split && split.active) {
+      const splitPos1 = `split_${activePos}_1`;
+      const splitPos2 = `split_${activePos}_2`;
+      for (let i = AppState.dealHistory.length - 1; i >= 0; i--) {
+        const pos = AppState.dealHistory[i].position;
+        if (pos === splitPos1 || pos === splitPos2) {
+          lastDealIndex = i;
+          isSplitUndo = true;
+          splitPlayerNum = activePos;
+          splitHandNum = parseInt(pos.split('_')[2]);
           break;
         }
       }
@@ -741,6 +794,12 @@ function handleUndo() {
   // Reverse running count
   AppState.runningCount -= getCountValue(lastDeal.rank);
 
+  // Remove from bead road
+  removeLastBead();
+
+  // Reset round settled flag (allow re-settling after undo)
+  AppState.roundSettled = false;
+
   // Handle split hand undo
   if (isSplitUndo && splitPlayerNum !== null && splitHandNum !== null) {
     const split = AppState.splitHands[splitPlayerNum];
@@ -750,13 +809,33 @@ function handleUndo() {
       if (idx > -1) {
         split[handKey].splice(idx, 1);
       }
-      // If this was a doubled hand that stayed, reset the decision to allow more actions
+
+      // Reset decision if hand now has fewer cards
       if (split[`decision${splitHandNum}`] === 'STAY' && split[handKey].length <= 2) {
         split[`decision${splitHandNum}`] = null;
       }
+
+      // Handle hand transition after undo
+      if (splitHandNum === 2 && split.hand2.length === 1) {
+        // Hand 2 only has the initial split card, switch back to hand 1
+        split.activeHand = 1;
+        split.decision1 = null; // Allow more actions on hand 1
+      } else if (splitHandNum === 1 && split.activeHand === 2) {
+        // Undoing from hand 1 when we were on hand 2
+        // Check if hand 1 should become active again
+        if (split.hand1.length > 1) {
+          split.activeHand = 1;
+          split.decision1 = null;
+        }
+      }
+
+      // Ensure activeSplitPlayer is set
+      if (split.active) {
+        AppState.activeSplitPlayer = splitPlayerNum;
+      }
     }
     updateAll();
-    showToast(`Undid ${lastDeal.card} from Hand ${splitHandNum}`, 'info');
+    showToast(`Undid ${lastDeal.card} from Split Hand ${splitHandNum}`, 'info');
     return;
   }
 
@@ -876,6 +955,9 @@ function resetShoe() {
   // Clear dealer history on shoe reset
   AppState.dealerHistory = [];
   AppState.currentRoundNum = 0;
+
+  // Reset round settled flag
+  AppState.roundSettled = false;
 
   // Reset dealer bust history on shoe reset
   if (typeof resetDealerBustHistory === 'function') {
@@ -2776,6 +2858,13 @@ function clearBeadRoad() {
     grid.innerHTML = '';
   }
   showToast('Bead Road cleared', 'info');
+}
+
+function removeLastBead() {
+  const grid = document.getElementById('beadRoadGrid');
+  if (grid && grid.lastChild) {
+    grid.removeChild(grid.lastChild);
+  }
 }
 
 // UI Update Functions
@@ -8319,6 +8408,87 @@ function autoTrackQuantEvRound(result) {
   tracker.history.push(roundData);
   updateQuantEvPanel();
   logQuantEvRound(roundData);
+
+  // BETTING HISTORY - Auto-start game if needed and record round
+  if (AppState.bettingHistory.enabled) {
+    // Auto-start a new game if not already active
+    if (!AppState.bettingHistory.currentGame) {
+      const playerCount = AppState.config.playersSeated || 5;
+      startNewGame(playerCount);
+      console.log('[BETTING HISTORY] Auto-started new game for manual tracking');
+    }
+    // Record round to betting history
+    recordBettingHistoryRound(roundData, 7, 4);
+  }
+
+  // DEALER BUST HISTORY - Record dealer bust
+  if (AppState.dealerBustHistory.enabled) {
+    recordDealerBustHistory(roundData, roundData.dealerTotal, 5);
+  }
+}
+
+// AUTO SETTLE ROUND - Manually settle the current round based on dealt cards
+function autoSettleRound() {
+  const dealerCards = AppState.positions.dealer || [];
+  if (dealerCards.length < 2) {
+    showToast('Deal cards to dealer first (min 2 cards)', 'warning');
+    return;
+  }
+
+  const dealerTotal = calculateHandTotal(dealerCards);
+  if (dealerTotal < 17 && dealerTotal <= 21) {
+    showToast(`Dealer has ${dealerTotal} - must draw to 17+ first`, 'warning');
+    return;
+  }
+
+  // Check if at least one player has cards
+  let hasPlayers = false;
+  for (let i = 1; i <= 8; i++) {
+    const cards = AppState.positions[`player${i}`] || [];
+    if (cards.length >= 2) {
+      hasPlayers = true;
+      break;
+    }
+  }
+
+  if (!hasPlayers) {
+    showToast('Deal cards to at least one player first', 'warning');
+    return;
+  }
+
+  // Trigger auto-tracking which now records to betting history
+  autoTrackQuantEvRound('auto');
+  showToast('Round settled and recorded to betting history', 'success');
+}
+
+// NEW ROUND - Clear positions for a new round (keeps shoe intact)
+function newRound() {
+  // Clear all position cards
+  for (let i = 1; i <= 8; i++) {
+    AppState.positions[`player${i}`] = [];
+  }
+  AppState.positions.dealer = [];
+
+  // Clear player decisions
+  for (let i = 1; i <= 8; i++) {
+    AppState.playerDecisions[i] = null;
+  }
+
+  // Clear split hands
+  for (let i = 1; i <= 8; i++) {
+    AppState.splitHands[i] = null;
+  }
+  AppState.activeSplitPlayer = null;
+
+  // Reset active position to player 1
+  AppState.activePosition = 1;
+
+  // Reset round settled flag for new round
+  AppState.roundSettled = false;
+
+  // Update UI
+  updateAll();
+  showToast('New round - positions cleared', 'info');
 }
 
 // Auto-show panel on page load if enabled
