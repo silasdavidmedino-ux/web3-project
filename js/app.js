@@ -13499,7 +13499,7 @@ async function switchCamera() {
 
 // Capture frame
 function captureFrame() {
-  if (\!WebcamState.isRunning) return null;
+  if (!WebcamState.isRunning) return null;
   
   const video = document.getElementById('webcamVideo');
   const canvas = document.getElementById('webcamCanvas');
@@ -13521,7 +13521,7 @@ function startFpsCounter() {
   let frames = 0;
   
   function countFrame() {
-    if (\!WebcamState.isRunning) return;
+    if (!WebcamState.isRunning) return;
     frames++;
     const now = performance.now();
     
@@ -13653,14 +13653,14 @@ function drawDetectionOverlay(canvas, cardInfo, confidence) {
 }
 
 function startAutoDetection() {
-  if (\!WebcamState.isRunning || \!WebcamState.autoDetect) return;
-  
+  if (!WebcamState.isRunning || !WebcamState.autoDetect) return;
+
   const canvas = document.getElementById('webcamCanvas');
   const video = document.getElementById('webcamVideo');
   const ctx = canvas.getContext('2d');
-  
+
   async function detectLoop() {
-    if (\!WebcamState.isRunning || \!WebcamState.autoDetect) return;
+    if (!WebcamState.isRunning || !WebcamState.autoDetect) return;
     ctx.drawImage(video, 0, 0);
     await detectCardsInFrame(canvas);
     setTimeout(detectLoop, 500);
