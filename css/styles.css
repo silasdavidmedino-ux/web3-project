@@ -7719,3 +7719,309 @@ body.touch-mode .input-group select {
   font-weight: 600;
   margin-left: 4px;
 }
+
+/* ============================================
+   LIVE CARD TRACKING - WEBCAM PANEL
+   ============================================ */
+
+.webcam-panel {
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 420px;
+  max-height: calc(100vh - 80px);
+  background: var(--bg-card);
+  border: 2px solid #22d3ee;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 40px rgba(34, 211, 238, 0.3);
+  z-index: 10000;
+  overflow: hidden;
+}
+
+.webcam-panel.minimized .webcam-body {
+  display: none;
+}
+
+.webcam-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #0891b2 0%, #22d3ee 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.webcam-controls-header {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-webcam-control {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.btn-webcam-control:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+.webcam-body {
+  padding: 12px;
+  background: var(--bg-darker);
+}
+
+.webcam-video-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+#webcamVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.webcam-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.webcam-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0,0,0,0.8);
+  color: #888;
+}
+
+.webcam-placeholder span {
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+
+.webcam-placeholder p {
+  font-size: 14px;
+}
+
+.webcam-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-webcam {
+  flex: 1;
+  min-width: 100px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #22d3ee 0%, #0891b2 100%);
+  color: white;
+  transition: all 0.2s;
+}
+
+.btn-webcam:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(34, 211, 238, 0.4);
+}
+
+.btn-webcam:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-webcam.btn-danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.btn-webcam.btn-secondary {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+}
+
+.btn-webcam.btn-success {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+}
+
+.webcam-select {
+  flex: 1;
+  min-width: 120px;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.webcam-status {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.webcam-status span {
+  display: flex;
+  gap: 4px;
+}
+
+#webcamStatus {
+  color: #22d3ee;
+  font-weight: 600;
+}
+
+#webcamFps, #cardsDetected {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.webcam-detected-cards {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.detected-header {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.detected-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 40px;
+  margin-bottom: 10px;
+  color: #666;
+  font-size: 13px;
+}
+
+.detected-card {
+  padding: 6px 10px;
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  color: white;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.detected-card.red {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+}
+
+.webcam-settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.webcam-settings label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.webcam-settings input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #22d3ee;
+}
+
+.confidence-slider {
+  flex: 1;
+  min-width: 150px;
+}
+
+.confidence-slider input[type="range"] {
+  width: 100%;
+  margin-top: 4px;
+  accent-color: #22d3ee;
+}
+
+/* Floating Toggle Button */
+.btn-webcam-toggle {
+  position: fixed;
+  bottom: 100px;
+  left: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #0891b2 0%, #22d3ee 100%);
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(34, 211, 238, 0.4);
+  z-index: 9999;
+  transition: all 0.3s;
+}
+
+.btn-webcam-toggle:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 30px rgba(34, 211, 238, 0.6);
+}
+
+.btn-webcam-toggle.active {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+}
+
+/* Detection Box Overlay */
+.detection-box {
+  position: absolute;
+  border: 2px solid #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+  border-radius: 4px;
+}
+
+.detection-box::after {
+  content: attr(data-label);
+  position: absolute;
+  top: -20px;
+  left: 0;
+  background: #22c55e;
+  color: white;
+  padding: 2px 6px;
+  font-size: 11px;
+  border-radius: 2px;
+}

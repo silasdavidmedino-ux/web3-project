@@ -2554,6 +2554,57 @@
     </div>
   </div>
 
+  <!-- Live Card Tracking - Webcam Panel -->
+  <div id="webcamPanel" class="webcam-panel" style="display: none;">
+    <div class="webcam-header">
+      <span>📹 LIVE CARD TRACKING</span>
+      <div class="webcam-controls-header">
+        <button id="btnMinimizeWebcam" class="btn-webcam-control" onclick="toggleWebcamMinimize()">−</button>
+        <button id="btnCloseWebcam" class="btn-webcam-control" onclick="closeWebcamPanel()">×</button>
+      </div>
+    </div>
+    <div class="webcam-body" id="webcamBody">
+      <div class="webcam-video-container">
+        <video id="webcamVideo" autoplay playsinline muted></video>
+        <canvas id="webcamCanvas" style="display: none;"></canvas>
+        <div id="webcamOverlay" class="webcam-overlay"></div>
+        <div id="webcamPlaceholder" class="webcam-placeholder">
+          <span>📷</span>
+          <p>Click Start Camera to begin</p>
+        </div>
+      </div>
+      <div class="webcam-controls">
+        <button id="btnStartCamera" class="btn-webcam" onclick="startWebcam()">▶ Start Camera</button>
+        <button id="btnStopCamera" class="btn-webcam btn-danger" onclick="stopWebcam()" style="display: none;">⬛ Stop</button>
+        <button id="btnCaptureFrame" class="btn-webcam btn-secondary" onclick="captureFrame()" disabled>📸 Capture</button>
+        <select id="cameraSelect" class="webcam-select" onchange="switchCamera()">
+          <option value="">Select Camera...</option>
+        </select>
+      </div>
+      <div class="webcam-status">
+        <span>Status: <span id="webcamStatus">Idle</span></span>
+        <span>FPS: <span id="webcamFps">0</span></span>
+        <span>Detected: <span id="cardsDetected">0</span></span>
+      </div>
+      <div class="webcam-detected-cards">
+        <div class="detected-header">Detected Cards:</div>
+        <div id="detectedCardsList" class="detected-list">No cards detected</div>
+        <button id="btnAddDetectedCards" class="btn-webcam btn-success" onclick="addDetectedCardsToGame()" disabled>Add to Game</button>
+      </div>
+      <div class="webcam-settings">
+        <label><input type="checkbox" id="autoDetectEnabled" onchange="toggleAutoDetect()"> Auto-detect</label>
+        <label><input type="checkbox" id="autoAddEnabled"> Auto-add to game</label>
+        <div class="confidence-slider">
+          <label>Confidence: <span id="confidenceValue">70%</span></label>
+          <input type="range" id="confidenceThreshold" min="50" max="95" value="70" oninput="updateConfidenceValue()">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Webcam Toggle Button -->
+  <button id="btnToggleWebcam" class="btn-webcam-toggle" onclick="toggleWebcamPanel()" title="Live Card Tracking">📹</button>
+
   <!-- Toast Container -->
   <div id="toastContainer" class="toast-container"></div>
 

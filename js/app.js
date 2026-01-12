@@ -13199,3 +13199,267 @@ if (document.readyState === 'loading') {
   loadTheme();
   initMobileMode();
 }
+
+
+// ============================================
+// LIVE CARD TRACKING - WEBCAM INTEGRATION
+// ============================================
+
+// Webcam State
+const WebcamState = {
+  stream: null,
+  isRunning: false,
+  fps: 0,
+  detectedCards: [],
+  autoDetect: false,
+  autoAdd: false,
+  confidenceThreshold: 0.7,
+  animationFrameId: null,
+  availableCameras: []
+};
+
+// Toggle webcam panel visibility
+function toggleWebcamPanel() {
+  const panel = document.getElementById('webcamPanel');
+  const btn = document.getElementById('btnToggleWebcam');
+  
+  if (panel.style.display === 'none') {
+    panel.style.display = 'block';
+    btn.classList.add('active');
+    enumerateCameras();
+  } else {
+    panel.style.display = 'none';
+    btn.classList.remove('active');
+  }
+}
+
+// Close webcam panel
+function closeWebcamPanel() {
+  stopWebcam();
+  document.getElementById('webcamPanel').style.display = 'none';
+  document.getElementById('btnToggleWebcam').classList.remove('active');
+}
+
+// Minimize webcam panel
+function toggleWebcamMinimize() {
+  const panel = document.getElementById('webcamPanel');
+  const btn = document.getElementById('btnMinimizeWebcam');
+  panel.classList.toggle('minimized');
+  btn.textContent = panel.classList.contains('minimized') ? '+' : '−';
+}
+
+// Enumerate available cameras
+async function enumerateCameras() {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameras = devices.filter(d => d.kind === 'videoinput');
+    WebcamState.availableCameras = cameras;
+    
+    const select = document.getElementById('cameraSelect');
+    select.innerHTML = '<option value="">Select Camera...</option>';
+    
+    cameras.forEach((camera, i) => {
+      const option = document.createElement('option');
+      option.value = camera.deviceId;
+      option.textContent = camera.label || 'Camera ' + (i + 1);
+      select.appendChild(option);
+    });
+    
+    console.log('[Webcam] Found ' + cameras.length + ' cameras');
+  } catch (err) {
+    console.error('[Webcam] Error enumerating cameras:', err);
+  }
+}
+
+// Start webcam stream
+async function startWebcam() {
+  try {
+    updateWebcamStatus('Starting...');
+    
+    const select = document.getElementById('cameraSelect');
+    const deviceId = select.value;
+    
+    const constraints = {
+      video: { width: { ideal: 1280 }, height: { ideal: 720 } }
+    };
+    
+    if (deviceId) {
+      constraints.video.deviceId = { exact: deviceId };
+    }
+    
+    WebcamState.stream = await navigator.mediaDevices.getUserMedia(constraints);
+    
+    const video = document.getElementById('webcamVideo');
+    video.srcObject = WebcamState.stream;
+    
+    video.onloadedmetadata = () => {
+      video.play();
+      WebcamState.isRunning = true;
+      
+      const canvas = document.getElementById('webcamCanvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      document.getElementById('webcamPlaceholder').style.display = 'none';
+      document.getElementById('btnStartCamera').style.display = 'none';
+      document.getElementById('btnStopCamera').style.display = 'inline-flex';
+      document.getElementById('btnCaptureFrame').disabled = false;
+      
+      updateWebcamStatus('Running');
+      startFpsCounter();
+      enumerateCameras();
+      
+      console.log('[Webcam] Started: ' + video.videoWidth + 'x' + video.videoHeight);
+      showToast('Camera started', 'success');
+    };
+    
+  } catch (err) {
+    console.error('[Webcam] Error:', err);
+    updateWebcamStatus('Error');
+    showToast('Camera error: ' + err.message, 'error');
+  }
+}
+
+// Stop webcam
+function stopWebcam() {
+  if (WebcamState.stream) {
+    WebcamState.stream.getTracks().forEach(track => track.stop());
+    WebcamState.stream = null;
+  }
+  
+  WebcamState.isRunning = false;
+  if (WebcamState.animationFrameId) cancelAnimationFrame(WebcamState.animationFrameId);
+  
+  const video = document.getElementById('webcamVideo');
+  if (video) video.srcObject = null;
+  
+  document.getElementById('webcamPlaceholder').style.display = 'flex';
+  document.getElementById('btnStartCamera').style.display = 'inline-flex';
+  document.getElementById('btnStopCamera').style.display = 'none';
+  document.getElementById('btnCaptureFrame').disabled = true;
+  
+  updateWebcamStatus('Stopped');
+  document.getElementById('webcamFps').textContent = '0';
+  console.log('[Webcam] Stopped');
+}
+
+// Switch camera
+async function switchCamera() {
+  if (WebcamState.isRunning) {
+    stopWebcam();
+    await startWebcam();
+  }
+}
+
+// Capture frame
+function captureFrame() {
+  if (\!WebcamState.isRunning) return null;
+  
+  const video = document.getElementById('webcamVideo');
+  const canvas = document.getElementById('webcamCanvas');
+  const ctx = canvas.getContext('2d');
+  
+  ctx.drawImage(video, 0, 0);
+  showToast('Frame captured', 'info');
+  
+  if (WebcamState.autoDetect) {
+    detectCardsInFrame(canvas);
+  }
+  
+  return canvas.toDataURL('image/jpeg', 0.9);
+}
+
+// FPS counter
+function startFpsCounter() {
+  let lastTime = performance.now();
+  let frames = 0;
+  
+  function countFrame() {
+    if (\!WebcamState.isRunning) return;
+    frames++;
+    const now = performance.now();
+    
+    if (now - lastTime >= 1000) {
+      document.getElementById('webcamFps').textContent = frames;
+      frames = 0;
+      lastTime = now;
+    }
+    
+    WebcamState.animationFrameId = requestAnimationFrame(countFrame);
+  }
+  countFrame();
+}
+
+function updateWebcamStatus(status) {
+  const el = document.getElementById('webcamStatus');
+  if (el) el.textContent = status;
+}
+
+function toggleAutoDetect() {
+  WebcamState.autoDetect = document.getElementById('autoDetectEnabled').checked;
+  if (WebcamState.autoDetect && WebcamState.isRunning) startAutoDetection();
+}
+
+function updateConfidenceValue() {
+  const value = document.getElementById('confidenceThreshold').value;
+  document.getElementById('confidenceValue').textContent = value + '%';
+  WebcamState.confidenceThreshold = value / 100;
+}
+
+async function detectCardsInFrame(canvas) {
+  // ML model integration placeholder
+  console.log('[Webcam] Card detection - ML model needed');
+  updateDetectedCards([]);
+}
+
+function startAutoDetection() {
+  if (\!WebcamState.isRunning || \!WebcamState.autoDetect) return;
+  
+  const canvas = document.getElementById('webcamCanvas');
+  const video = document.getElementById('webcamVideo');
+  const ctx = canvas.getContext('2d');
+  
+  async function detectLoop() {
+    if (\!WebcamState.isRunning || \!WebcamState.autoDetect) return;
+    ctx.drawImage(video, 0, 0);
+    await detectCardsInFrame(canvas);
+    setTimeout(detectLoop, 500);
+  }
+  detectLoop();
+}
+
+function updateDetectedCards(cards) {
+  WebcamState.detectedCards = cards;
+  const list = document.getElementById('detectedCardsList');
+  const countEl = document.getElementById('cardsDetected');
+  const addBtn = document.getElementById('btnAddDetectedCards');
+  
+  countEl.textContent = cards.length;
+  
+  if (cards.length === 0) {
+    list.innerHTML = 'No cards detected';
+    addBtn.disabled = true;
+  } else {
+    list.innerHTML = cards.map(c => '<span class="detected-card">' + c.rank + c.suit + '</span>').join('');
+    addBtn.disabled = false;
+  }
+  
+  if (document.getElementById('autoAddEnabled').checked && cards.length > 0) {
+    addDetectedCardsToGame();
+  }
+}
+
+function addDetectedCardsToGame() {
+  const cards = WebcamState.detectedCards;
+  if (cards.length === 0) return;
+  
+  cards.forEach(card => {
+    const rank = card.rank === 'A' ? 'A' : ['J','Q','K'].includes(card.rank) ? '10' : card.rank;
+    dealCard(rank);
+  });
+  
+  showToast('Added ' + cards.length + ' card(s)', 'success');
+  updateDetectedCards([]);
+}
+
+console.log('[Webcam] Live Card Tracking module loaded');
