@@ -7883,7 +7883,7 @@ function showQuantEvPanel() {
   // Apply styles - 50% larger
   panel.style.cssText = `
     position: fixed !important;
-    bottom: 20px !important;
+    top: 60px !important;
     right: 20px !important;
     width: 480px !important;
     max-height: 600px !important;
