@@ -852,6 +852,10 @@ body {
   margin: 0 auto;
 }
 
+.player-box.hidden-player {
+  display: none !important;
+}
+
 .player-box {
   position: relative;
   flex: 1 1 0;

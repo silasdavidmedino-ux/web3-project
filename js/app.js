@@ -931,13 +931,20 @@ function setNumPlayers(num) {
   for (let i = 1; i <= 8; i++) {
     const box = document.getElementById(`player${i}`);
     if (box) {
-      box.style.display = i <= num ? 'block' : 'none';
+      if (i <= num) {
+        box.style.display = '';  // Reset to CSS default (flex)
+        box.classList.remove('hidden-player');
+      } else {
+        box.style.display = 'none';
+        box.classList.add('hidden-player');
+      }
     }
   }
 
   // Update player count for responsive scaling
   updatePlayerCountAttribute();
 
+  console.log(`[Players] Set to ${num} players`);
   updateAll();
 }
 
