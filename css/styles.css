@@ -656,7 +656,7 @@ body {
 .casino-name {
   position: absolute;
   top: 8px;
-  left: 25%;
+  left: 170px;
   transform: translateX(-50%);
   font-size: 18px;
   font-weight: 400;
@@ -675,7 +675,7 @@ body {
 .casino-table-text {
   position: absolute;
   top: 50%;
-  left: 25%;
+  left: 170px;
   transform: translate(-50%, -50%);
   font-size: 14px;
   font-weight: 700;
@@ -691,7 +691,7 @@ body {
 .insurance-line {
   position: absolute;
   top: 25%;
-  left: 25%;
+  left: 170px;
   right: 10%;
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(255,215,0,0.2), transparent);
@@ -700,7 +700,7 @@ body {
 .insurance-text {
   position: absolute;
   top: 22%;
-  left: 25%;
+  left: 170px;
   transform: translateX(-50%);
   font-size: 10px;
   color: rgba(255,215,0,0.2);
@@ -923,7 +923,7 @@ body {
 .player-box .position-badge {
   position: absolute;
   top: -42px;
-  left: 25%;
+  left: 170px;
   transform: translateX(-50%);
   min-width: 36px;
   height: 36px;
@@ -3479,7 +3479,7 @@ body {
 .sim-controls {
   position: fixed;
   top: 20px;
-  left: 25%;
+  left: 170px;
   transform: translateX(-50%);
   background: linear-gradient(135deg, rgba(13, 17, 23, 0.98), rgba(22, 27, 34, 0.98));
   border: 2px solid var(--accent-cyan);
@@ -3940,7 +3940,7 @@ body {
   content: '';
   position: absolute;
   top: 50%;
-  left: 25%;
+  left: 170px;
   transform: translate(-50%, -50%);
   width: 60px;
   height: 80px;
@@ -5060,7 +5060,7 @@ body {
 .ai-status-overlay {
   position: absolute;
   top: 10px;
-  left: 25%;
+  left: 170px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -5365,7 +5365,7 @@ body {
 .ai-card-prompt {
   position: fixed;
   top: 50%;
-  left: 25%;
+  left: 170px;
   transform: translate(-50%, -50%);
   background: linear-gradient(135deg, #1a1f2e 0%, #0d1117 100%);
   border: 2px solid #8b5cf6;
@@ -5505,7 +5505,7 @@ body {
 .quick-track-feedback {
   position: fixed;
   top: 20%;
-  left: 25%;
+  left: 170px;
   transform: translateX(-50%);
   background: rgba(34, 197, 94, 0.95);
   color: white;
@@ -5583,7 +5583,7 @@ body {
 .auto-track-feedback {
   position: fixed;
   top: 15%;
-  left: 25%;
+  left: 170px;
   transform: translateX(-50%);
   background: linear-gradient(135deg, #8b5cf6, #7c3aed);
   color: white;
@@ -5976,7 +5976,7 @@ body {
 .unified-decision {
   position: absolute;
   bottom: -45px;
-  left: 25%;
+  left: 170px;
   transform: translateX(-50%);
   background: linear-gradient(135deg, rgba(13, 17, 23, 0.95), rgba(22, 27, 34, 0.95));
   border: 2px solid var(--border-color);
@@ -7465,7 +7465,7 @@ body.touch-mode .input-group select {
 .dealer-bust-history-container {
   position: fixed;
   top: 60px;
-  left: 25%;
+  left: 170px;
   width: 320px;
   z-index: 1000;
   background: var(--bg-card);
