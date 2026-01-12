@@ -3906,7 +3906,7 @@ function handleSplit(playerNum) {
     return;
   }
 
-  // Create split hands
+  // Create split hands - each starts with one card from the pair
   AppState.splitHands[playerNum] = {
     active: true,
     activeHand: 1,  // Start with Hand 1
@@ -3919,23 +3919,10 @@ function handleSplit(playerNum) {
   // Clear original position
   AppState.positions[playerKey] = [];
 
-  showToast(`Player ${playerNum} split! Dealer dealing...`, 'success');
+  // Activate split mode - wait for user to input actual cards dealt
+  AppState.activeSplitPlayer = playerNum;
 
-  // Auto-deal one card to each hand after a short delay
-  setTimeout(() => {
-    autoDealToSplitHand(playerNum, 1);
-    setTimeout(() => {
-      autoDealToSplitHand(playerNum, 2);
-
-      // After both hands have 2 cards, activate Hand 1 for player decisions
-      AppState.activeSplitPlayer = playerNum;
-      AppState.splitHands[playerNum].activeHand = 1;
-
-      showToast(`Hand 1 active - click cards to hit`, 'info');
-      updateAll();
-    }, 400);
-  }, 400);
-
+  showToast(`Player ${playerNum} SPLIT! Click card buttons to add cards to Hand 1`, 'success');
   updateAll();
 }
 
