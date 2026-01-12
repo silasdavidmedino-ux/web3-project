@@ -8025,3 +8025,44 @@ body.touch-mode .input-group select {
   font-size: 11px;
   border-radius: 2px;
 }
+
+/* Model Controls */
+.webcam-model-controls {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(0, 255, 255, 0.2);
+  margin-top: 8px;
+}
+
+#modelStatus {
+  color: #ffa500;
+  font-weight: bold;
+}
+
+/* Detection Label Overlay */
+.detection-label {
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #000;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+/* Detected card styling */
+.detected-card {
+  display: inline-block;
+  background: linear-gradient(135deg, #1a1a2e 0%, #2d2d4a 100%);
+  border: 1px solid #00ffff;
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin: 2px;
+  font-weight: bold;
+  font-size: 14px;
+  color: #00ffff;
+}

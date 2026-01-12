@@ -13205,6 +13205,34 @@ if (document.readyState === 'loading') {
 // LIVE CARD TRACKING - WEBCAM INTEGRATION
 // ============================================
 
+// Card Detection Model State
+const CardDetectionModel = {
+  session: null,
+  isLoaded: false,
+  isLoading: false,
+  classNames: null,
+  inputSize: 200,  // Model expects 200x200 images
+  modelPath: 'training_data/models/card_classifier.onnx',
+  classNamesPath: 'training_data/models/class_names.json'
+};
+
+// Class names mapping (fallback if JSON fails to load)
+const CARD_CLASSES = {
+  0: "10_clubs", 1: "10_diamonds", 2: "10_hearts", 3: "10_spades",
+  4: "2_clubs", 5: "2_diamonds", 6: "2_hearts", 7: "2_spades",
+  8: "3_clubs", 9: "3_diamonds", 10: "3_hearts", 11: "3_spades",
+  12: "4_clubs", 13: "4_diamonds", 14: "4_hearts", 15: "4_spades",
+  16: "5_clubs", 17: "5_diamonds", 18: "5_hearts", 19: "5_spades",
+  20: "6_clubs", 21: "6_diamonds", 22: "6_hearts", 23: "6_spades",
+  24: "7_clubs", 25: "7_diamonds", 26: "7_hearts", 27: "7_spades",
+  28: "8_clubs", 29: "8_diamonds", 30: "8_hearts", 31: "8_spades",
+  32: "9_clubs", 33: "9_diamonds", 34: "9_hearts", 35: "9_spades",
+  36: "A_clubs", 37: "A_diamonds", 38: "A_hearts", 39: "A_spades",
+  40: "J_clubs", 41: "J_diamonds", 42: "J_hearts", 43: "J_spades",
+  44: "K_clubs", 45: "K_diamonds", 46: "K_hearts", 47: "K_spades",
+  48: "Q_clubs", 49: "Q_diamonds", 50: "Q_hearts", 51: "Q_spades"
+};
+
 // Webcam State
 const WebcamState = {
   stream: null,
@@ -13215,8 +13243,126 @@ const WebcamState = {
   autoAdd: false,
   confidenceThreshold: 0.7,
   animationFrameId: null,
-  availableCameras: []
+  availableCameras: [],
+  detectionInProgress: false
 };
+
+// Load Card Detection Model
+async function loadCardDetectionModel() {
+  if (CardDetectionModel.isLoaded || CardDetectionModel.isLoading) {
+    console.log('[CardDetection] Model already loaded or loading');
+    return CardDetectionModel.isLoaded;
+  }
+
+  CardDetectionModel.isLoading = true;
+  updateModelStatus('Loading model...');
+
+  try {
+    // Load class names
+    try {
+      const response = await fetch(CardDetectionModel.classNamesPath);
+      if (response.ok) {
+        CardDetectionModel.classNames = await response.json();
+        console.log('[CardDetection] Class names loaded');
+      }
+    } catch (e) {
+      console.log('[CardDetection] Using fallback class names');
+      CardDetectionModel.classNames = CARD_CLASSES;
+    }
+
+    if (!CardDetectionModel.classNames) {
+      CardDetectionModel.classNames = CARD_CLASSES;
+    }
+
+    // Load ONNX model
+    console.log('[CardDetection] Loading ONNX model...');
+    CardDetectionModel.session = await ort.InferenceSession.create(
+      CardDetectionModel.modelPath,
+      { executionProviders: ['wasm'] }
+    );
+
+    CardDetectionModel.isLoaded = true;
+    CardDetectionModel.isLoading = false;
+    updateModelStatus('Model ready');
+    console.log('[CardDetection] Model loaded successfully');
+    showToast('Card detection model loaded', 'success');
+    return true;
+
+  } catch (err) {
+    CardDetectionModel.isLoading = false;
+    updateModelStatus('Model error');
+    console.error('[CardDetection] Failed to load model:', err);
+    showToast('Failed to load card detection model', 'error');
+    return false;
+  }
+}
+
+// Update model status display
+function updateModelStatus(status) {
+  const el = document.getElementById('modelStatus');
+  if (el) el.textContent = status;
+}
+
+// Preprocess image for model inference
+function preprocessImage(canvas) {
+  const size = CardDetectionModel.inputSize;
+
+  // Create a temporary canvas for resizing
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = size;
+  tempCanvas.height = size;
+  const ctx = tempCanvas.getContext('2d');
+
+  // Draw and resize image
+  ctx.drawImage(canvas, 0, 0, size, size);
+
+  // Get image data
+  const imageData = ctx.getImageData(0, 0, size, size);
+  const data = imageData.data;
+
+  // Create tensor data (NCHW format: batch, channels, height, width)
+  // Normalize to [0, 1] range
+  const floatData = new Float32Array(3 * size * size);
+
+  for (let i = 0; i < size * size; i++) {
+    const pixelIndex = i * 4;
+    // RGB channels normalized to [0, 1]
+    floatData[i] = data[pixelIndex] / 255.0;                    // R
+    floatData[size * size + i] = data[pixelIndex + 1] / 255.0;  // G
+    floatData[2 * size * size + i] = data[pixelIndex + 2] / 255.0; // B
+  }
+
+  return floatData;
+}
+
+// Apply softmax to logits
+function softmax(logits) {
+  const maxLogit = Math.max(...logits);
+  const exps = logits.map(x => Math.exp(x - maxLogit));
+  const sumExps = exps.reduce((a, b) => a + b, 0);
+  return exps.map(x => x / sumExps);
+}
+
+// Parse card class name to rank and suit
+function parseCardClass(className) {
+  const parts = className.split('_');
+  const rank = parts[0];
+  const suit = parts[1];
+
+  // Convert suit to symbol
+  const suitSymbols = {
+    'clubs': '♣',
+    'diamonds': '♦',
+    'hearts': '♥',
+    'spades': '♠'
+  };
+
+  return {
+    rank: rank,
+    suit: suitSymbols[suit] || suit,
+    fullName: className
+  };
+}
 
 // Toggle webcam panel visibility
 function toggleWebcamPanel() {
@@ -13407,9 +13553,103 @@ function updateConfidenceValue() {
 }
 
 async function detectCardsInFrame(canvas) {
-  // ML model integration placeholder
-  console.log('[Webcam] Card detection - ML model needed');
-  updateDetectedCards([]);
+  // Skip if detection already in progress
+  if (WebcamState.detectionInProgress) return;
+
+  // Load model if not loaded
+  if (!CardDetectionModel.isLoaded) {
+    const loaded = await loadCardDetectionModel();
+    if (!loaded) {
+      console.log('[CardDetection] Model not available');
+      updateDetectedCards([]);
+      return;
+    }
+  }
+
+  WebcamState.detectionInProgress = true;
+
+  try {
+    const size = CardDetectionModel.inputSize;
+
+    // Preprocess image
+    const inputData = preprocessImage(canvas);
+
+    // Create tensor (NCHW format: 1 x 3 x 200 x 200)
+    const tensor = new ort.Tensor('float32', inputData, [1, 3, size, size]);
+
+    // Get input name from model
+    const inputName = CardDetectionModel.session.inputNames[0];
+
+    // Run inference
+    const feeds = {};
+    feeds[inputName] = tensor;
+    const results = await CardDetectionModel.session.run(feeds);
+
+    // Get output
+    const outputName = CardDetectionModel.session.outputNames[0];
+    const output = results[outputName];
+    const logits = Array.from(output.data);
+
+    // Apply softmax to get probabilities
+    const probabilities = softmax(logits);
+
+    // Find top predictions
+    const indexed = probabilities.map((prob, idx) => ({ prob, idx }));
+    indexed.sort((a, b) => b.prob - a.prob);
+
+    // Get top predictions above threshold
+    const threshold = WebcamState.confidenceThreshold;
+    const detectedCards = [];
+
+    // Only take the top prediction if it's above threshold
+    if (indexed[0].prob >= threshold) {
+      const classIdx = indexed[0].idx;
+      const className = CardDetectionModel.classNames[classIdx] || CARD_CLASSES[classIdx];
+      const cardInfo = parseCardClass(className);
+
+      detectedCards.push({
+        rank: cardInfo.rank,
+        suit: cardInfo.suit,
+        confidence: (indexed[0].prob * 100).toFixed(1),
+        fullName: cardInfo.fullName
+      });
+
+      console.log(`[CardDetection] Detected: ${cardInfo.rank}${cardInfo.suit} (${(indexed[0].prob * 100).toFixed(1)}%)`);
+
+      // Draw detection overlay
+      drawDetectionOverlay(canvas, cardInfo, indexed[0].prob);
+    }
+
+    updateDetectedCards(detectedCards);
+
+  } catch (err) {
+    console.error('[CardDetection] Inference error:', err);
+    updateDetectedCards([]);
+  } finally {
+    WebcamState.detectionInProgress = false;
+  }
+}
+
+// Draw detection overlay on video
+function drawDetectionOverlay(canvas, cardInfo, confidence) {
+  const overlay = document.getElementById('webcamOverlay');
+  if (!overlay) return;
+
+  const confidencePercent = (confidence * 100).toFixed(0);
+  const color = confidence > 0.9 ? '#00ff00' : confidence > 0.7 ? '#ffff00' : '#ff9900';
+
+  overlay.innerHTML = `
+    <div class="detection-box" style="border-color: ${color};">
+      <div class="detection-label" style="background: ${color};">
+        ${cardInfo.rank}${cardInfo.suit} ${confidencePercent}%
+      </div>
+    </div>
+  `;
+
+  // Clear overlay after 500ms
+  setTimeout(() => {
+    if (overlay) overlay.innerHTML = '';
+  }, 500);
 }
 
 function startAutoDetection() {

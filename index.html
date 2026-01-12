@@ -20,6 +20,8 @@
   <!-- TensorFlow.js for AI Card Detection -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+  <!-- ONNX Runtime Web for Card Classifier -->
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.0/dist/ort.min.js"></script>
 </head>
 <body>
   <!-- Top Navigation Bar -->
@@ -2585,6 +2587,10 @@
         <span>Status: <span id="webcamStatus">Idle</span></span>
         <span>FPS: <span id="webcamFps">0</span></span>
         <span>Detected: <span id="cardsDetected">0</span></span>
+        <span>Model: <span id="modelStatus">Not loaded</span></span>
+      </div>
+      <div class="webcam-model-controls">
+        <button id="btnLoadModel" class="btn-webcam btn-secondary" onclick="loadCardDetectionModel()">🧠 Load Model</button>
       </div>
       <div class="webcam-detected-cards">
         <div class="detected-header">Detected Cards:</div>
