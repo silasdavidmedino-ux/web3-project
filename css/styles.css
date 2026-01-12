@@ -855,11 +855,11 @@ body {
 .player-box {
   position: relative;
   flex: 1 1 0;
-  min-width: 60px;
-  max-width: 150px;
-  padding: 8px 4px 5px 4px;
+  min-width: 66px;
+  max-width: 165px;
+  padding: 9px 5px 6px 5px;
   margin-top: 45px;
-  max-height: 120px;
+  max-height: 132px;
   background:
     repeating-linear-gradient(
       135deg,
@@ -1002,32 +1002,32 @@ body {
 
 /* Responsive player count scaling - flex-based */
 .players-row[data-player-count="1"] .player-box {
-  flex: 0 1 20%;
-  max-width: 150px;
+  flex: 0 1 22%;
+  max-width: 165px;
 }
 .players-row[data-player-count="2"] .player-box {
-  flex: 0 1 18%;
-  max-width: 140px;
+  flex: 0 1 20%;
+  max-width: 154px;
 }
 .players-row[data-player-count="3"] .player-box {
-  flex: 0 1 15%;
-  max-width: 130px;
+  flex: 0 1 17%;
+  max-width: 143px;
 }
 .players-row[data-player-count="4"] .player-box {
-  flex: 0 1 12%;
-  max-width: 120px;
+  flex: 0 1 13%;
+  max-width: 132px;
 }
 .players-row[data-player-count="5"] .player-box {
+  flex: 0 1 11%;
+  max-width: 121px;
+}
+.players-row[data-player-count="6"] .player-box {
   flex: 0 1 10%;
   max-width: 110px;
 }
-.players-row[data-player-count="6"] .player-box {
-  flex: 0 1 9%;
-  max-width: 100px;
-}
 .players-row[data-player-count="7"] .player-box {
-  flex: 0 1 8%;
-  max-width: 90px;
+  flex: 0 1 9%;
+  max-width: 99px;
 }
 
 /* Split hand actions */
