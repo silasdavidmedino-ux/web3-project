@@ -2913,7 +2913,28 @@ function removeLastBead() {
 
 // UI Update Functions
 // ============================================
+let updateAllPending = false;
+let lastUpdateTime = 0;
+const UPDATE_THROTTLE_MS = 50; // Minimum 50ms between updates
+
 function updateAll() {
+  // Throttle updates to help slower computers
+  const now = performance.now();
+  if (now - lastUpdateTime < UPDATE_THROTTLE_MS) {
+    if (!updateAllPending) {
+      updateAllPending = true;
+      requestAnimationFrame(() => {
+        updateAllPending = false;
+        updateAllImmediate();
+      });
+    }
+    return;
+  }
+  lastUpdateTime = now;
+  updateAllImmediate();
+}
+
+function updateAllImmediate() {
   try {
     updateCountDisplays();
     updateRankTable();
@@ -7637,6 +7658,12 @@ function logToConsole(text, type = 'info') {
   line.className = `console-line ${type}`;
   line.textContent = text;
   fullSimConsole.appendChild(line);
+
+  // Limit console lines to prevent memory growth
+  while (fullSimConsole.children.length > 500) {
+    fullSimConsole.removeChild(fullSimConsole.firstChild);
+  }
+
   fullSimConsole.scrollTop = fullSimConsole.scrollHeight;
 }
 
@@ -8056,6 +8083,12 @@ function logQuantEv(message, type = 'info') {
   if (type === 'header' || type === 'player-header') line.style.fontWeight = 'bold';
 
   quantEvSimConsole.appendChild(line);
+
+  // Limit console lines to prevent memory growth
+  while (quantEvSimConsole.children.length > 500) {
+    quantEvSimConsole.removeChild(quantEvSimConsole.firstChild);
+  }
+
   quantEvSimConsole.scrollTop = quantEvSimConsole.scrollHeight;
 }
 
