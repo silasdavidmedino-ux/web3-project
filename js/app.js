@@ -1,5 +1,5 @@
 /**
- * BJ Probability Engine - Main Application v3.9.40
+ * BJ Probability Engine - Main Application v3.9.41
  * Tech Hive Corporation
  * Casino Dashboard Interface
  *
@@ -7,7 +7,19 @@
  * P1-P3: Basic Strategy | P4: Quant EV+MG | P5: Sacrifice v1.4
  * RULES: ENHC + S17 (Dealer Stands on Soft 17)
  */
-console.log('=== APP VERSION 3.9.36 === S17 Rule: Dealer Stands on Soft 17 ===');
+
+// Global error handler to prevent crashes
+window.onerror = function(msg, url, lineNo, columnNo, error) {
+  console.error('App Error:', msg, 'at', lineNo + ':' + columnNo);
+  return true; // Prevent default error handling
+};
+
+window.onunhandledrejection = function(event) {
+  console.error('Unhandled Promise:', event.reason);
+  event.preventDefault();
+};
+
+console.log('=== APP VERSION 3.9.41 === S17 Rule: Dealer Stands on Soft 17 ===');
 
 // ============================================
 // Application State
@@ -587,15 +599,16 @@ function setupEventListeners() {
 // Card Handling
 // ============================================
 function handleCardClick(card) {
-  // Normalize card value
-  const rank = normalizeRank(card);
-  if (!rank) return;
+  try {
+    // Normalize card value
+    const rank = normalizeRank(card);
+    if (!rank) return;
 
-  // Check if cards available
-  if (AppState.rankCounts[rank] <= 0) {
-    showToast(`No more ${card} cards in shoe`, 'warning');
-    return;
-  }
+    // Check if cards available
+    if (AppState.rankCounts[rank] <= 0) {
+      showToast(`No more ${card} cards in shoe`, 'warning');
+      return;
+    }
 
   // Check if active player has already stayed (cannot add more cards)
   const activePos = AppState.activePosition;
@@ -633,12 +646,15 @@ function handleCardClick(card) {
 
       split[handKey].push(card);
 
-      // Save to history
+      // Save to history (with size limit to prevent memory growth)
       AppState.dealHistory.push({
         card: card,
         rank: rank,
         position: `split_${AppState.activeSplitPlayer}_${split.activeHand}`
       });
+      if (AppState.dealHistory.length > 200) {
+        AppState.dealHistory.shift();
+      }
 
       updateAll();
       // Note: Split hands don't trigger auto-settle (dealer settles all)
@@ -681,12 +697,15 @@ function handleCardClick(card) {
   // Add to active position (normal flow)
   AppState.positions[AppState.activePosition].push(card);
 
-  // Save to history for undo
+  // Save to history for undo (with size limit to prevent memory growth)
   AppState.dealHistory.push({
     card: card,
     rank: rank,
     position: AppState.activePosition
   });
+  if (AppState.dealHistory.length > 200) {
+    AppState.dealHistory.shift();
+  }
 
   // Update UI
   updateAll();
@@ -729,6 +748,9 @@ function handleCardClick(card) {
         }
       }
     }
+  }
+  } catch (err) {
+    console.error('handleCardClick error:', err);
   }
 }
 
@@ -2865,6 +2887,11 @@ function addBeadRoad(rank) {
 
   grid.appendChild(bead);
 
+  // Limit DOM elements to prevent memory growth
+  while (grid.children.length > 200) {
+    grid.removeChild(grid.firstChild);
+  }
+
   // Auto-scroll to bottom
   grid.scrollTop = grid.scrollHeight;
 }
@@ -2887,13 +2914,17 @@ function removeLastBead() {
 // UI Update Functions
 // ============================================
 function updateAll() {
-  updateCountDisplays();
-  updateRankTable();
-  updateStatBoxes();
-  updatePositionCards();
-  updateMetrics();
-  updateCardButtons();
-  updateDecisionPanels();
+  try {
+    updateCountDisplays();
+    updateRankTable();
+    updateStatBoxes();
+    updatePositionCards();
+    updateMetrics();
+    updateCardButtons();
+    updateDecisionPanels();
+  } catch (err) {
+    console.error('updateAll error:', err);
+  }
 }
 
 function updateCountDisplays() {
@@ -4087,12 +4118,15 @@ function autoDealToSplitHand(playerNum, handNum) {
   // Add to Bead Road
   addBeadRoad(card);
 
-  // Save to history for undo
+  // Save to history for undo (with size limit to prevent memory growth)
   AppState.dealHistory.push({
     card: card,
     rank: selectedRank,
     position: `split_${playerNum}_${handNum}`
   });
+  if (AppState.dealHistory.length > 200) {
+    AppState.dealHistory.shift();
+  }
 
   showToast(`Split hand ${handNum}: ${card}`, 'info');
 }
@@ -4397,14 +4431,20 @@ function recordRoundToHistory(roundData) {
     history.patterns.dealerUpcardFrequency[dealerUpcard]++;
   }
 
-  // Track card sequences for pattern analysis
+  // Track card sequences for pattern analysis (with size limit)
   history.patterns.cardSequences.push(roundData.cardsDealt || []);
+  if (history.patterns.cardSequences.length > 100) {
+    history.patterns.cardSequences.shift();
+  }
 
   // Detect card clusters
   detectCardClusters(roundData.cardsDealt || []);
 
-  // Add round to history
+  // Add round to history (with size limit)
   history.rounds.push(round);
+  if (history.rounds.length > 100) {
+    history.rounds.shift();
+  }
   history.statistics.totalRounds++;
 
   // Check for patterns and anomalies
@@ -4437,6 +4477,9 @@ function detectCardClusters(cards) {
       count: highCount,
       timestamp: new Date().toISOString()
     });
+    if (history.patterns.highCardClusters.length > 50) {
+      history.patterns.highCardClusters.shift();
+    }
   }
 
   // Low card cluster (3+ low cards in sequence)
@@ -4447,6 +4490,9 @@ function detectCardClusters(cards) {
       count: lowCount,
       timestamp: new Date().toISOString()
     });
+    if (history.patterns.lowCardClusters.length > 50) {
+      history.patterns.lowCardClusters.shift();
+    }
   }
 }
 
@@ -4505,6 +4551,9 @@ function addHistoryAlert(type, message) {
 
   if (!isDuplicate) {
     history.alerts.push(alert);
+    if (history.alerts.length > 50) {
+      history.alerts.shift();
+    }
     showToast(message, type.includes('HOT') ? 'success' : 'warning');
   }
 }
@@ -4515,9 +4564,15 @@ function recordRoundOutcome(playerNum, outcome, betAmount = 0, winAmount = 0) {
   if (outcome === 'WIN') {
     history.statistics.playerWins++;
     history.patterns.countAtWin.push(AppState.runningCount);
+    if (history.patterns.countAtWin.length > 100) {
+      history.patterns.countAtWin.shift();
+    }
   } else if (outcome === 'LOSS') {
     history.statistics.playerLosses++;
     history.patterns.countAtLoss.push(AppState.runningCount);
+    if (history.patterns.countAtLoss.length > 100) {
+      history.patterns.countAtLoss.shift();
+    }
   } else if (outcome === 'PUSH') {
     history.statistics.pushes++;
   }
@@ -6028,6 +6083,10 @@ function recordQEVRound(roundData) {
     dealerTotal: roundData.dealerTotal || 0,
     playerResults: roundData.playerResults || []
   });
+  // Limit round history to prevent memory growth
+  if (QEVTracker.roundHistory.length > 100) {
+    QEVTracker.roundHistory.shift();
+  }
 
   // Update player stats
   if (roundData.playerResults) {
@@ -6237,8 +6296,11 @@ function endCurrentGame() {
     }
   }
 
-  // Save to games array
+  // Save to games array (limit to prevent memory leak)
   history.games.push(JSON.parse(JSON.stringify(history.currentGame)));
+  if (history.games.length > 50) {
+    history.games.shift(); // Remove oldest game
+  }
 
   history.currentGame = null;
   updateBettingHistoryPanel();
@@ -7159,8 +7221,12 @@ async function runFullEngineSimulation() {
   logToConsole('', 'divider');
   logToConsole('STARTING SHOE SIMULATION', 'header');
 
-  while (AppState.cardsDealt < penetrationLimit && fullSimRunning) {
+  let safetyCounter = 0;
+  const MAX_ROUNDS = 500; // Safety limit to prevent infinite loops
+
+  while (AppState.cardsDealt < penetrationLimit && fullSimRunning && safetyCounter < MAX_ROUNDS) {
     round++;
+    safetyCounter++;
 
     // ==================== PRE-DEAL METRICS ====================
     const preDeal = getPreDealEngineMetrics();
@@ -8154,10 +8220,12 @@ function resolveQuantEvRound(playerResults) {
       }
 
       player.hands.push(round.players[i]);
+      if (player.hands.length > 100) player.hands.shift();
     }
   }
 
   tracker.history.push(round);
+  if (tracker.history.length > 100) tracker.history.shift();
   updateQuantEvPanel();
   logQuantEvRound(round);
 }
@@ -8306,10 +8374,9 @@ function logQuantEvRound(round) {
     // Add new round at the top
     roundLog.insertAdjacentHTML('afterbegin', html);
 
-    // Keep only last 10 rounds
-    const entries = roundLog.querySelectorAll('.qev-round-entry');
-    while (entries.length > 10) {
-      entries[entries.length - 1].remove();
+    // Keep only last 10 rounds (use children for live collection)
+    while (roundLog.children.length > 10) {
+      roundLog.removeChild(roundLog.lastChild);
     }
   }
 
@@ -8384,8 +8451,9 @@ const originalUpdateUI = typeof updateUI === 'function' ? updateUI : null;
 
 // AUTO TRACKING - Called automatically when Win/Lose/Push buttons are clicked
 function autoTrackQuantEvRound(result) {
-  const tracker = AppState.quantEvTracker;
-  if (!tracker.enabled) return;
+  try {
+    const tracker = AppState.quantEvTracker;
+    if (!tracker.enabled) return;
 
   // Auto-init if not started
   if (!tracker.sessionId) {
@@ -8487,6 +8555,7 @@ function autoTrackQuantEvRound(result) {
     else if (hand2Result === 'PUSH') { player.pushes++; player.correctDecisions++; }
 
     player.hands.push(roundData.players[playerNum]);
+    if (player.hands.length > 100) player.hands.shift();
   }
 
   // SECOND: Process regular (non-split) hands
@@ -8553,10 +8622,12 @@ function autoTrackQuantEvRound(result) {
       }
 
       player.hands.push(roundData.players[i]);
+      if (player.hands.length > 100) player.hands.shift();
     }
   }
 
   tracker.history.push(roundData);
+  if (tracker.history.length > 100) tracker.history.shift();
   updateQuantEvPanel();
   logQuantEvRound(roundData);
 
@@ -8582,6 +8653,10 @@ function autoTrackQuantEvRound(result) {
 
   // Reset roundSettled flag for next round
   AppState.roundSettled = false;
+  } catch (err) {
+    console.error('autoTrackQuantEvRound error:', err);
+    AppState.roundSettled = false; // Ensure flag is reset even on error
+  }
 }
 
 // AUTO SETTLE ROUND - Manually settle the current round based on dealt cards
@@ -10527,6 +10602,10 @@ function startShoeRecording() {
 function stopShoeRecording() {
   AppState.shoeReplay.recording = false;
   AppState.shoeReplay.savedShoes.push([...AppState.shoeReplay.currentShoe]);
+  // Limit saved shoes to prevent memory growth
+  if (AppState.shoeReplay.savedShoes.length > 20) {
+    AppState.shoeReplay.savedShoes.shift();
+  }
   showToast(`Shoe saved (${AppState.shoeReplay.currentShoe.length} cards)`, 'success');
 }
 
@@ -11035,6 +11114,10 @@ function saveCurrentShoe() {
       rounds: [...AppState.dealerHistory],
       savedAt: Date.now()
     });
+    // Limit saved shoes to prevent memory growth
+    if (AppState.shoeReplay.savedShoes.length > 20) {
+      AppState.shoeReplay.savedShoes.shift();
+    }
     updateShoeReplayDisplay();
     showToast('Shoe saved', 'success');
   } else {
@@ -11117,11 +11200,14 @@ function showVideoTracker() {
   document.getElementById('videoTrackerModal').style.display = 'flex';
   LiveTracker.video = document.getElementById('trackerVideo');
 
-  // Start session timer
+  // Start session timer (clear any existing first to prevent leaks)
+  if (LiveTracker.sessionTimer) {
+    clearInterval(LiveTracker.sessionTimer);
+  }
   if (!LiveTracker.sessionStartTime) {
     LiveTracker.sessionStartTime = Date.now();
-    LiveTracker.sessionTimer = setInterval(updateSessionTime, 1000);
   }
+  LiveTracker.sessionTimer = setInterval(updateSessionTime, 1000);
 
   // Setup keyboard shortcuts
   setupLiveTrackerKeyboard();
@@ -11130,18 +11216,39 @@ function showVideoTracker() {
   updateLiveTrackerDisplay();
   updateDecisionRecommendations();
 
-  // Video event listeners
+  // Video event listeners (remove old ones first to prevent accumulation)
   if (LiveTracker.video) {
+    LiveTracker.video.removeEventListener('timeupdate', updateVideoTimeDisplay);
+    if (LiveTracker.metadataListener) {
+      LiveTracker.video.removeEventListener('loadedmetadata', LiveTracker.metadataListener);
+    }
+
     LiveTracker.video.addEventListener('timeupdate', updateVideoTimeDisplay);
-    LiveTracker.video.addEventListener('loadedmetadata', () => {
+    LiveTracker.metadataListener = () => {
       const seekBar = document.getElementById('videoSeekBar');
       if (seekBar) seekBar.max = LiveTracker.video.duration;
-    });
+    };
+    LiveTracker.video.addEventListener('loadedmetadata', LiveTracker.metadataListener);
   }
 }
 
 function closeVideoTracker() {
   document.getElementById('videoTrackerModal').style.display = 'none';
+
+  // Clear session timer to prevent memory leak
+  if (LiveTracker.sessionTimer) {
+    clearInterval(LiveTracker.sessionTimer);
+    LiveTracker.sessionTimer = null;
+  }
+
+  // Remove video event listeners to prevent accumulation
+  if (LiveTracker.video) {
+    LiveTracker.video.removeEventListener('timeupdate', updateVideoTimeDisplay);
+    if (LiveTracker.metadataListener) {
+      LiveTracker.video.removeEventListener('loadedmetadata', LiveTracker.metadataListener);
+      LiveTracker.metadataListener = null;
+    }
+  }
 
   // Remove keyboard listener
   if (LiveTracker.keyboardListener) {
@@ -11448,6 +11555,10 @@ function trackLiveCard(card) {
   };
 
   LiveTracker.trackedCards.push(cardData);
+  // Limit tracked cards to prevent memory leak
+  if (LiveTracker.trackedCards.length > 500) {
+    LiveTracker.trackedCards.shift();
+  }
 
   // Add to current hand based on position
   if (LiveTracker.currentPosition === 'dealer' || LiveTracker.currentPosition === 'all') {
@@ -11521,6 +11632,10 @@ function newLiveShoe() {
       wins: LiveTracker.wins,
       losses: LiveTracker.losses
     });
+    // Limit history to prevent memory leak
+    if (LiveTracker.handHistory.length > 100) {
+      LiveTracker.handHistory.shift();
+    }
   }
 
   // Reset tracker state
@@ -11573,6 +11688,10 @@ function markHandResult(result) {
 function nextHand() {
   // Archive current hand
   LiveTracker.handHistory.push({ ...LiveTracker.currentHand });
+  // Limit history to prevent memory leak
+  if (LiveTracker.handHistory.length > 100) {
+    LiveTracker.handHistory.shift();
+  }
 
   // Start new hand
   LiveTracker.currentHand = {
@@ -12235,20 +12354,34 @@ function stopAIDetection() {
 async function runDetectionLoop() {
   if (!AICardDetector.isDetecting) return;
 
+  // Prevent overlapping detections (avoid queue buildup)
+  if (AICardDetector.isProcessing) {
+    AICardDetector.detectionLoop = requestAnimationFrame(runDetectionLoop);
+    return;
+  }
+
   const now = performance.now();
   const elapsed = now - AICardDetector.lastFrameTime;
 
-  // Control detection rate
-  if (elapsed >= AICardDetector.detectionInterval) {
+  // Control detection rate (minimum 200ms between detections = max 5 FPS)
+  if (elapsed >= Math.max(AICardDetector.detectionInterval, 200)) {
     AICardDetector.lastFrameTime = now;
+    AICardDetector.isProcessing = true;
 
     // Calculate FPS
     AICardDetector.frameCount++;
     AICardDetector.fps = Math.round(1000 / elapsed);
-    document.getElementById('aiFPS').textContent = `${AICardDetector.fps} FPS`;
+    const fpsEl = document.getElementById('aiFPS');
+    if (fpsEl) fpsEl.textContent = `${AICardDetector.fps} FPS`;
 
-    // Run detection
-    await detectCards();
+    try {
+      // Run detection
+      await detectCards();
+    } catch (err) {
+      console.error('[AI] Detection error:', err);
+    }
+
+    AICardDetector.isProcessing = false;
   }
 
   // Continue loop
@@ -13360,8 +13493,14 @@ function drawDetectionBox(ctx, detection, index) {
 // ============================================
 let cardSelectionQueue = [];
 let isShowingCardPrompt = false;
+let cardQueueTimer = null;
 
 function showCardSelectionPrompt(detection) {
+  // Limit queue size to prevent memory leak
+  if (cardSelectionQueue.length >= 10) {
+    cardSelectionQueue.shift(); // Drop oldest
+  }
+
   // Add to queue
   cardSelectionQueue.push(detection);
 
@@ -13536,8 +13675,12 @@ function confirmCardDetection(cardValue) {
   updateAIStats();
   updateAIDetectedDisplay();
 
-  // Process next in queue
-  setTimeout(processCardSelectionQueue, 100);
+  // Process next in queue (use single timer to prevent accumulation)
+  if (cardQueueTimer) clearTimeout(cardQueueTimer);
+  cardQueueTimer = setTimeout(() => {
+    cardQueueTimer = null;
+    processCardSelectionQueue();
+  }, 100);
 }
 
 function skipCardDetection() {
@@ -13547,8 +13690,12 @@ function skipCardDetection() {
   const prompt = document.getElementById('aiCardPrompt');
   if (prompt) prompt.remove();
 
-  // Process next in queue
-  setTimeout(processCardSelectionQueue, 100);
+  // Process next in queue (use single timer to prevent accumulation)
+  if (cardQueueTimer) clearTimeout(cardQueueTimer);
+  cardQueueTimer = setTimeout(() => {
+    cardQueueTimer = null;
+    processCardSelectionQueue();
+  }, 100);
 }
 
 function cancelCardDetection() {
@@ -13562,8 +13709,12 @@ function cancelCardDetection() {
   AICardDetector.falsePositives = (AICardDetector.falsePositives || 0) + 1;
   updateAIStats();
 
-  // Process next in queue
-  setTimeout(processCardSelectionQueue, 100);
+  // Process next in queue (use single timer to prevent accumulation)
+  if (cardQueueTimer) clearTimeout(cardQueueTimer);
+  cardQueueTimer = setTimeout(() => {
+    cardQueueTimer = null;
+    processCardSelectionQueue();
+  }, 100);
 }
 
 function getCardCountClass(card) {
