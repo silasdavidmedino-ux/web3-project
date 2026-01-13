@@ -6047,7 +6047,7 @@ main {
 .unified-decision {
   position: absolute;
   bottom: -45px;
-  left: 170px;
+  left: 50%;
   transform: translateX(-50%);
   background: linear-gradient(135deg, rgba(13, 17, 23, 0.95), rgba(22, 27, 34, 0.95));
   border: 2px solid var(--border-color);
