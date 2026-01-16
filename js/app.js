@@ -289,6 +289,20 @@ const AppState = {
   },
 
   // ============================================
+  // CLUMPING PROBABILITY ENGINE STATE
+  // ============================================
+  clumpProb: {
+    enabled: false,         // Toggle ON when suspecting clumping
+    momentum: 'NEUTRAL',    // HIGH_STREAK, LOW_STREAK, or NEUTRAL
+    streakLength: 0,        // Current streak length
+    lastAction: null,       // Last recommended action
+    lastReason: '',         // Reason for recommendation
+    adjustedEV: 0,          // Clump-adjusted EV
+    betMultiplier: 1.0,     // Bet adjustment multiplier
+    confidence: 0.5         // Confidence in recommendation
+  },
+
+  // ============================================
   // QUANT EV GAME HISTORY TRACKER (5 Players)
   // ============================================
   quantEvTracker: {
@@ -504,6 +518,12 @@ function init() {
 
   // Initialize anti-clump toggle state
   initAntiClumpToggle();
+
+  // Initialize shoe composition toggle state
+  initShoeCompToggle();
+
+  // Initialize clumping probability toggle state
+  initClumpProbToggle();
 
   // Initial calculations
   updateAll();
@@ -3137,9 +3157,9 @@ function computeAntiClumpScore() {
  */
 function updateAntiClumpDisplay() {
   const ac = AppState.antiClump;
-  const panel = document.getElementById('antiClumpPanel');
+  const content = document.getElementById('antiClumpContent');
 
-  if (!panel) return;
+  if (!content) return;
 
   const score = ac.clumpScore;
   const pct = Math.round(score);
@@ -3155,10 +3175,9 @@ function updateAntiClumpDisplay() {
   const emptyBars = 10 - filledBars;
   const progressBar = '\u2588'.repeat(filledBars) + '\u2591'.repeat(emptyBars);
 
-  // Update panel content
-  panel.innerHTML = `
-    <div class="anti-clump-header">
-      <span class="anti-clump-title">Shuffle Quality</span>
+  // Update only the content area (preserve header with toggle)
+  content.innerHTML = `
+    <div class="anti-clump-score-row">
       <span class="anti-clump-score ${colorClass}">${pct}%</span>
     </div>
     <div class="anti-clump-bar ${colorClass}">${progressBar}</div>
@@ -3253,6 +3272,482 @@ function initAntiClumpToggle() {
   }
 }
 
+// ============================================
+// Shoe Composition Panel Functions
+// ============================================
+
+/**
+ * Toggle shoe composition panel on/off
+ */
+function toggleShoeComp() {
+  const toggle = document.getElementById('shoeCompToggle');
+  const content = document.getElementById('shoeCompContent');
+  const enabled = toggle?.checked ?? true;
+
+  if (content) {
+    if (enabled) {
+      content.classList.remove('hidden');
+    } else {
+      content.classList.add('hidden');
+    }
+  }
+
+  // Save preference
+  try {
+    localStorage.setItem('shoeCompEnabled', enabled);
+  } catch (e) {}
+}
+
+/**
+ * Initialize shoe composition toggle on page load
+ */
+function initShoeCompToggle() {
+  const toggle = document.getElementById('shoeCompToggle');
+  const content = document.getElementById('shoeCompContent');
+
+  // Load saved preference (default: ON)
+  let saved = true;
+  try {
+    const stored = localStorage.getItem('shoeCompEnabled');
+    if (stored !== null) {
+      saved = stored === 'true';
+    }
+  } catch (e) {}
+
+  if (toggle) {
+    toggle.checked = saved;
+  }
+
+  if (content && !saved) {
+    content.classList.add('hidden');
+  }
+}
+
+/**
+ * Update shoe composition display
+ * Shows current card distribution and probabilities
+ */
+function updateShoeCompDisplay() {
+  const content = document.getElementById('shoeCompContent');
+  if (!content) return;
+
+  // Calculate remaining cards by type
+  const highCards = (AppState.rankCounts['10'] || 0) + (AppState.rankCounts['A'] || 0);
+  const lowCards = (AppState.rankCounts['2'] || 0) + (AppState.rankCounts['3'] || 0) +
+                   (AppState.rankCounts['4'] || 0) + (AppState.rankCounts['5'] || 0) +
+                   (AppState.rankCounts['6'] || 0);
+  const neutralCards = (AppState.rankCounts['7'] || 0) + (AppState.rankCounts['8'] || 0) +
+                       (AppState.rankCounts['9'] || 0);
+
+  const totalRemaining = AppState.totalCards - AppState.cardsDealt;
+  const penetration = AppState.totalCards > 0 ? (AppState.cardsDealt / AppState.totalCards) * 100 : 0;
+  const decksLeft = totalRemaining / 52;
+
+  // Calculate percentages
+  const highPct = totalRemaining > 0 ? (highCards / totalRemaining) * 100 : 0;
+  const lowPct = totalRemaining > 0 ? (lowCards / totalRemaining) * 100 : 0;
+  const neutralPct = totalRemaining > 0 ? (neutralCards / totalRemaining) * 100 : 0;
+
+  // Expected percentages for 8-deck shoe
+  const expectedHigh = 38.46; // (128+32)/416
+  const expectedLow = 38.46;  // (32*5)/416
+
+  // Determine status
+  let statusClass = 'normal';
+  let statusText = 'Normal Distribution';
+
+  const highDiff = highPct - expectedHigh;
+  const lowDiff = lowPct - expectedLow;
+
+  if (highDiff > 5) {
+    statusClass = 'favorable';
+    statusText = 'High Card Rich';
+  } else if (highDiff < -5) {
+    statusClass = 'unfavorable';
+    statusText = 'High Card Poor';
+  } else if (lowDiff > 5) {
+    statusClass = 'unfavorable';
+    statusText = 'Low Card Rich';
+  } else if (lowDiff < -5) {
+    statusClass = 'favorable';
+    statusText = 'Low Card Poor';
+  }
+
+  // Update display elements
+  const highEl = document.getElementById('shoeCompHigh');
+  const lowEl = document.getElementById('shoeCompLow');
+  const neutralEl = document.getElementById('shoeCompNeutral');
+  const penEl = document.getElementById('shoeCompPen');
+  const decksEl = document.getElementById('shoeCompDecks');
+  const statusEl = document.getElementById('shoeCompStatus');
+
+  if (highEl) {
+    highEl.textContent = highPct.toFixed(1) + '%';
+    highEl.className = 'shoe-comp-value' + (highDiff > 3 ? ' high' : highDiff < -3 ? ' low' : '');
+  }
+  if (lowEl) {
+    lowEl.textContent = lowPct.toFixed(1) + '%';
+    lowEl.className = 'shoe-comp-value' + (lowDiff < -3 ? ' high' : lowDiff > 3 ? ' low' : '');
+  }
+  if (neutralEl) {
+    neutralEl.textContent = neutralPct.toFixed(1) + '%';
+  }
+  if (penEl) {
+    penEl.textContent = penetration.toFixed(1) + '%';
+  }
+  if (decksEl) {
+    decksEl.textContent = decksLeft.toFixed(1);
+  }
+  if (statusEl) {
+    statusEl.innerHTML = `<span class="status-dot ${statusClass}"></span><span>${statusText}</span>`;
+  }
+}
+
+// ============================================
+// Clumping Probability Engine Functions
+// ============================================
+
+/**
+ * Toggle clumping probability engine on/off
+ * Turn ON when you suspect card clumping and want adjusted strategy
+ */
+function toggleClumpProb() {
+  const toggle = document.getElementById('clumpProbToggle');
+  const content = document.getElementById('clumpProbContent');
+  const cp = AppState.clumpProb;
+
+  cp.enabled = toggle?.checked ?? false;
+
+  if (content) {
+    if (cp.enabled) {
+      content.classList.remove('hidden');
+      showToast('Clump Strategy enabled - using clump-adjusted probabilities', 'info');
+    } else {
+      content.classList.add('hidden');
+      // Reset state when disabled
+      cp.momentum = 'NEUTRAL';
+      cp.streakLength = 0;
+      cp.lastAction = null;
+      cp.lastReason = '';
+      cp.adjustedEV = 0;
+      showToast('Clump Strategy disabled - using standard probabilities', 'info');
+    }
+  }
+
+  // Save preference to localStorage
+  try {
+    localStorage.setItem('clumpProbEnabled', cp.enabled);
+  } catch (e) {}
+
+  updateClumpProbDisplay();
+}
+
+/**
+ * Initialize clumping probability toggle state on page load
+ */
+function initClumpProbToggle() {
+  const toggle = document.getElementById('clumpProbToggle');
+  const content = document.getElementById('clumpProbContent');
+
+  // Load saved preference (default: OFF)
+  let saved = false;
+  try {
+    saved = localStorage.getItem('clumpProbEnabled') === 'true';
+  } catch (e) {}
+
+  AppState.clumpProb.enabled = saved;
+
+  if (toggle) {
+    toggle.checked = saved;
+  }
+
+  if (content) {
+    if (!saved) {
+      content.classList.add('hidden');
+    }
+  }
+}
+
+/**
+ * Update clumping probability display
+ * Shows momentum, streak, and recommended actions for clumped shoes
+ */
+function updateClumpProbDisplay() {
+  const content = document.getElementById('clumpProbContent');
+  if (!content) return;
+
+  const cp = AppState.clumpProb;
+  const ac = AppState.antiClump;
+
+  if (!cp.enabled) {
+    // Reset display when disabled
+    const momentumEl = document.getElementById('clumpMomentum');
+    const streakEl = document.getElementById('clumpStreak');
+    const actionEl = document.getElementById('clumpAction');
+    const reasonEl = document.getElementById('clumpReason');
+    const evEl = document.getElementById('clumpEV');
+
+    if (momentumEl) {
+      momentumEl.textContent = 'NEUTRAL';
+      momentumEl.className = 'momentum-value neutral';
+    }
+    if (streakEl) streakEl.textContent = '0';
+    if (actionEl) {
+      actionEl.textContent = '—';
+      actionEl.className = 'action-value';
+    }
+    if (reasonEl) reasonEl.textContent = 'Enable to see clump-adjusted recommendations';
+    if (evEl) {
+      evEl.textContent = '—';
+      evEl.className = 'ev-value';
+    }
+    return;
+  }
+
+  // Calculate momentum from recent cards
+  const recentCards = ac.recentCards || [];
+  let momentum = 'NEUTRAL';
+  let streakLength = 0;
+  let streakType = null;
+
+  if (recentCards.length >= 3) {
+    // Check last few cards for streak
+    let highCount = 0;
+    let lowCount = 0;
+
+    for (let i = recentCards.length - 1; i >= Math.max(0, recentCards.length - 5); i--) {
+      const card = recentCards[i];
+      const rank = card.replace(/[^0-9AJQK]/g, '').replace(/[JQK]/g, '10');
+      const val = rank === 'A' ? 1 : parseInt(rank) || 10;
+
+      if (val >= 10 || val === 1) {
+        highCount++;
+      } else if (val <= 6) {
+        lowCount++;
+      }
+    }
+
+    if (highCount >= 4) {
+      momentum = 'HIGH_STREAK';
+      streakLength = highCount;
+    } else if (lowCount >= 4) {
+      momentum = 'LOW_STREAK';
+      streakLength = lowCount;
+    } else if (highCount >= 3) {
+      momentum = 'HIGH_STREAK';
+      streakLength = highCount;
+    } else if (lowCount >= 3) {
+      momentum = 'LOW_STREAK';
+      streakLength = lowCount;
+    }
+  }
+
+  cp.momentum = momentum;
+  cp.streakLength = streakLength;
+
+  // Get clump-adjusted recommendation
+  let action = '—';
+  let actionClass = '';
+  let reason = 'No active hand - deal cards to see recommendations';
+  let adjustedEV = 0;
+
+  // Check if there's an active player hand
+  const activePlayer = AppState.activePosition;
+  if (activePlayer && activePlayer !== 'dealer') {
+    const playerCards = AppState.positions[activePlayer]?.cards || [];
+    const dealerCards = AppState.positions.dealer?.cards || [];
+
+    if (playerCards.length >= 2 && dealerCards.length >= 1) {
+      const playerTotal = calculateHandValue(playerCards);
+      const dealerUpcard = dealerCards[0];
+
+      // Get clump-adjusted action
+      const clumpResult = getClumpAdjustedAction(playerTotal, dealerUpcard, momentum, streakLength);
+      action = clumpResult.action;
+      actionClass = clumpResult.actionClass;
+      reason = clumpResult.reason;
+      adjustedEV = clumpResult.ev;
+    }
+  }
+
+  cp.lastAction = action;
+  cp.lastReason = reason;
+  cp.adjustedEV = adjustedEV;
+
+  // Update display elements
+  const momentumEl = document.getElementById('clumpMomentum');
+  const streakEl = document.getElementById('clumpStreak');
+  const actionEl = document.getElementById('clumpAction');
+  const reasonEl = document.getElementById('clumpReason');
+  const evEl = document.getElementById('clumpEV');
+
+  if (momentumEl) {
+    let momentumText = 'NEUTRAL';
+    let momentumClass = 'neutral';
+    if (momentum === 'HIGH_STREAK') {
+      momentumText = 'HIGH';
+      momentumClass = 'high';
+    } else if (momentum === 'LOW_STREAK') {
+      momentumText = 'LOW';
+      momentumClass = 'low';
+    }
+    momentumEl.textContent = momentumText;
+    momentumEl.className = `momentum-value ${momentumClass}`;
+  }
+
+  if (streakEl) {
+    streakEl.textContent = streakLength.toString();
+  }
+
+  if (actionEl) {
+    actionEl.textContent = action;
+    actionEl.className = `action-value ${actionClass}`;
+  }
+
+  if (reasonEl) {
+    reasonEl.textContent = reason;
+  }
+
+  if (evEl) {
+    const evText = adjustedEV !== 0 ? (adjustedEV > 0 ? '+' : '') + (adjustedEV * 100).toFixed(1) + '%' : '—';
+    evEl.textContent = evText;
+    evEl.className = `ev-value ${adjustedEV > 0 ? 'positive' : adjustedEV < 0 ? 'negative' : ''}`;
+  }
+}
+
+/**
+ * Get clump-adjusted action based on momentum
+ * In clumped shoes, streaks tend to continue - adjust strategy accordingly
+ */
+function getClumpAdjustedAction(playerTotal, dealerUpcard, momentum, streakLength) {
+  const total = playerTotal.total || playerTotal;
+  const isSoft = playerTotal.soft || false;
+
+  // Parse dealer upcard
+  let dealerVal = 0;
+  if (typeof dealerUpcard === 'string') {
+    const rank = dealerUpcard.replace(/[^0-9AJQK]/g, '').replace(/[JQK]/g, '10');
+    dealerVal = rank === 'A' ? 11 : parseInt(rank) || 10;
+  } else if (typeof dealerUpcard === 'object' && dealerUpcard.rank) {
+    const rank = dealerUpcard.rank;
+    dealerVal = rank === 'A' ? 11 : (rank === '10' || rank === 'J' || rank === 'Q' || rank === 'K') ? 10 : parseInt(rank);
+  }
+
+  let action = 'STAND';
+  let actionClass = 'stand';
+  let reason = 'Standard play';
+  let ev = 0;
+
+  // Clump-adjusted strategy deviations
+  if (momentum === 'HIGH_STREAK') {
+    // High cards coming - more likely to bust if we hit
+    // Be more conservative with hitting
+    reason = `High streak (${streakLength}) - more 10s expected`;
+
+    if (total >= 12 && total <= 16) {
+      // Normally might hit these vs strong dealer cards
+      // In high clump, stand more often
+      if (dealerVal >= 7) {
+        action = 'STAND';
+        actionClass = 'stand';
+        reason = `High clump: Stand on ${total} vs ${dealerVal} (bust risk high)`;
+        ev = -0.05; // Slightly negative but better than busting
+      }
+    }
+
+    if (total === 11 || total === 10) {
+      // Double down is good with high cards coming
+      action = 'DOUBLE';
+      actionClass = 'double';
+      reason = `High clump: Double ${total} (10s likely)`;
+      ev = 0.15;
+    }
+
+  } else if (momentum === 'LOW_STREAK') {
+    // Low cards coming - safer to hit
+    // Be more aggressive with hitting
+    reason = `Low streak (${streakLength}) - small cards expected`;
+
+    if (total >= 12 && total <= 16) {
+      if (dealerVal >= 7) {
+        action = 'HIT';
+        actionClass = 'hit';
+        reason = `Low clump: Hit ${total} vs ${dealerVal} (safe cards)`;
+        ev = 0.02;
+      }
+    }
+
+    if (total === 11 || total === 10) {
+      // Don't double with low cards coming
+      action = 'HIT';
+      actionClass = 'hit';
+      reason = `Low clump: Hit ${total} (low cards reduce double value)`;
+      ev = -0.02;
+    }
+
+  } else {
+    // Neutral - use standard basic strategy
+    if (total <= 11) {
+      action = 'HIT';
+      actionClass = 'hit';
+      reason = 'Standard: Hit ' + total;
+    } else if (total >= 17) {
+      action = 'STAND';
+      actionClass = 'stand';
+      reason = 'Standard: Stand ' + total;
+    } else {
+      // 12-16: depends on dealer
+      if (dealerVal >= 7) {
+        action = 'HIT';
+        actionClass = 'hit';
+        reason = `Standard: Hit ${total} vs ${dealerVal}`;
+      } else {
+        action = 'STAND';
+        actionClass = 'stand';
+        reason = `Standard: Stand ${total} vs ${dealerVal}`;
+      }
+    }
+  }
+
+  return { action, actionClass, reason, ev };
+}
+
+/**
+ * Calculate hand value from cards array
+ */
+function calculateHandValue(cards) {
+  let total = 0;
+  let aces = 0;
+
+  for (const card of cards) {
+    let rank;
+    if (typeof card === 'string') {
+      rank = card.replace(/[^0-9AJQK]/g, '').replace(/[JQK]/g, '10');
+    } else if (card && card.rank) {
+      rank = card.rank;
+    } else {
+      continue;
+    }
+
+    if (rank === 'A') {
+      aces++;
+      total += 11;
+    } else if (rank === '10' || rank === 'J' || rank === 'Q' || rank === 'K') {
+      total += 10;
+    } else {
+      total += parseInt(rank) || 0;
+    }
+  }
+
+  // Adjust for aces
+  while (total > 21 && aces > 0) {
+    total -= 10;
+    aces--;
+  }
+
+  return { total, soft: aces > 0 && total <= 21 };
+}
+
 // UI Update Functions
 // ============================================
 let updateAllPending = false;
@@ -3285,6 +3780,8 @@ function updateAllImmediate() {
     updateMetrics();
     updateCardButtons();
     updateDecisionPanels();
+    updateShoeCompDisplay();
+    updateClumpProbDisplay();
   } catch (err) {
     console.error('updateAll error:', err);
   }

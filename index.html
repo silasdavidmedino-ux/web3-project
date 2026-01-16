@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32x32.png">
   <link rel="apple-touch-icon" href="icons/icon-192x192.png">
 
-  <link rel="stylesheet" href="css/styles.css?v=3.9.45">
+  <link rel="stylesheet" href="css/styles.css?v=3.9.46">
 
   <!-- ML Libraries disabled - load only when AI detection is used -->
   <!-- <script async src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script> -->
@@ -192,6 +192,44 @@
         </div>
       </div>
 
+      <!-- Shoe Composition Panel (Normal Probability) -->
+      <div class="shoe-comp-section" id="shoeCompPanel">
+        <div class="shoe-comp-header">
+          <span class="shoe-comp-title">Shoe Composition</span>
+          <label class="shoe-comp-toggle" title="Standard probability analysis">
+            <input type="checkbox" id="shoeCompToggle" checked onchange="toggleShoeComp()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="shoe-comp-content" id="shoeCompContent">
+          <div class="shoe-comp-row">
+            <span class="shoe-comp-label">High (10-A)</span>
+            <span class="shoe-comp-value" id="shoeCompHigh">38.5%</span>
+          </div>
+          <div class="shoe-comp-row">
+            <span class="shoe-comp-label">Low (2-6)</span>
+            <span class="shoe-comp-value" id="shoeCompLow">38.5%</span>
+          </div>
+          <div class="shoe-comp-row">
+            <span class="shoe-comp-label">Neutral (7-9)</span>
+            <span class="shoe-comp-value" id="shoeCompNeutral">23.1%</span>
+          </div>
+          <div class="shoe-comp-divider"></div>
+          <div class="shoe-comp-row">
+            <span class="shoe-comp-label">Penetration</span>
+            <span class="shoe-comp-value" id="shoeCompPen">0%</span>
+          </div>
+          <div class="shoe-comp-row">
+            <span class="shoe-comp-label">Decks Left</span>
+            <span class="shoe-comp-value" id="shoeCompDecks">8.0</span>
+          </div>
+          <div class="shoe-comp-status" id="shoeCompStatus">
+            <span class="status-dot normal"></span>
+            <span>Normal Distribution</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Anti-Clump Panel -->
       <div class="anti-clump-section" id="antiClumpPanel">
         <div class="anti-clump-header">
@@ -211,6 +249,39 @@
             <div class="anti-clump-strategy">Standard</div>
           </div>
           <div class="anti-clump-signals"></div>
+        </div>
+      </div>
+
+      <!-- Clumping Probability Engine Panel -->
+      <div class="clump-prob-section" id="clumpProbPanel">
+        <div class="clump-prob-header">
+          <span class="clump-prob-title">Clump Strategy</span>
+          <label class="clump-prob-toggle" title="Enable clump-adjusted probability engine">
+            <input type="checkbox" id="clumpProbToggle" onchange="toggleClumpProb()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="clump-prob-content" id="clumpProbContent">
+          <div class="clump-prob-momentum">
+            <span class="momentum-label">Momentum</span>
+            <span class="momentum-value neutral" id="clumpMomentum">NEUTRAL</span>
+          </div>
+          <div class="clump-prob-streak">
+            <span class="streak-label">Streak</span>
+            <span class="streak-value" id="clumpStreak">0</span>
+          </div>
+          <div class="clump-prob-divider"></div>
+          <div class="clump-prob-action">
+            <span class="action-label">Action</span>
+            <span class="action-value" id="clumpAction">—</span>
+          </div>
+          <div class="clump-prob-reason" id="clumpReason">
+            Enable to see clump-adjusted recommendations
+          </div>
+          <div class="clump-prob-ev">
+            <span class="ev-label">Adj. EV</span>
+            <span class="ev-value" id="clumpEV">—</span>
+          </div>
         </div>
       </div>
     </div>
