@@ -1,0 +1,140 @@
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║           CLUMPING PROBABILITY ENGINE - GAME HISTORY ANALYSIS                ║
+║                         94 Games | Shoe 301-412                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════════════
+                              OVERVIEW STATISTICS
+═══════════════════════════════════════════════════════════════════════════════
+
+  Total Games Analyzed:     95
+  Games with PNL Data:      45
+  Total Rounds Played:      5676
+  Average Rounds/Game:      59.7
+
+  Total P&L:                +24,500
+  Average P&L/Game:         258
+  Average P&L/Round:        4.3
+
+═══════════════════════════════════════════════════════════════════════════════
+                            CLUMPING DETECTION RESULTS
+═══════════════════════════════════════════════════════════════════════════════
+
+  Clump Score Distribution:
+  ┌────────────────────────────────────────────────────────────────────────────┐
+  │ HEAVY CLUMP (70-100):    14 games (14.7%)  ████████ REDUCE BET      │
+  │ MILD CLUMP (56-69):       6 games (6.3%)  ██████   CAUTIOUS        │
+  │ NEUTRAL (31-55):         75 games (78.9%)  ████     STANDARD        │
+  │ DISPERSED (0-30):         0 games (0.0%)  ██       AGGRESSIVE      │
+  └────────────────────────────────────────────────────────────────────────────┘
+
+  Clump Detection Accuracy:
+  • High Clump Games (≥60 score): 20 games, Avg P&L: +1038
+  • Low Clump Games (<40 score):  0 games, Avg P&L: +0
+
+  ⚠ ANOMALY: Expected inverse correlation not found
+
+═══════════════════════════════════════════════════════════════════════════════
+                          CLUMP STRATEGY SIMULATION
+═══════════════════════════════════════════════════════════════════════════════
+
+  Strategy Comparison:
+  ┌────────────────────────────────────────────────────────────────────────────┐
+  │ STANDARD STRATEGY (Flat Bet):                                              │
+  │   Total P&L:              +    24,500                              │
+  │                                                                            │
+  │ CLUMP-ADJUSTED STRATEGY:                                                   │
+  │   Total P&L:              +    32,750                              │
+  │   Improvement:            +     8,250 (33.7%)               │
+  │                                                                            │
+  │ Detection Accuracy:       20.0% (9/45 correct calls)          │
+  └────────────────────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+                              TOP 5 WINNING GAMES
+═══════════════════════════════════════════════════════════════════════════════
+
+  1. Game #94  | 2838 rounds | P&L: +12,250 | Clump: 65 (MILD_CLUMP)
+  2. Game #353 | 19 rounds | P&L: +10,750 | Clump: 80 (HEAVY_CLUMP)
+  3. Game #358 | 29 rounds | P&L: + 6,750 | Clump: 100 (HEAVY_CLUMP)
+  4. Game #372 | 35 rounds | P&L: + 6,750 | Clump: 80 (HEAVY_CLUMP)
+  5. Game #352 | 18 rounds | P&L: + 6,250 | Clump: 100 (HEAVY_CLUMP)
+
+═══════════════════════════════════════════════════════════════════════════════
+                              TOP 5 LOSING GAMES
+═══════════════════════════════════════════════════════════════════════════════
+
+  1. Game #407 | 25 rounds | P&L:  -7,000 | Clump: 80 (HEAVY_CLUMP)
+  2. Game #365 | 24 rounds | P&L:  -6,750 | Clump: 80 (HEAVY_CLUMP)
+  3. Game #357 | 29 rounds | P&L:  -4,500 | Clump: 100 (HEAVY_CLUMP)
+  4. Game #386 | 35 rounds | P&L:  -4,000 | Clump: 65 (MILD_CLUMP)
+  5. Game #412 | 26 rounds | P&L:  -3,750 | Clump: 65 (MILD_CLUMP)
+
+═══════════════════════════════════════════════════════════════════════════════
+                           DETAILED GAME ANALYSIS
+═══════════════════════════════════════════════════════════════════════════════
+
+  Game # │ Date       │ Rounds │    P&L    │ Clump │ Recommendation │ Strategy
+  ───────┼────────────┼────────┼───────────┼───────┼────────────────┼──────────
+    301 │ 2026-01-12 │     33 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    302 │ 2026-01-12 │     31 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    303 │ 2026-01-12 │     23 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    304 │ 2026-01-12 │     23 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    305 │ 2026-01-12 │     30 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    306 │ 2026-01-12 │     27 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    307 │ 2026-01-12 │     29 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    308 │ 2026-01-12 │     41 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    309 │ 2026-01-14 │     46 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    310 │ 2026-01-14 │     35 │    -2000 │    50 │ NEUTRAL        │ STANDARD
+    311 │ 2026-01-14 │     48 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    312 │ 2026-01-15 │     35 │    -3500 │    65 │ MILD_CLUMP     │ CAUTIOUS
+    313 │ 2026-01-15 │     38 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    314 │ 2026-01-15 │     37 │ +     750 │    50 │ NEUTRAL        │ STANDARD
+    316 │ 2026-01-15 │     26 │     -500 │    50 │ NEUTRAL        │ STANDARD
+    317 │ 2026-01-15 │     24 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    318 │ 2026-01-15 │     23 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    319 │ 2026-01-15 │     23 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    320 │ 2026-01-15 │     42 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    321 │ 2026-01-15 │     51 │ +    3750 │    65 │ MILD_CLUMP     │ CAUTIOUS
+    322 │ 2026-01-15 │     35 │     -500 │    50 │ NEUTRAL        │ STANDARD
+    323 │ 2026-01-15 │     37 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    324 │ 2026-01-15 │     30 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    326 │ 2026-01-15 │     30 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    327 │ 2026-01-15 │     27 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    328 │ 2026-01-15 │     34 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    329 │ 2026-01-15 │     23 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    330 │ 2026-01-15 │     26 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    332 │ 2026-01-15 │     29 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+    333 │ 2026-01-15 │     26 │ +       0 │    50 │ NEUTRAL        │ STANDARD
+  ... (showing first 30 of 95 games)
+
+═══════════════════════════════════════════════════════════════════════════════
+                              KEY FINDINGS
+═══════════════════════════════════════════════════════════════════════════════
+
+  1. CLUMPING PREVALENCE
+     • 21.1% of shoes showed clumping indicators
+     • Heavy clumping detected in 14.7% of games
+
+  2. STRATEGY EFFECTIVENESS
+     • Clump-adjusted betting IMPROVED results by 8,250
+     • Detection accuracy: 20.0%
+
+  3. RECOMMENDATION
+     ✓ ENABLE Clumping Probability Engine for this shoe type
+
+  4. OPTIMAL SETTINGS
+     • Reduce bet by 50% when Clump Score ≥ 70
+     • Standard bet when Clump Score 31-69
+     • Increase bet by 25% when Clump Score ≤ 30
+
+═══════════════════════════════════════════════════════════════════════════════
+                              GENERATED
+═══════════════════════════════════════════════════════════════════════════════
+
+  Report Generated: 2026-01-16T05:13:38.298Z
+  Engine Version:   Clumping Probability Engine v1.0
+  Analysis Method:  PNL Volatility + Streak Detection + Pattern Recognition
+
+══════════════════════════════════════════════════════════════════════════════

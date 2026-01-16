@@ -3617,11 +3617,13 @@ function updateClumpProbDisplay() {
 
 /**
  * Get clump-adjusted action based on momentum
- * In clumped shoes, streaks tend to continue - adjust strategy accordingly
+ * CALIBRATED v1.1: Based on 95-game analysis
+ * High clumping = high volatility = ride positive variance
  */
 function getClumpAdjustedAction(playerTotal, dealerUpcard, momentum, streakLength) {
   const total = playerTotal.total || playerTotal;
   const isSoft = playerTotal.soft || false;
+  const trueCount = getTrueCount ? getTrueCount() : 0;
 
   // Parse dealer upcard
   let dealerVal = 0;
@@ -3637,56 +3639,71 @@ function getClumpAdjustedAction(playerTotal, dealerUpcard, momentum, streakLengt
   let actionClass = 'stand';
   let reason = 'Standard play';
   let ev = 0;
+  let betAdvice = 'STANDARD';
 
-  // Clump-adjusted strategy deviations
+  // CALIBRATED v1.1: Clump-adjusted strategy
   if (momentum === 'HIGH_STREAK') {
     // High cards coming - more likely to bust if we hit
-    // Be more conservative with hitting
-    reason = `High streak (${streakLength}) - more 10s expected`;
+    reason = `High streak (${streakLength}) - 10s/faces expected`;
+
+    // BETTING: High streak = favorable for blackjacks/doubles
+    if (trueCount >= 1) {
+      betAdvice = 'INCREASE';
+      ev = 0.12;
+    } else if (trueCount >= 0) {
+      betAdvice = 'AGGRESSIVE';
+      ev = 0.08;
+    }
 
     if (total >= 12 && total <= 16) {
-      // Normally might hit these vs strong dealer cards
-      // In high clump, stand more often
       if (dealerVal >= 7) {
+        // Stand more in high clump - dealer will bust too
         action = 'STAND';
         actionClass = 'stand';
-        reason = `High clump: Stand on ${total} vs ${dealerVal} (bust risk high)`;
-        ev = -0.05; // Slightly negative but better than busting
+        reason = `High clump: Stand ${total} vs ${dealerVal} (both bust risk)`;
       }
     }
 
     if (total === 11 || total === 10) {
-      // Double down is good with high cards coming
       action = 'DOUBLE';
       actionClass = 'double';
-      reason = `High clump: Double ${total} (10s likely)`;
-      ev = 0.15;
+      reason = `High clump: DOUBLE ${total} (10s coming!)`;
+      ev = 0.18;
     }
 
   } else if (momentum === 'LOW_STREAK') {
-    // Low cards coming - safer to hit
-    // Be more aggressive with hitting
+    // Low cards coming - safer to hit, but less double value
     reason = `Low streak (${streakLength}) - small cards expected`;
+
+    // BETTING: Low streak = less favorable, be cautious
+    if (trueCount >= 2) {
+      betAdvice = 'STANDARD';
+      ev = 0.02;
+    } else {
+      betAdvice = 'REDUCE';
+      ev = -0.03;
+    }
 
     if (total >= 12 && total <= 16) {
       if (dealerVal >= 7) {
         action = 'HIT';
         actionClass = 'hit';
         reason = `Low clump: Hit ${total} vs ${dealerVal} (safe cards)`;
-        ev = 0.02;
+        ev = 0.01;
       }
     }
 
     if (total === 11 || total === 10) {
-      // Don't double with low cards coming
+      // Skip double in low streak
       action = 'HIT';
       actionClass = 'hit';
-      reason = `Low clump: Hit ${total} (low cards reduce double value)`;
+      reason = `Low clump: Hit ${total} (skip double, low cards)`;
       ev = -0.02;
     }
 
   } else {
     // Neutral - use standard basic strategy
+    betAdvice = 'STANDARD';
     if (total <= 11) {
       action = 'HIT';
       actionClass = 'hit';
@@ -3696,7 +3713,6 @@ function getClumpAdjustedAction(playerTotal, dealerUpcard, momentum, streakLengt
       actionClass = 'stand';
       reason = 'Standard: Stand ' + total;
     } else {
-      // 12-16: depends on dealer
       if (dealerVal >= 7) {
         action = 'HIT';
         actionClass = 'hit';
@@ -3709,7 +3725,7 @@ function getClumpAdjustedAction(playerTotal, dealerUpcard, momentum, streakLengt
     }
   }
 
-  return { action, actionClass, reason, ev };
+  return { action, actionClass, reason, ev, betAdvice };
 }
 
 /**

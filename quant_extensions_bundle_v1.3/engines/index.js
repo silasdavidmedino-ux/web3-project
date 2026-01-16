@@ -7,4 +7,10 @@ export { computeKellyGovernor } from "./kellyGovernor.js";
 export { computeTemporalOptimizer } from "./temporalOptimizer.js";
 export { computeWindowDetector } from "./windowDetector.js";
 export { computeAntiClumpEngine, updateAdaptiveModel } from "./antiClumpEngine.js";
-export { computeClumpingProbabilityEngine, getQuickClumpAction } from "./clumpingProbabilityEngine.js";
+export {
+  computeClumpingProbabilityEngine,
+  getQuickClumpAction,
+  getP3ClumpBoosterStrategy,
+  getP4ClumpQuantEVStrategy,
+  getP5ClumpSacrificeStrategy
+} from "./clumpingProbabilityEngine.js";

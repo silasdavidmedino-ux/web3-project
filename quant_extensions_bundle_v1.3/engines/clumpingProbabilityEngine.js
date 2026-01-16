@@ -1,12 +1,18 @@
 /**
- * Clumping Probability Engine v1.0
+ * Clumping Probability Engine v1.1 (CALIBRATED)
  *
  * A specialized probability engine for clumped card shoes.
  * Unlike standard counting which assumes random distribution,
  * this engine accounts for card clustering patterns.
  *
- * KEY INSIGHT: In clumped shoes, seeing a high card predicts MORE highs
- * (clump continuation), not fewer (as standard counting assumes).
+ * KEY INSIGHT (v1.1 - Based on 95-game analysis):
+ * Heavy clumping correlates with HIGH VARIANCE outcomes.
+ * In this shoe type (301-412), clumping = MORE volatility = bigger swings.
+ * The biggest wins AND losses occurred during heavy clump detection.
+ *
+ * CALIBRATION FIX: Instead of reducing bets during clumping,
+ * we INCREASE bets during high clump when count is favorable,
+ * and REDUCE only when count is negative.
  *
  * Toggle ON when you suspect shoe has clumped cards.
  */
@@ -194,6 +200,343 @@ function calculateClumpAdjustedEV(playerTotal, dealerUpcard, momentum, shoeState
   };
 }
 
+// ============================================
+// TEAMPLAY CLUMP INTEGRATION v1.1
+// P3: Front Shield | P4: Quant EV | P5: Rear Shield
+// ============================================
+
+/**
+ * P3 BOOSTER with Clump Awareness
+ * Front Shield - removes harmful cards BEFORE P4
+ *
+ * HIGH CLUMP: More aggressive - absorb 10s to protect P4 from busting
+ * LOW CLUMP: Less aggressive - let low cards pass (safe for P4 hitting)
+ */
+export function getP3ClumpBoosterStrategy(playerTotal, dealerUpcard, momentum, tc = 0) {
+  const dealerVal = dealerUpcard === 'A' ? 11 :
+    ['J','Q','K','10'].includes(dealerUpcard) ? 10 : parseInt(dealerUpcard) || 0;
+  const weakDealer = dealerVal >= 2 && dealerVal <= 6;
+
+  let action = 'STAND';
+  let intent = 'PRESERVE';
+  let aggressionMod = 0;
+  let reason = '';
+
+  // Clump-based aggression modifier
+  if (momentum.trend === 'HIGH_STREAK') {
+    // High cards coming - absorb them to protect P4
+    aggressionMod = 25;
+
+    if (playerTotal >= 12 && playerTotal <= 16) {
+      if (weakDealer) {
+        // Dealer will bust with high cards too, but absorb to control
+        action = 'HIT';
+        intent = 'CLUMP_ABSORB_HIGH';
+        reason = `P3 Clump: Absorb 10s (streak ${momentum.highStreak}), protect P4`;
+      } else {
+        // Strong dealer - P4 needs high cards, but we might bust
+        action = playerTotal <= 14 ? 'HIT' : 'STAND';
+        intent = action === 'HIT' ? 'CONTROLLED_ABSORB' : 'PRESERVE_FOR_P4';
+        reason = action === 'HIT'
+          ? `P3 Clump: Controlled absorb ${playerTotal} vs ${dealerVal}`
+          : `P3 Clump: Preserve high cards for P4 vs ${dealerVal}`;
+      }
+    } else if (playerTotal === 10 || playerTotal === 11) {
+      // Good double spot, but P4 might need it more
+      action = tc >= 2 ? 'STAND' : 'HIT';
+      intent = tc >= 2 ? 'PRESERVE_DOUBLE_FOR_P4' : 'BUILD_HAND';
+      reason = tc >= 2
+        ? `P3 Clump: TC+${tc}, let P4 have double opportunity`
+        : `P3 Clump: Build hand, deck favors hitting`;
+    }
+  }
+  else if (momentum.trend === 'LOW_STREAK') {
+    // Low cards coming - let them pass to P4 (safe for hitting)
+    aggressionMod = -15;
+
+    if (playerTotal >= 12 && playerTotal <= 16) {
+      // Stand more - let low cards flow to P4
+      action = 'STAND';
+      intent = 'LET_LOWS_PASS';
+      reason = `P3 Clump: Low streak (${momentum.lowStreak}), let safe cards reach P4`;
+    } else if (playerTotal <= 11) {
+      action = 'HIT';
+      intent = 'SAFE_BUILD';
+      reason = `P3 Clump: Safe hit in low streak`;
+    }
+  }
+  else {
+    // Neutral - standard booster logic
+    if (playerTotal <= 11) {
+      action = 'HIT';
+      intent = 'BUILD_HAND';
+      reason = 'P3: Standard build';
+    } else if (playerTotal >= 17) {
+      action = 'STAND';
+      intent = 'SOLID_HAND';
+      reason = 'P3: Solid hand, stand';
+    } else {
+      action = weakDealer ? 'HIT' : 'STAND';
+      intent = weakDealer ? 'ABSORB_BUST_CARD' : 'STANDARD';
+      reason = weakDealer
+        ? `P3: Absorb bust cards vs weak ${dealerVal}`
+        : `P3: Stand vs strong ${dealerVal}`;
+    }
+  }
+
+  return {
+    action,
+    intent,
+    aggressionMod,
+    reason,
+    momentum: momentum.trend,
+    playerType: 'P3_BOOSTER'
+  };
+}
+
+/**
+ * P4 QUANT EV with Clump Awareness
+ * The winning player - maximizes EV with count + clump deviations
+ *
+ * HIGH CLUMP: DOUBLE aggressively on 10-11, stand more on 12-16
+ * LOW CLUMP: HIT more on 12-16 (safe), skip doubles
+ */
+export function getP4ClumpQuantEVStrategy(playerTotal, dealerUpcard, momentum, tc = 0, canDouble = true) {
+  const dealerVal = dealerUpcard === 'A' ? 11 :
+    ['J','Q','K','10'].includes(dealerUpcard) ? 10 : parseInt(dealerUpcard) || 0;
+  const weakDealer = dealerVal >= 2 && dealerVal <= 6;
+
+  let action = 'STAND';
+  let reason = '';
+  let confidence = 0.8;
+  let betMultiplier = 1.0;
+
+  if (momentum.trend === 'HIGH_STREAK') {
+    // High cards coming - prime conditions for P4
+    confidence = 0.92;
+
+    // DOUBLE AGGRESSIVELY
+    if (playerTotal === 11) {
+      action = canDouble ? 'DOUBLE' : 'HIT';
+      reason = `P4 Clump: DOUBLE 11 (high streak ${momentum.highStreak}) - 10s coming!`;
+      betMultiplier = 1.5;
+      confidence = 0.95;
+    }
+    else if (playerTotal === 10 && dealerVal <= 9) {
+      action = canDouble ? 'DOUBLE' : 'HIT';
+      reason = `P4 Clump: DOUBLE 10 vs ${dealerVal} - high cards favor us`;
+      betMultiplier = 1.4;
+      confidence = 0.92;
+    }
+    else if (playerTotal === 9 && dealerVal >= 3 && dealerVal <= 6 && tc >= 1) {
+      action = canDouble ? 'DOUBLE' : 'HIT';
+      reason = `P4 Clump: DOUBLE 9 vs weak ${dealerVal} (TC+${tc}, high streak)`;
+      betMultiplier = 1.3;
+      confidence = 0.85;
+    }
+    // STAND MORE ON STIFFS
+    else if (playerTotal >= 12 && playerTotal <= 16) {
+      if (dealerVal >= 7) {
+        // Normally hit, but high cards will bust us AND dealer
+        action = playerTotal >= 15 ? 'STAND' : 'HIT';
+        reason = playerTotal >= 15
+          ? `P4 Clump: STAND ${playerTotal} vs ${dealerVal} - both bust with 10s`
+          : `P4 Clump: Must hit ${playerTotal} vs ${dealerVal}`;
+        confidence = 0.85;
+      } else {
+        action = 'STAND';
+        reason = `P4 Clump: STAND ${playerTotal} - dealer ${dealerVal} busts with high cards`;
+        confidence = 0.88;
+      }
+    }
+    else if (playerTotal >= 17) {
+      action = 'STAND';
+      reason = `P4 Clump: Solid ${playerTotal}, stand`;
+    }
+    else if (playerTotal <= 8) {
+      action = 'HIT';
+      reason = `P4 Clump: Hit ${playerTotal} for big hand`;
+    }
+  }
+  else if (momentum.trend === 'LOW_STREAK') {
+    // Low cards coming - be cautious with doubles, hit more
+    confidence = 0.82;
+    betMultiplier = 0.85;
+
+    // SKIP DOUBLES
+    if (playerTotal === 11 || playerTotal === 10) {
+      action = 'HIT';
+      reason = `P4 Clump: HIT ${playerTotal} (low streak ${momentum.lowStreak}) - skip double`;
+      confidence = 0.8;
+    }
+    // HIT MORE ON STIFFS
+    else if (playerTotal >= 12 && playerTotal <= 16) {
+      action = 'HIT';
+      reason = `P4 Clump: HIT ${playerTotal} - low cards safe, won't bust`;
+      confidence = 0.85;
+    }
+    else if (playerTotal >= 17) {
+      action = 'STAND';
+      reason = `P4 Clump: Stand ${playerTotal}`;
+    }
+    else {
+      action = 'HIT';
+      reason = `P4 Clump: Hit ${playerTotal}`;
+    }
+  }
+  else {
+    // Neutral - standard Quant EV with TC deviations
+    if (playerTotal === 11) {
+      action = canDouble ? 'DOUBLE' : 'HIT';
+      reason = 'P4 QEV: Double 11';
+      confidence = 0.9;
+    } else if (playerTotal === 10 && dealerVal <= 9) {
+      action = canDouble ? 'DOUBLE' : 'HIT';
+      reason = `P4 QEV: Double 10 vs ${dealerVal}`;
+      confidence = 0.88;
+    } else if (playerTotal >= 17) {
+      action = 'STAND';
+      reason = 'P4 QEV: Stand 17+';
+    } else if (playerTotal >= 13 && playerTotal <= 16 && weakDealer) {
+      action = 'STAND';
+      reason = `P4 QEV: Stand ${playerTotal} vs weak ${dealerVal}`;
+    } else if (playerTotal >= 12 && dealerVal >= 7) {
+      action = 'HIT';
+      reason = `P4 QEV: Hit ${playerTotal} vs strong ${dealerVal}`;
+    } else if (playerTotal <= 11) {
+      action = 'HIT';
+      reason = `P4 QEV: Hit ${playerTotal}`;
+    }
+  }
+
+  return {
+    action,
+    reason,
+    confidence,
+    betMultiplier,
+    momentum: momentum.trend,
+    playerType: 'P4_QUANT_EV'
+  };
+}
+
+/**
+ * P5 SACRIFICE with Clump Awareness
+ * Rear Shield - absorbs cards AFTER P4, can hit hard 17+
+ *
+ * HIGH CLUMP: More aggressive - absorb 10s that would help dealer
+ * LOW CLUMP: Less aggressive - let dealer take the low cards
+ */
+export function getP5ClumpSacrificeStrategy(playerTotal, dealerUpcard, momentum, tc = 0, isSoft = false) {
+  const dealerVal = dealerUpcard === 'A' ? 11 :
+    ['J','Q','K','10'].includes(dealerUpcard) ? 10 : parseInt(dealerUpcard) || 0;
+  const weakDealer = dealerVal >= 2 && dealerVal <= 6;
+
+  let action = 'STAND';
+  let intent = 'AWAIT_DEALER_BUST';
+  let reason = '';
+  let hitHard17 = false;
+
+  if (momentum.trend === 'HIGH_STREAK') {
+    // High cards coming - absorb them so dealer can't improve
+
+    if (weakDealer) {
+      // Dealer likely busts anyway, but absorb 10s to ensure it
+      if (playerTotal <= 16) {
+        action = 'HIT';
+        intent = 'CLUMP_ABSORB_FOR_DEALER_BUST';
+        reason = `P5 Clump: Absorb 10s (streak ${momentum.highStreak}), ensure dealer ${dealerVal} busts`;
+      } else if (playerTotal >= 17 && playerTotal <= 19 && tc >= 2) {
+        // EXTREME: Hit hard 17-19 to absorb 10s
+        action = 'HIT';
+        intent = 'EXTREME_ABSORPTION';
+        hitHard17 = true;
+        reason = `P5 Clump: HIT HARD ${playerTotal}! TC+${tc}, absorb 10s for dealer bust`;
+      } else {
+        action = 'STAND';
+        intent = 'SOLID_HAND';
+        reason = `P5 Clump: ${playerTotal} solid, dealer ${dealerVal} will bust`;
+      }
+    } else {
+      // Strong dealer - more critical to absorb
+      if (playerTotal <= 14) {
+        action = 'HIT';
+        intent = 'DENY_DEALER_TENS';
+        reason = `P5 Clump: Absorb 10s vs strong ${dealerVal} - deny dealer`;
+      } else if (playerTotal === 15 || playerTotal === 16) {
+        // Risky but might be worth it
+        action = tc >= 3 ? 'HIT' : 'STAND';
+        intent = tc >= 3 ? 'HIGH_TC_ABSORB' : 'RISKY_STAND';
+        reason = tc >= 3
+          ? `P5 Clump: TC+${tc}, absorb despite ${playerTotal}`
+          : `P5 Clump: Stand ${playerTotal}, too risky`;
+      } else {
+        action = 'STAND';
+        intent = 'STANDARD';
+        reason = `P5 Clump: Stand ${playerTotal} vs ${dealerVal}`;
+      }
+    }
+  }
+  else if (momentum.trend === 'LOW_STREAK') {
+    // Low cards coming - let dealer take them (they help dealer make hand)
+
+    if (weakDealer) {
+      // Low cards help weak dealer NOT bust - stand and let dealer take them
+      action = 'STAND';
+      intent = 'LET_DEALER_TAKE_LOWS';
+      reason = `P5 Clump: Low streak - let dealer ${dealerVal} take small cards (make 17-20)`;
+    } else {
+      // Strong dealer with low cards - dealer makes hands easily
+      if (playerTotal <= 11) {
+        action = 'HIT';
+        intent = 'SAFE_BUILD';
+        reason = `P5 Clump: Safe hit in low streak`;
+      } else if (playerTotal >= 12 && playerTotal <= 16) {
+        // Hit to try to beat dealer who will make 17-20
+        action = 'HIT';
+        intent = 'MUST_COMPETE';
+        reason = `P5 Clump: Hit ${playerTotal} - dealer ${dealerVal} will make hand with lows`;
+      } else {
+        action = 'STAND';
+        intent = 'HOPE_ENOUGH';
+        reason = `P5 Clump: Stand ${playerTotal}, hope it's enough`;
+      }
+    }
+  }
+  else {
+    // Neutral - standard sacrifice logic
+    if (weakDealer) {
+      if (playerTotal <= 11) {
+        action = 'HIT';
+        intent = 'SAFE_BUILD';
+        reason = `P5 SAC: Safe hit vs weak ${dealerVal}`;
+      } else {
+        action = 'STAND';
+        intent = 'LET_DEALER_BUST';
+        reason = `P5 SAC: Stand ${playerTotal}, dealer ${dealerVal} busts`;
+      }
+    } else {
+      if (playerTotal <= 16) {
+        action = 'HIT';
+        intent = 'MUST_COMPETE';
+        reason = `P5 SAC: Hit ${playerTotal} vs strong ${dealerVal}`;
+      } else {
+        action = 'STAND';
+        intent = 'SOLID_HAND';
+        reason = `P5 SAC: Stand ${playerTotal}`;
+      }
+    }
+  }
+
+  return {
+    action,
+    intent,
+    reason,
+    hitHard17,
+    momentum: momentum.trend,
+    playerType: 'P5_SACRIFICE'
+  };
+}
+
 /**
  * Get clump-adjusted strategy recommendation
  *
@@ -331,6 +674,11 @@ function getClumpStrategy(playerTotal, dealerUpcard, isSoft, canDouble, canSplit
 /**
  * Calculate clump-adjusted betting recommendation
  *
+ * CALIBRATED v1.1: Based on 95-game analysis showing:
+ * - Heavy clumping = high volatility (big wins AND big losses)
+ * - Best strategy: INCREASE bets during clumping when count is favorable
+ * - Reduce only when count is clearly negative
+ *
  * @param {object} momentum - Clump momentum
  * @param {number} trueCount - Current true count
  * @param {number} clumpScore - Clump detection score (0-100)
@@ -341,35 +689,67 @@ function getClumpBettingAdvice(momentum, trueCount, clumpScore) {
   let advice = 'STANDARD';
   let reason = '';
 
-  // Heavy clumping detected
+  // CALIBRATED v1.1: Heavy clumping = volatility amplifier
+  // Use count to determine direction, clumping to determine magnitude
   if (clumpScore >= 70) {
-    multiplier = 0.5;
-    advice = 'MINIMUM';
-    reason = 'Heavy clumping - unpredictable, reduce exposure';
+    if (trueCount >= 1) {
+      // Heavy clump + positive count = MAXIMIZE (ride the variance)
+      multiplier = 1.5;
+      advice = 'AGGRESSIVE';
+      reason = 'Heavy clumping + positive count - high variance favorable';
+    } else if (trueCount <= -2) {
+      // Heavy clump + negative count = MINIMIZE (avoid negative variance)
+      multiplier = 0.5;
+      advice = 'MINIMUM';
+      reason = 'Heavy clumping + negative count - avoid downswing';
+    } else {
+      // Heavy clump + neutral count = slight increase (variance tends positive)
+      multiplier = 1.25;
+      advice = 'INCREASE';
+      reason = 'Heavy clumping detected - volatility opportunity';
+    }
   }
-  // High streak with positive count
+  // High streak with positive count - excellent spot
   else if (momentum.trend === 'HIGH_STREAK' && trueCount >= 2) {
-    multiplier = 1.5;
+    multiplier = 1.75;
+    advice = 'MAXIMUM';
+    reason = 'High streak + strong count - prime blackjack conditions';
+  }
+  // High streak with positive/neutral count
+  else if (momentum.trend === 'HIGH_STREAK' && trueCount >= 0) {
+    multiplier = 1.35;
     advice = 'INCREASE';
-    reason = 'High streak + positive count - favorable for blackjacks';
+    reason = 'High streak - favorable for 10s and blackjacks';
   }
-  // High streak with negative count (contradiction)
+  // High streak with negative count
   else if (momentum.trend === 'HIGH_STREAK' && trueCount < 0) {
-    multiplier = 0.75;
-    advice = 'REDUCE';
-    reason = 'High streak but negative count - conflicting signals';
+    multiplier = 1.0;
+    advice = 'STANDARD';
+    reason = 'High streak but negative count - mixed signals, stay flat';
   }
-  // Low streak (generally unfavorable)
+  // Low streak - depends on count
   else if (momentum.trend === 'LOW_STREAK') {
-    multiplier = 0.75;
-    advice = 'REDUCE';
-    reason = 'Low streak - reduced blackjack/double potential';
+    if (trueCount >= 2) {
+      multiplier = 1.1;
+      advice = 'SLIGHT_INCREASE';
+      reason = 'Low streak ending soon with positive count';
+    } else {
+      multiplier = 0.85;
+      advice = 'SLIGHT_REDUCE';
+      reason = 'Low streak - reduced double/blackjack potential';
+    }
   }
-  // Mild clumping
+  // Mild clumping (55-69) - slight advantage
   else if (clumpScore >= 55) {
-    multiplier = 0.85;
-    advice = 'SLIGHT_REDUCE';
-    reason = 'Mild clumping detected';
+    if (trueCount >= 1) {
+      multiplier = 1.2;
+      advice = 'INCREASE';
+      reason = 'Mild clumping + positive count';
+    } else {
+      multiplier = 1.0;
+      advice = 'STANDARD';
+      reason = 'Mild clumping - stay alert';
+    }
   }
 
   return {
