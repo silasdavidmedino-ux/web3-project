@@ -3141,16 +3141,26 @@ function autoToggleClumpStrategy() {
     ac.autoEnabled = true;
     ac.enabled = true;
 
-    // UPDATE THE UI TOGGLE CHECKBOX
-    const toggle = document.getElementById('antiClumpToggle');
-    const content = document.getElementById('antiClumpContent');
-    if (toggle) toggle.checked = true;
-    if (content) content.classList.remove('hidden');
+    // UPDATE BOTH UI TOGGLE CHECKBOXES (Shuffle Quality AND Clump Strategy)
+    const antiClumpToggle = document.getElementById('antiClumpToggle');
+    const antiClumpContent = document.getElementById('antiClumpContent');
+    const clumpProbToggle = document.getElementById('clumpProbToggle');
+    const clumpProbContent = document.getElementById('clumpProbContent');
+
+    // Enable Shuffle Quality panel
+    if (antiClumpToggle) antiClumpToggle.checked = true;
+    if (antiClumpContent) antiClumpContent.classList.remove('hidden');
+
+    // Enable Clump Strategy panel (THIS WAS MISSING!)
+    if (clumpProbToggle) clumpProbToggle.checked = true;
+    if (clumpProbContent) clumpProbContent.classList.remove('hidden');
+    if (AppState.clumpProb) AppState.clumpProb.enabled = true;
 
     const severity = ac.clumpScore >= 70 ? '🔴 HEAVY' : ac.clumpScore >= 60 ? '🟠 MODERATE' : '🟡 MILD';
     showToast(`${severity} CLUMP DETECTED (${Math.round(ac.clumpScore)}) - Strategy auto-enabled!`, 'warning');
     logToConsole(`[AUTO-CLUMP] ${severity} clumping detected! Score: ${Math.round(ac.clumpScore)}. Strategy auto-enabled.`, 'warning');
     updateAntiClumpDisplay();
+    updateClumpProbDisplay();  // Also update Clump Strategy display
     updateClumpAutoToggleIndicator();
   }
   // Auto-disable only when shuffle normalizes (score drops below threshold)
@@ -3158,13 +3168,21 @@ function autoToggleClumpStrategy() {
     ac.autoEnabled = false;
     ac.enabled = false;
 
-    // UPDATE THE UI TOGGLE CHECKBOX (but don't hide content so user can see score)
-    const toggle = document.getElementById('antiClumpToggle');
-    if (toggle) toggle.checked = false;
+    // UPDATE BOTH UI TOGGLE CHECKBOXES (but don't hide content so user can see score)
+    const antiClumpToggle = document.getElementById('antiClumpToggle');
+    const clumpProbToggle = document.getElementById('clumpProbToggle');
+
+    // Disable Shuffle Quality panel
+    if (antiClumpToggle) antiClumpToggle.checked = false;
+
+    // Disable Clump Strategy panel (THIS WAS MISSING!)
+    if (clumpProbToggle) clumpProbToggle.checked = false;
+    if (AppState.clumpProb) AppState.clumpProb.enabled = false;
 
     showToast(`✓ Shuffle normalized (${Math.round(ac.clumpScore)}) - Standard strategy`, 'success');
     logToConsole(`[AUTO-CLUMP] Shuffle normalized. Score: ${Math.round(ac.clumpScore)}. Strategy auto-disabled.`, 'info');
     updateAntiClumpDisplay();
+    updateClumpProbDisplay();  // Also update Clump Strategy display
     updateClumpAutoToggleIndicator();
   }
   // Heavy clump warning (rate-limited)
