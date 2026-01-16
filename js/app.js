@@ -269,6 +269,7 @@ const AppState = {
   // ANTI-CLUMP ENGINE STATE
   // ============================================
   antiClump: {
+    enabled: false,        // Toggle ON when suspecting clumping
     recentCards: [],       // Sliding window of last 25 cards dealt
     maxWindowSize: 25,     // Maximum cards to track
     clumpScore: 50,        // Current clump score (0-100)
@@ -500,6 +501,9 @@ function init() {
 
   // Initialize game history session
   initGameSession('Casino', 'Table 1');
+
+  // Initialize anti-clump toggle state
+  initAntiClumpToggle();
 
   // Initial calculations
   updateAll();
@@ -2959,6 +2963,9 @@ function trackCardForAntiClump(card) {
 
   const ac = AppState.antiClump;
 
+  // Only track if enabled
+  if (!ac.enabled) return;
+
   // Add to recent cards window
   ac.recentCards.push(card);
 
@@ -3185,6 +3192,65 @@ function clearAntiClumpTracking() {
     abnormalTransitions: false
   };
   updateAntiClumpDisplay();
+}
+
+/**
+ * Toggle anti-clump detection on/off
+ * Turn ON when you suspect card clumping
+ */
+function toggleAntiClump() {
+  const toggle = document.getElementById('antiClumpToggle');
+  const content = document.getElementById('antiClumpContent');
+  const ac = AppState.antiClump;
+
+  ac.enabled = toggle?.checked ?? false;
+
+  if (content) {
+    if (ac.enabled) {
+      content.classList.remove('hidden');
+      // Start tracking from current point
+      showToast('Anti-Clump Detection enabled', 'info');
+    } else {
+      content.classList.add('hidden');
+      // Clear tracking when disabled
+      ac.recentCards = [];
+      ac.clumpScore = 50;
+      showToast('Anti-Clump Detection disabled', 'info');
+    }
+  }
+
+  // Save preference to localStorage
+  try {
+    localStorage.setItem('antiClumpEnabled', ac.enabled);
+  } catch (e) {}
+
+  updateAntiClumpDisplay();
+}
+
+/**
+ * Initialize anti-clump toggle state on page load
+ */
+function initAntiClumpToggle() {
+  const toggle = document.getElementById('antiClumpToggle');
+  const content = document.getElementById('antiClumpContent');
+
+  // Load saved preference (default: OFF)
+  let saved = false;
+  try {
+    saved = localStorage.getItem('antiClumpEnabled') === 'true';
+  } catch (e) {}
+
+  AppState.antiClump.enabled = saved;
+
+  if (toggle) {
+    toggle.checked = saved;
+  }
+
+  if (content) {
+    if (!saved) {
+      content.classList.add('hidden');
+    }
+  }
 }
 
 // UI Update Functions

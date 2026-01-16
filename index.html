@@ -196,14 +196,22 @@
       <div class="anti-clump-section" id="antiClumpPanel">
         <div class="anti-clump-header">
           <span class="anti-clump-title">Shuffle Quality</span>
-          <span class="anti-clump-score neutral">50%</span>
+          <label class="anti-clump-toggle" title="Enable when you suspect card clumping">
+            <input type="checkbox" id="antiClumpToggle" onchange="toggleAntiClump()">
+            <span class="toggle-slider"></span>
+          </label>
         </div>
-        <div class="anti-clump-bar neutral">█████░░░░░</div>
-        <div class="anti-clump-details">
-          <div class="anti-clump-rec neutral">NEUTRAL</div>
-          <div class="anti-clump-strategy">Standard</div>
+        <div class="anti-clump-content" id="antiClumpContent">
+          <div class="anti-clump-score-row">
+            <span class="anti-clump-score neutral">50%</span>
+          </div>
+          <div class="anti-clump-bar neutral">█████░░░░░</div>
+          <div class="anti-clump-details">
+            <div class="anti-clump-rec neutral">NEUTRAL</div>
+            <div class="anti-clump-strategy">Standard</div>
+          </div>
+          <div class="anti-clump-signals"></div>
         </div>
-        <div class="anti-clump-signals"></div>
       </div>
     </div>
 
