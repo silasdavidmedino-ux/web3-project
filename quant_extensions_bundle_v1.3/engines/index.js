@@ -6,3 +6,4 @@ export { computePortfolioSelector } from "./portfolioSelector.js";
 export { computeKellyGovernor } from "./kellyGovernor.js";
 export { computeTemporalOptimizer } from "./temporalOptimizer.js";
 export { computeWindowDetector } from "./windowDetector.js";
+export { computeAntiClumpEngine, updateAdaptiveModel } from "./antiClumpEngine.js";

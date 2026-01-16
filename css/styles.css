@@ -595,6 +595,131 @@ main {
 }
 
 /* ============================================
+   Anti-Clump Panel
+   ============================================ */
+.anti-clump-section {
+  margin-top: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 8px;
+  font-family: var(--font-mono);
+}
+
+.anti-clump-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.anti-clump-title {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.anti-clump-score {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.anti-clump-score.good {
+  color: var(--accent-green);
+}
+
+.anti-clump-score.neutral {
+  color: var(--text-secondary);
+}
+
+.anti-clump-score.warning {
+  color: var(--accent-orange);
+}
+
+.anti-clump-score.bad {
+  color: var(--accent-red);
+}
+
+.anti-clump-bar {
+  font-size: 12px;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.anti-clump-bar.good {
+  color: var(--accent-green);
+}
+
+.anti-clump-bar.neutral {
+  color: var(--text-secondary);
+}
+
+.anti-clump-bar.warning {
+  color: var(--accent-orange);
+}
+
+.anti-clump-bar.bad {
+  color: var(--accent-red);
+}
+
+.anti-clump-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+
+.anti-clump-rec {
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--bg-darker);
+}
+
+.anti-clump-rec.good {
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--accent-green);
+}
+
+.anti-clump-rec.neutral {
+  background: var(--bg-darker);
+  color: var(--text-secondary);
+}
+
+.anti-clump-rec.warning {
+  background: rgba(249, 115, 22, 0.15);
+  color: var(--accent-orange);
+}
+
+.anti-clump-rec.bad {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--accent-red);
+}
+
+.anti-clump-strategy {
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+.anti-clump-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 16px;
+}
+
+.signal-warn {
+  font-size: 8px;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--accent-red);
+  text-transform: uppercase;
+}
+
+/* ============================================
    Table Layout
    ============================================ */
 .table-layout {

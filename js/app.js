@@ -266,6 +266,28 @@ const AppState = {
   theme: 'dark', // 'dark' or 'light'
 
   // ============================================
+  // ANTI-CLUMP ENGINE STATE
+  // ============================================
+  antiClump: {
+    recentCards: [],       // Sliding window of last 25 cards dealt
+    maxWindowSize: 25,     // Maximum cards to track
+    clumpScore: 50,        // Current clump score (0-100)
+    recommendation: 'NEUTRAL',
+    strategy: 'STANDARD',
+    betMultiplier: 1.0,
+    signals: {
+      highClusteringDetected: false,
+      lowClusteringDetected: false,
+      unusualRunLength: false,
+      abnormalTransitions: false
+    },
+    // Engine cache for adaptive learning
+    engineCache: {
+      clumpModel: null
+    }
+  },
+
+  // ============================================
   // QUANT EV GAME HISTORY TRACKER (5 Players)
   // ============================================
   quantEvTracker: {
@@ -643,6 +665,7 @@ function handleCardClick(card) {
       AppState.cardsDealt++;
       AppState.runningCount += getCountValue(rank);
       addBeadRoad(card);
+      trackCardForAntiClump(card);
 
       split[handKey].push(card);
 
@@ -693,6 +716,7 @@ function handleCardClick(card) {
   AppState.cardsDealt++;
   AppState.runningCount += getCountValue(rank);
   addBeadRoad(card);
+  trackCardForAntiClump(card);
 
   // Add to active position (normal flow)
   AppState.positions[AppState.activePosition].push(card);
@@ -835,6 +859,12 @@ function handleUndo() {
 
   // Remove from bead road
   removeLastBead();
+
+  // Remove from anti-clump tracking
+  if (AppState.antiClump.recentCards.length > 0) {
+    AppState.antiClump.recentCards.pop();
+    computeAntiClumpScore();
+  }
 
   // Reset round settled flag (allow re-settling after undo)
   AppState.roundSettled = false;
@@ -1005,6 +1035,11 @@ function resetShoe() {
 
   for (const pos in AppState.positions) {
     AppState.positions[pos] = [];
+  }
+
+  // Clear anti-clump tracking on shoe reset
+  if (typeof clearAntiClumpTracking === 'function') {
+    clearAntiClumpTracking();
   }
 
   updateAll();
@@ -2911,6 +2946,247 @@ function removeLastBead() {
   }
 }
 
+// ============================================
+// Anti-Clump Engine Functions
+// ============================================
+
+/**
+ * Track card for anti-clump analysis
+ * Maintains sliding window of recent cards and updates clump score
+ */
+function trackCardForAntiClump(card) {
+  if (!card) return;
+
+  const ac = AppState.antiClump;
+
+  // Add to recent cards window
+  ac.recentCards.push(card);
+
+  // Maintain window size limit
+  while (ac.recentCards.length > ac.maxWindowSize) {
+    ac.recentCards.shift();
+  }
+
+  // Run the anti-clump engine computation
+  computeAntiClumpScore();
+}
+
+/**
+ * Compute anti-clump score using the engine algorithms
+ */
+function computeAntiClumpScore() {
+  const ac = AppState.antiClump;
+  const window = ac.recentCards;
+
+  if (window.length < 5) {
+    // Not enough data yet
+    ac.clumpScore = 50;
+    ac.recommendation = 'NEUTRAL';
+    ac.strategy = 'STANDARD';
+    ac.betMultiplier = 1.0;
+    updateAntiClumpDisplay();
+    return;
+  }
+
+  // Card type classification
+  const HIGH_CARDS = ['10', 'J', 'Q', 'K', 'A'];
+  const LOW_CARDS = ['2', '3', '4', '5', '6'];
+
+  // Normalize card to rank
+  function normalizeToRank(c) {
+    if (!c) return null;
+    const s = String(c).toUpperCase();
+    if (['J', 'Q', 'K'].includes(s)) return '10';
+    if (s === 'A' || s === '1') return 'A';
+    return s;
+  }
+
+  // Get card type
+  function getType(c) {
+    const r = normalizeToRank(c);
+    if (!r) return null;
+    if (HIGH_CARDS.includes(r)) return 'H';
+    if (LOW_CARDS.includes(r)) return 'L';
+    return 'N';
+  }
+
+  // 1. Calculate clustering ratio
+  let highCount = 0, lowCount = 0;
+  for (const c of window) {
+    const t = getType(c);
+    if (t === 'H') highCount++;
+    else if (t === 'L') lowCount++;
+  }
+
+  const n = window.length;
+  const expectedHigh = n * 0.3846;
+  const expectedLow = n * 0.3846;
+  const highRatio = expectedHigh > 0 ? highCount / expectedHigh : 1.0;
+  const lowRatio = expectedLow > 0 ? lowCount / expectedLow : 1.0;
+  const clumpRatio = Math.max(highRatio, lowRatio);
+
+  // 2. Build transition matrix
+  const transitions = { HH: 0, HL: 0, LH: 0, LL: 0 };
+  let hlTotal = 0;
+
+  for (let i = 1; i < window.length; i++) {
+    const prev = getType(window[i - 1]);
+    const curr = getType(window[i]);
+    if (prev && curr && prev !== 'N' && curr !== 'N') {
+      const key = prev + curr;
+      if (transitions[key] !== undefined) {
+        transitions[key]++;
+        hlTotal++;
+      }
+    }
+  }
+
+  const expected = hlTotal / 4;
+  let variance = 0;
+  if (expected > 0) {
+    variance += Math.pow(transitions.HH - expected, 2) / expected;
+    variance += Math.pow(transitions.HL - expected, 2) / expected;
+    variance += Math.pow(transitions.LH - expected, 2) / expected;
+    variance += Math.pow(transitions.LL - expected, 2) / expected;
+  }
+  const normalizedVariance = variance / 3;
+  const sameTypeRatio = hlTotal > 0 ? (transitions.HH + transitions.LL) / hlTotal : 0.5;
+
+  // 3. Run detection
+  let maxRun = 0, currentRun = 1;
+  let currentType = getType(window[0]);
+
+  for (let i = 1; i < window.length; i++) {
+    const t = getType(window[i]);
+    if (t === currentType && t !== 'N') {
+      currentRun++;
+      maxRun = Math.max(maxRun, currentRun);
+    } else {
+      currentRun = 1;
+      currentType = t;
+    }
+  }
+
+  const expectedMaxRun = Math.max(2, Math.log2(window.length));
+  const runAnomaly = maxRun > expectedMaxRun * 1.5;
+
+  // 4. Compute composite score
+  let clumpScore = 50;
+  const clumpRatioScore = (clumpRatio - 1) * 25;
+  const transitionScore = Math.min(15, normalizedVariance * 5);
+  const sameTypeScore = (sameTypeRatio - 0.5) * 30;
+  const runScore = runAnomaly ? 20 : (maxRun / expectedMaxRun - 1) * 10;
+
+  clumpScore = 50 + clumpRatioScore + transitionScore + sameTypeScore + runScore;
+
+  // Bayesian smoothing for low sample size
+  if (window.length < 25) {
+    const smoothingFactor = window.length / 25;
+    clumpScore = 50 + (clumpScore - 50) * smoothingFactor;
+  }
+
+  clumpScore = Math.max(0, Math.min(100, clumpScore));
+
+  // 5. Determine recommendation
+  let recommendation, strategy, betMultiplier;
+
+  if (clumpScore <= 30) {
+    recommendation = 'DISPERSED';
+    strategy = 'AGGRESSIVE';
+    betMultiplier = 1.1;
+  } else if (clumpScore <= 55) {
+    recommendation = 'NEUTRAL';
+    strategy = 'STANDARD';
+    betMultiplier = 1.0;
+  } else if (clumpScore <= 70) {
+    recommendation = 'MILD_CLUMP';
+    strategy = 'REDUCE_BET';
+    betMultiplier = 0.9;
+  } else {
+    recommendation = 'HEAVY_CLUMP';
+    strategy = 'REDUCE_BET';
+    betMultiplier = 0.8;
+  }
+
+  // Update state
+  ac.clumpScore = Math.round(clumpScore * 10) / 10;
+  ac.recommendation = recommendation;
+  ac.strategy = strategy;
+  ac.betMultiplier = betMultiplier;
+  ac.signals = {
+    highClusteringDetected: highRatio > 1.3,
+    lowClusteringDetected: lowRatio > 1.3,
+    unusualRunLength: runAnomaly,
+    abnormalTransitions: normalizedVariance > 2.0,
+    maxRun: maxRun,
+    clumpRatio: Math.round(clumpRatio * 100) / 100
+  };
+
+  updateAntiClumpDisplay();
+}
+
+/**
+ * Update the anti-clump display in the UI
+ */
+function updateAntiClumpDisplay() {
+  const ac = AppState.antiClump;
+  const panel = document.getElementById('antiClumpPanel');
+
+  if (!panel) return;
+
+  const score = ac.clumpScore;
+  const pct = Math.round(score);
+
+  // Determine color class
+  let colorClass = 'neutral';
+  if (score <= 30) colorClass = 'good';
+  else if (score >= 70) colorClass = 'bad';
+  else if (score >= 56) colorClass = 'warning';
+
+  // Build progress bar
+  const filledBars = Math.round(score / 10);
+  const emptyBars = 10 - filledBars;
+  const progressBar = '\u2588'.repeat(filledBars) + '\u2591'.repeat(emptyBars);
+
+  // Update panel content
+  panel.innerHTML = `
+    <div class="anti-clump-header">
+      <span class="anti-clump-title">Shuffle Quality</span>
+      <span class="anti-clump-score ${colorClass}">${pct}%</span>
+    </div>
+    <div class="anti-clump-bar ${colorClass}">${progressBar}</div>
+    <div class="anti-clump-details">
+      <div class="anti-clump-rec ${colorClass}">${ac.recommendation}</div>
+      <div class="anti-clump-strategy">${ac.strategy === 'REDUCE_BET' ? 'Reduce Bet' : ac.strategy === 'AGGRESSIVE' ? 'Increase Bet' : 'Standard'}</div>
+    </div>
+    <div class="anti-clump-signals">
+      ${ac.signals.unusualRunLength ? '<span class="signal-warn">Long Run</span>' : ''}
+      ${ac.signals.highClusteringDetected ? '<span class="signal-warn">High Cluster</span>' : ''}
+      ${ac.signals.lowClusteringDetected ? '<span class="signal-warn">Low Cluster</span>' : ''}
+      ${ac.signals.abnormalTransitions ? '<span class="signal-warn">Transitions</span>' : ''}
+    </div>
+  `;
+}
+
+/**
+ * Clear anti-clump tracking (on shoe reset/shuffle)
+ */
+function clearAntiClumpTracking() {
+  const ac = AppState.antiClump;
+  ac.recentCards = [];
+  ac.clumpScore = 50;
+  ac.recommendation = 'NEUTRAL';
+  ac.strategy = 'STANDARD';
+  ac.betMultiplier = 1.0;
+  ac.signals = {
+    highClusteringDetected: false,
+    lowClusteringDetected: false,
+    unusualRunLength: false,
+    abnormalTransitions: false
+  };
+  updateAntiClumpDisplay();
+}
+
 // UI Update Functions
 // ============================================
 let updateAllPending = false;
@@ -4138,6 +4414,7 @@ function autoDealToSplitHand(playerNum, handNum) {
 
   // Add to Bead Road
   addBeadRoad(card);
+  trackCardForAntiClump(card);
 
   // Save to history for undo (with size limit to prevent memory growth)
   AppState.dealHistory.push({
@@ -5098,6 +5375,7 @@ function dealRandomCard() {
 
   // Add to bead road
   addBeadRoad(card);
+  trackCardForAntiClump(card);
 
   return card;
 }

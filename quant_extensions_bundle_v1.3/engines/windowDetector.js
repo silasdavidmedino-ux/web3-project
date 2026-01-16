@@ -8,6 +8,7 @@ export function computeWindowDetector(context){
   const port = outs.portfolioSelector;
   const t213 = outs.t21p3;
   const kgov = outs.kellyGovernor;
+  const antiClump = outs.antiClump;
 
   // Prefer seat-adjusted EV
   let evPair = (seat?.ev_adj ?? anyPair?.ev_pair ?? null);
@@ -35,7 +36,18 @@ export function computeWindowDetector(context){
 
   // Kelly governor scaling (confidence)
   const k = kgov?.kellyFraction ?? 0.5;
-  const conf = Math.max(0.4, Math.min(1.0, 0.4 + 0.6 * k));
+  let conf = Math.max(0.4, Math.min(1.0, 0.4 + 0.6 * k));
+
+  // Anti-clump confidence adjustment
+  // Heavy clump (70+) reduces confidence, dispersed (30-) boosts it
+  const clumpScore = antiClump?.clumpScore ?? 50;
+  const clumpBetMult = antiClump?.betMultiplier ?? 1.0;
+  if (clumpScore >= 70) {
+    conf *= 0.7; // Reduce confidence in heavy clump
+  } else if (clumpScore <= 30) {
+    conf *= 1.1; // Boost confidence in fair/dispersed shuffle
+  }
+  conf = Math.max(0.3, Math.min(1.0, conf));
 
   let score = (50 + scoreDelta) * conf;
   score = Math.max(0, Math.min(100, score));
@@ -73,7 +85,12 @@ export function computeWindowDetector(context){
       cbsThreshold: dom,
       passesCBS,
       kellyFraction: k,
-      betFocus: focus
+      betFocus: focus,
+      // Anti-clump signals
+      clumpScore,
+      clumpBetMult,
+      clumpRecommendation: antiClump?.recommendation ?? 'NEUTRAL',
+      clumpStrategy: antiClump?.strategy ?? 'STANDARD'
     }
   };
 }
