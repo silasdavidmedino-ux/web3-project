@@ -3321,79 +3321,21 @@ function trackCardForAntiClump(card) {
 }
 
 /**
- * Auto-toggle clump strategy based on real-time clump detection
- * Enables clump adjustments when clumping is detected, disables when normal
+ * Clump strategy monitoring (MANUAL MODE)
+ * Shows warnings but does NOT auto-enable/disable - user must toggle manually
  */
 function autoToggleClumpStrategy() {
   const ac = AppState.antiClump;
 
-  // DEBUG: Log every call to trace the issue
-  console.log(`[AUTO-CLUMP DEBUG] cards=${ac.recentCards.length}, score=${ac.clumpScore}, enabled=${ac.enabled}, autoEnabled=${ac.autoEnabled}`);
-
-  // Minimum sample size before auto-toggling
+  // Minimum sample size before showing warnings
   if (ac.recentCards.length < 10) {
     return;
   }
 
-  const clumpThreshold = 55;  // Score >= 55 triggers auto-enable (lowered for responsiveness)
-  const normalThreshold = 45; // Score <= 45 disables auto-mode
-
-  console.log(`[AUTO-CLUMP DEBUG] Checking: score(${ac.clumpScore}) >= threshold(${clumpThreshold})? ${ac.clumpScore >= clumpThreshold}, !autoEnabled? ${!ac.autoEnabled}`);
-
-  // ALWAYS auto-enable when heavy clumping detected (score >= 55)
-  if (ac.clumpScore >= clumpThreshold && !ac.autoEnabled) {
-    console.log('[AUTO-CLUMP DEBUG] >>> TRIGGERING AUTO-ENABLE <<<');
-    ac.autoEnabled = true;
-    ac.enabled = true;
-
-    // UPDATE BOTH UI TOGGLE CHECKBOXES (Shuffle Quality AND Clump Strategy)
-    const antiClumpToggle = document.getElementById('antiClumpToggle');
-    const antiClumpContent = document.getElementById('antiClumpContent');
-    const clumpProbToggle = document.getElementById('clumpProbToggle');
-    const clumpProbContent = document.getElementById('clumpProbContent');
-
-    // Enable Shuffle Quality panel
-    if (antiClumpToggle) antiClumpToggle.checked = true;
-    if (antiClumpContent) antiClumpContent.classList.remove('hidden');
-
-    // Enable Clump Strategy panel (THIS WAS MISSING!)
-    if (clumpProbToggle) clumpProbToggle.checked = true;
-    if (clumpProbContent) clumpProbContent.classList.remove('hidden');
-    if (AppState.clumpProb) AppState.clumpProb.enabled = true;
-
-    const severity = ac.clumpScore >= 70 ? '🔴 HEAVY' : ac.clumpScore >= 60 ? '🟠 MODERATE' : '🟡 MILD';
-    showToast(`${severity} CLUMP DETECTED (${Math.round(ac.clumpScore)}) - Strategy auto-enabled!`, 'warning');
-    logToConsole(`[AUTO-CLUMP] ${severity} clumping detected! Score: ${Math.round(ac.clumpScore)}. Strategy auto-enabled.`, 'warning');
-    updateAntiClumpDisplay();
-    updateClumpProbDisplay();  // Also update Clump Strategy display
-    updateClumpAutoToggleIndicator();
-  }
-  // Auto-disable only when shuffle normalizes (score drops below threshold)
-  else if (ac.clumpScore <= normalThreshold && ac.autoEnabled) {
-    ac.autoEnabled = false;
-    ac.enabled = false;
-
-    // UPDATE BOTH UI TOGGLE CHECKBOXES (but don't hide content so user can see score)
-    const antiClumpToggle = document.getElementById('antiClumpToggle');
-    const clumpProbToggle = document.getElementById('clumpProbToggle');
-
-    // Disable Shuffle Quality panel
-    if (antiClumpToggle) antiClumpToggle.checked = false;
-
-    // Disable Clump Strategy panel (THIS WAS MISSING!)
-    if (clumpProbToggle) clumpProbToggle.checked = false;
-    if (AppState.clumpProb) AppState.clumpProb.enabled = false;
-
-    showToast(`✓ Shuffle normalized (${Math.round(ac.clumpScore)}) - Standard strategy`, 'success');
-    logToConsole(`[AUTO-CLUMP] Shuffle normalized. Score: ${Math.round(ac.clumpScore)}. Strategy auto-disabled.`, 'info');
-    updateAntiClumpDisplay();
-    updateClumpProbDisplay();  // Also update Clump Strategy display
-    updateClumpAutoToggleIndicator();
-  }
-  // Heavy clump warning (rate-limited)
-  else if (ac.autoEnabled && ac.clumpScore >= 70) {
+  // Show warning for heavy clumping (rate-limited) - but don't auto-enable
+  if (ac.clumpScore >= 70 && ac.enabled) {
     if (!ac.lastHeavyClumpWarning || Date.now() - ac.lastHeavyClumpWarning > 20000) {
-      showToast(`🔴 HEAVY CLUMP (${Math.round(ac.clumpScore)}) - REDUCE BETS!`, 'error');
+      showToast(`HEAVY CLUMP (${Math.round(ac.clumpScore)}) - REDUCE BETS!`, 'warning');
       ac.lastHeavyClumpWarning = Date.now();
     }
   }
@@ -3403,7 +3345,7 @@ function autoToggleClumpStrategy() {
 }
 
 /**
- * Update clump auto-toggle indicator in UI
+ * Update clump indicator in UI (MANUAL MODE)
  */
 function updateClumpAutoToggleIndicator() {
   const ac = AppState.antiClump;
@@ -3413,20 +3355,23 @@ function updateClumpAutoToggleIndicator() {
 
   const score = Math.round(ac.clumpScore);
 
-  if (ac.autoEnabled) {
-    // Auto-clump is ACTIVE
+  if (ac.enabled) {
+    // Clump strategy MANUALLY ENABLED
     indicator.classList.add('active');
-    indicator.textContent = `CLUMP: ${score} (${ac.recommendation})`;
+    indicator.textContent = `CLUMP: ${score} (ENABLED)`;
     indicator.style.background = score >= 70 ? '#ff4444' : score >= 55 ? '#ffc800' : '#00aa44';
     indicator.style.color = '#fff';
   } else if (ac.recentCards.length >= 10) {
-    // Monitoring but not triggered
+    // Monitoring but not enabled
     indicator.classList.remove('active');
-    if (score >= 50) {
-      indicator.textContent = `CLUMP: ${score} (monitoring)`;
-      indicator.style.background = score >= 55 ? '#664400' : '#444';
+    if (score >= 55) {
+      indicator.textContent = `CLUMP: ${score} (!)`;
+      indicator.style.background = '#664400';
+    } else if (score >= 50) {
+      indicator.textContent = `CLUMP: ${score}`;
+      indicator.style.background = '#444';
     } else {
-      indicator.textContent = `CLUMP: ${score} (normal)`;
+      indicator.textContent = `CLUMP: ${score}`;
       indicator.style.background = '#224422';
     }
     indicator.style.color = '#aaa';
