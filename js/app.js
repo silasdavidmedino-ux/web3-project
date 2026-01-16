@@ -3122,6 +3122,9 @@ function trackCardForAntiClump(card) {
 function autoToggleClumpStrategy() {
   const ac = AppState.antiClump;
 
+  // DEBUG: Log every call to trace the issue
+  console.log(`[AUTO-CLUMP DEBUG] cards=${ac.recentCards.length}, score=${ac.clumpScore}, enabled=${ac.enabled}, autoEnabled=${ac.autoEnabled}`);
+
   // Minimum sample size before auto-toggling
   if (ac.recentCards.length < 10) {
     return;
@@ -3130,8 +3133,11 @@ function autoToggleClumpStrategy() {
   const clumpThreshold = 55;  // Score >= 55 triggers auto-enable (lowered for responsiveness)
   const normalThreshold = 45; // Score <= 45 disables auto-mode
 
+  console.log(`[AUTO-CLUMP DEBUG] Checking: score(${ac.clumpScore}) >= threshold(${clumpThreshold})? ${ac.clumpScore >= clumpThreshold}, !autoEnabled? ${!ac.autoEnabled}`);
+
   // ALWAYS auto-enable when heavy clumping detected (score >= 55)
   if (ac.clumpScore >= clumpThreshold && !ac.autoEnabled) {
+    console.log('[AUTO-CLUMP DEBUG] >>> TRIGGERING AUTO-ENABLE <<<');
     ac.autoEnabled = true;
     ac.enabled = true;
 
