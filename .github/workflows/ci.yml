@@ -1,0 +1,109 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  # Code Quality Checks
+  lint:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for debug statements
+        run: |
+          if grep -rw "debug""ger" --include="*.js" js/; then
+            echo "Found debug statements"
+            exit 1
+          fi
+          echo "No debug statements found"
+
+      - name: Validate JSON files
+        run: |
+          for file in $(find . -name "*.json" -not -path "./node_modules/*"); do
+            echo "Validating $file..."
+            node -e "JSON.parse(require('fs').readFileSync('$file'))"
+          done
+          echo "✅ All JSON files valid"
+
+      - name: Check HTML syntax
+        run: |
+          if command -v tidy &> /dev/null; then
+            tidy -q -e index.html || true
+          fi
+
+  # Performance Audit
+  lighthouse:
+    name: Lighthouse Audit
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install serve
+        run: npm install -g serve
+
+      - name: Start server
+        run: |
+          serve . -l 3000 &
+          sleep 5
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v10
+        with:
+          urls: http://localhost:3000
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+        continue-on-error: true
+
+  # Security Scan
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for secrets in code
+        run: |
+          # Check for common secret patterns
+          PATTERNS="password.*=|api_key.*=|secret.*=|token.*="
+          if grep -riE "$PATTERNS" --include="*.js" --include="*.json" . | grep -v "node_modules"; then
+            echo "⚠️ Potential secrets found - please review"
+          fi
+
+      - name: Check for vulnerable patterns
+        run: |
+          # Check for innerHTML without sanitization
+          INNER_HTML=$(grep -rn "innerHTML.*=" --include="*.js" js/ || true)
+          if [ -n "$INNER_HTML" ]; then
+            echo "⚠️ innerHTML usage found (verify XSS safety):"
+            echo "$INNER_HTML"
+          fi
+
+  # Deploy (only on main/master push)
+  deploy:
+    name: Deploy
+    needs: [lint, security]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Time: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Files Changed" >> $GITHUB_STEP_SUMMARY
+          git diff --stat HEAD~1 >> $GITHUB_STEP_SUMMARY || true
