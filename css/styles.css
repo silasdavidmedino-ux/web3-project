@@ -926,6 +926,103 @@ main {
   text-transform: uppercase;
 }
 
+/* Anti-Clump Momentum Display */
+.anti-clump-momentum {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.anti-clump-momentum.high-streak {
+  background: rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+
+.anti-clump-momentum.low-streak {
+  background: rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+}
+
+.anti-clump-momentum.neutral {
+  background: rgba(107, 114, 128, 0.3);
+  color: #9ca3af;
+}
+
+/* Clump Teamplay Recommendations */
+.clump-teamplay-recs {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.clump-teamplay-title {
+  font-size: 8px;
+  color: #f59e0b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.clump-player-rec {
+  display: grid;
+  grid-template-columns: 24px 70px 32px 1fr;
+  gap: 4px;
+  align-items: center;
+  padding: 3px 0;
+  font-size: 9px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.clump-player-rec:last-child {
+  border-bottom: none;
+}
+
+.clump-player-rec .player-label {
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.p3-rec .player-label { color: #a78bfa; }
+.p4-rec .player-label { color: #34d399; }
+.p5-rec .player-label { color: #f87171; }
+
+.clump-player-rec .player-action {
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-size: 8px;
+}
+
+.player-action.aggressive { background: rgba(34, 197, 94, 0.3); color: #4ade80; }
+.player-action.absorb_10s { background: rgba(239, 68, 68, 0.3); color: #f87171; }
+.player-action.deny_dealer { background: rgba(239, 68, 68, 0.3); color: #f87171; }
+.player-action.absorb_lows { background: rgba(59, 130, 246, 0.3); color: #60a5fa; }
+.player-action.let_pass { background: rgba(59, 130, 246, 0.3); color: #60a5fa; }
+.player-action.cautious { background: rgba(251, 191, 36, 0.3); color: #fbbf24; }
+.player-action.sacrifice { background: rgba(107, 114, 128, 0.3); color: #9ca3af; }
+.player-action.standard { background: rgba(107, 114, 128, 0.2); color: #9ca3af; }
+
+.clump-player-rec .player-bet {
+  font-weight: 600;
+  text-align: center;
+}
+
+.player-bet.bet-up { color: #4ade80; }
+.player-bet.bet-down { color: #fbbf24; }
+.player-bet.bet-min { color: #f87171; }
+
+.clump-player-rec .player-intent {
+  color: var(--text-muted);
+  font-size: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ============================================
    Clumping Probability Engine Panel
    ============================================ */

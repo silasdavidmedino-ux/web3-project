@@ -276,6 +276,18 @@ const AppState = {
     recommendation: 'NEUTRAL',
     strategy: 'STANDARD',
     betMultiplier: 1.0,
+    // Momentum tracking for teamplay
+    momentum: {
+      trend: 'NEUTRAL',    // HIGH_STREAK, LOW_STREAK, NEUTRAL
+      highStreak: 0,
+      lowStreak: 0
+    },
+    // Per-player clump recommendations (P3/P4/P5)
+    playerRecs: {
+      p3: { action: 'STANDARD', intent: '', betMod: 1.0 },
+      p4: { action: 'STANDARD', intent: '', betMod: 1.0 },
+      p5: { action: 'SACRIFICE', intent: '', betMod: 0.5 }
+    },
     signals: {
       highClusteringDetected: false,
       lowClusteringDetected: false,
@@ -3149,7 +3161,128 @@ function computeAntiClumpScore() {
     clumpRatio: Math.round(clumpRatio * 100) / 100
   };
 
+  // ============================================
+  // MOMENTUM CALCULATION (for teamplay)
+  // ============================================
+  let highStreak = 0, lowStreak = 0;
+  let currentStreakType = null;
+  let currentStreakLen = 0;
+
+  // Calculate current streak from recent cards
+  for (let i = window.length - 1; i >= 0; i--) {
+    const t = getType(window[i]);
+    if (t === 'N') continue;
+
+    if (currentStreakType === null) {
+      currentStreakType = t;
+      currentStreakLen = 1;
+    } else if (t === currentStreakType) {
+      currentStreakLen++;
+    } else {
+      break;
+    }
+  }
+
+  if (currentStreakType === 'H') highStreak = currentStreakLen;
+  if (currentStreakType === 'L') lowStreak = currentStreakLen;
+
+  // Determine momentum trend
+  let momentumTrend = 'NEUTRAL';
+  if (highStreak >= 3 || highRatio > 1.4) momentumTrend = 'HIGH_STREAK';
+  else if (lowStreak >= 3 || lowRatio > 1.4) momentumTrend = 'LOW_STREAK';
+
+  ac.momentum = {
+    trend: momentumTrend,
+    highStreak: highStreak,
+    lowStreak: lowStreak
+  };
+
+  // ============================================
+  // PER-PLAYER CLUMP RECOMMENDATIONS
+  // ============================================
+  computePlayerClumpRecs(ac, momentumTrend, highStreak, lowStreak, clumpScore);
+
   updateAntiClumpDisplay();
+}
+
+/**
+ * Compute clump-adjusted recommendations for P3/P4/P5
+ */
+function computePlayerClumpRecs(ac, momentum, highStreak, lowStreak, clumpScore) {
+  const isHighClump = clumpScore >= 70;
+  const isMildClump = clumpScore >= 56 && clumpScore < 70;
+
+  // P3 BOOSTER (Front Shield)
+  if (momentum === 'HIGH_STREAK') {
+    ac.playerRecs.p3 = {
+      action: 'ABSORB_10s',
+      intent: `Protect P4 (streak ${highStreak})`,
+      betMod: 1.0,
+      detail: 'HIT 12-14 to absorb 10s from P4'
+    };
+  } else if (momentum === 'LOW_STREAK') {
+    ac.playerRecs.p3 = {
+      action: 'LET_PASS',
+      intent: `Let lows reach P4 (streak ${lowStreak})`,
+      betMod: 1.0,
+      detail: 'STAND more - safe cards for P4'
+    };
+  } else {
+    ac.playerRecs.p3 = {
+      action: 'STANDARD',
+      intent: 'Normal front shield',
+      betMod: 1.0,
+      detail: 'Standard booster play'
+    };
+  }
+
+  // P4 QUANT EV (Main Profit)
+  if (momentum === 'HIGH_STREAK') {
+    ac.playerRecs.p4 = {
+      action: 'AGGRESSIVE',
+      intent: `10s coming! Double 9-11`,
+      betMod: 1.5,
+      detail: 'DOUBLE aggressively, STAND 15-16'
+    };
+  } else if (momentum === 'LOW_STREAK') {
+    ac.playerRecs.p4 = {
+      action: 'CAUTIOUS',
+      intent: `Skip doubles (streak ${lowStreak})`,
+      betMod: 0.85,
+      detail: 'HIT instead of double, low cards safe'
+    };
+  } else {
+    ac.playerRecs.p4 = {
+      action: 'STANDARD',
+      intent: 'Standard Quant EV',
+      betMod: 1.0,
+      detail: 'Basic strategy with TC deviations'
+    };
+  }
+
+  // P5 PURE SACRIFICE (Card Flow Control)
+  if (momentum === 'HIGH_STREAK') {
+    ac.playerRecs.p5 = {
+      action: 'DENY_DEALER',
+      intent: `Absorb 10s from dealer`,
+      betMod: 0.5,
+      detail: 'HIT 12-16 vs strong dealer, HIT HARD 17 if TC+3'
+    };
+  } else if (momentum === 'LOW_STREAK') {
+    ac.playerRecs.p5 = {
+      action: 'ABSORB_LOWS',
+      intent: `Deny dealer build cards`,
+      betMod: 0.5,
+      detail: 'HIT to absorb lows, deny dealer survival'
+    };
+  } else {
+    ac.playerRecs.p5 = {
+      action: 'SACRIFICE',
+      intent: 'Standard sacrifice',
+      betMod: 0.5,
+      detail: 'Minimum bet, card flow control'
+    };
+  }
 }
 
 /**
@@ -3175,10 +3308,23 @@ function updateAntiClumpDisplay() {
   const emptyBars = 10 - filledBars;
   const progressBar = '\u2588'.repeat(filledBars) + '\u2591'.repeat(emptyBars);
 
+  // Momentum display
+  const momentum = ac.momentum || { trend: 'NEUTRAL', highStreak: 0, lowStreak: 0 };
+  const momentumClass = momentum.trend === 'HIGH_STREAK' ? 'high-streak' :
+                        momentum.trend === 'LOW_STREAK' ? 'low-streak' : 'neutral';
+  const momentumLabel = momentum.trend === 'HIGH_STREAK' ? `HIGH (${momentum.highStreak})` :
+                        momentum.trend === 'LOW_STREAK' ? `LOW (${momentum.lowStreak})` : 'NEUTRAL';
+
+  // Player recommendations
+  const p3 = ac.playerRecs?.p3 || { action: 'STANDARD', intent: '', betMod: 1.0 };
+  const p4 = ac.playerRecs?.p4 || { action: 'STANDARD', intent: '', betMod: 1.0 };
+  const p5 = ac.playerRecs?.p5 || { action: 'SACRIFICE', intent: '', betMod: 0.5 };
+
   // Update only the content area (preserve header with toggle)
   content.innerHTML = `
     <div class="anti-clump-score-row">
       <span class="anti-clump-score ${colorClass}">${pct}%</span>
+      <span class="anti-clump-momentum ${momentumClass}">${momentumLabel}</span>
     </div>
     <div class="anti-clump-bar ${colorClass}">${progressBar}</div>
     <div class="anti-clump-details">
@@ -3190,6 +3336,27 @@ function updateAntiClumpDisplay() {
       ${ac.signals.highClusteringDetected ? '<span class="signal-warn">High Cluster</span>' : ''}
       ${ac.signals.lowClusteringDetected ? '<span class="signal-warn">Low Cluster</span>' : ''}
       ${ac.signals.abnormalTransitions ? '<span class="signal-warn">Transitions</span>' : ''}
+    </div>
+    <div class="clump-teamplay-recs">
+      <div class="clump-teamplay-title">TEAMPLAY ADJUSTMENTS</div>
+      <div class="clump-player-rec p3-rec">
+        <span class="player-label">P3</span>
+        <span class="player-action ${p3.action.toLowerCase()}">${p3.action}</span>
+        <span class="player-bet">${p3.betMod}x</span>
+        <span class="player-intent">${p3.intent}</span>
+      </div>
+      <div class="clump-player-rec p4-rec">
+        <span class="player-label">P4</span>
+        <span class="player-action ${p4.action.toLowerCase()}">${p4.action}</span>
+        <span class="player-bet ${p4.betMod > 1 ? 'bet-up' : p4.betMod < 1 ? 'bet-down' : ''}">${p4.betMod}x</span>
+        <span class="player-intent">${p4.intent}</span>
+      </div>
+      <div class="clump-player-rec p5-rec">
+        <span class="player-label">P5</span>
+        <span class="player-action ${p5.action.toLowerCase()}">${p5.action}</span>
+        <span class="player-bet bet-min">${p5.betMod}x</span>
+        <span class="player-intent">${p5.intent}</span>
+      </div>
     </div>
   `;
 }
@@ -3204,6 +3371,16 @@ function clearAntiClumpTracking() {
   ac.recommendation = 'NEUTRAL';
   ac.strategy = 'STANDARD';
   ac.betMultiplier = 1.0;
+  ac.momentum = {
+    trend: 'NEUTRAL',
+    highStreak: 0,
+    lowStreak: 0
+  };
+  ac.playerRecs = {
+    p3: { action: 'STANDARD', intent: 'Normal front shield', betMod: 1.0 },
+    p4: { action: 'STANDARD', intent: 'Standard Quant EV', betMod: 1.0 },
+    p5: { action: 'SACRIFICE', intent: 'Standard sacrifice', betMod: 0.5 }
+  };
   ac.signals = {
     highClusteringDetected: false,
     lowClusteringDetected: false,

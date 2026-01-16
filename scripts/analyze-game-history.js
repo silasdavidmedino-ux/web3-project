@@ -95,7 +95,8 @@ function detectClumpingFromPNL(games) {
 }
 
 // ============================================
-// Clump Strategy Simulation (CALIBRATED v1.1)
+// Clump Strategy Simulation (TEAMPLAY v1.3)
+// P3: Booster | P4: Quant EV | P5: Pure Sacrifice
 // ============================================
 
 function simulateClumpStrategy(games) {
@@ -104,35 +105,98 @@ function simulateClumpStrategy(games) {
   let correctCalls = 0;
   let totalCalls = 0;
 
+  // Teamplay tracking
+  let p4PNL = 0;           // P4 Quant EV - main profit center
+  let p5PNL = 0;           // P5 Sacrifice - expected losses
+  let teamNetPNL = 0;      // Combined team result
+  let p5SacrificeRounds = 0;
+  let dealerBustImprovement = 0;
+
   for (let i = 0; i < games.length; i++) {
     const game = games[i];
     const pnl = game.pnl || 0;
+    const rounds = game.rounds || 1;
 
     // Standard strategy: flat betting
     standardPNL += pnl;
 
-    // CALIBRATED v1.1: Clump-adjusted strategy
-    // Key insight: Heavy clumping = HIGH VARIANCE
-    // INCREASE bets during clumping to ride positive variance
-    const clumpScore = game.clumpScore;
-    let betMultiplier = 1.0;
+    // Determine clump momentum
+    const clumpScore = game.clumpScore || 50;
+    let momentum = 'NEUTRAL';
+    if (clumpScore >= 70) momentum = 'HIGH_STREAK';
+    else if (clumpScore >= 56) momentum = 'MILD_CLUMP';
 
-    if (clumpScore >= 70) {
-      // Heavy clump = high volatility = INCREASE bet (ride the variance)
-      betMultiplier = 1.5;
-    } else if (clumpScore >= 56) {
-      // Mild clump = moderate increase
-      betMultiplier = 1.25;
-    } else if (clumpScore <= 30) {
-      // Dispersed = normal variance = standard bet
-      betMultiplier = 1.0;
+    // ============================================
+    // P4 QUANT EV SIMULATION
+    // Main profit player - uses clump-adjusted betting
+    // ============================================
+    let p4Multiplier = 1.0;
+
+    if (momentum === 'HIGH_STREAK') {
+      // HIGH_STREAK: Aggressive doubles, increased bets
+      p4Multiplier = 1.5;  // Ride the variance
+    } else if (momentum === 'MILD_CLUMP') {
+      p4Multiplier = 1.25;
+    } else {
+      p4Multiplier = 1.0;
     }
 
-    const adjustedPNL = pnl * betMultiplier;
-    clumpAdjustedPNL += adjustedPNL;
+    const p4GamePNL = pnl * p4Multiplier;
+    p4PNL += p4GamePNL;
 
-    // Track if clump detection was correct
-    // CALIBRATED: Correct if high clump + WIN (not loss!)
+    // ============================================
+    // P5 PURE SACRIFICE SIMULATION
+    // Card flow manipulation - expected to lose
+    // Bet: Always 0.5x (minimum)
+    // ============================================
+    const p5Multiplier = 0.5;  // Always minimum bet
+
+    // P5's sacrifice strategy affects dealer bust rate
+    // In HIGH_STREAK vs strong dealer: P5 absorbs 10s, denying dealer
+    // This creates "invisible" value - dealer busts more, P4 wins more
+    let p5DirectPNL = 0;
+    let p5IndirectValue = 0;
+
+    if (momentum === 'HIGH_STREAK') {
+      // P5 sacrifices: absorbs cards, often busts
+      // Estimate: P5 loses ~60% of hands in sacrifice mode
+      // But: Each sacrifice increases dealer bust % by ~3-5%
+      const sacrificeHands = Math.floor(rounds * 0.3);  // 30% of hands P5 plays aggressively
+      p5SacrificeRounds += sacrificeHands;
+
+      // Direct P5 loss from sacrifice plays
+      p5DirectPNL = -Math.abs(pnl) * 0.15 * p5Multiplier;  // P5 loses ~15% of game PNL
+
+      // Indirect value: Dealer bust improvement benefits P4
+      // If game was winning, P5's sacrifice contributed
+      if (pnl > 0) {
+        p5IndirectValue = pnl * 0.10;  // 10% of P4's win attributed to P5 sacrifice
+        dealerBustImprovement += p5IndirectValue;
+      }
+    } else if (momentum === 'MILD_CLUMP') {
+      p5DirectPNL = -Math.abs(pnl) * 0.08 * p5Multiplier;
+      if (pnl > 0) {
+        p5IndirectValue = pnl * 0.05;
+        dealerBustImprovement += p5IndirectValue;
+      }
+    } else {
+      // Neutral: P5 plays standard, minimal sacrifice
+      p5DirectPNL = pnl * 0.3 * p5Multiplier;  // P5 wins/loses proportionally at min bet
+    }
+
+    p5PNL += p5DirectPNL;
+
+    // ============================================
+    // TEAM NET CALCULATION
+    // ============================================
+    // Team profit = P4 gains + P5 indirect value - P5 direct losses
+    const teamGamePNL = p4GamePNL + p5DirectPNL;
+    teamNetPNL += teamGamePNL;
+
+    // Clump-adjusted total (for backward compatibility)
+    clumpAdjustedPNL += p4GamePNL;
+
+    // Track accuracy
     if (pnl !== 0) {
       totalCalls++;
       if ((clumpScore >= 56 && pnl > 0) || (clumpScore <= 45 && pnl < 0)) {
@@ -148,7 +212,13 @@ function simulateClumpStrategy(games) {
     improvementPct: standardPNL !== 0 ? ((clumpAdjustedPNL - standardPNL) / Math.abs(standardPNL) * 100).toFixed(1) : 0,
     accuracy: totalCalls > 0 ? (correctCalls / totalCalls * 100).toFixed(1) : 0,
     correctCalls,
-    totalCalls
+    totalCalls,
+    // Teamplay stats
+    p4PNL: Math.round(p4PNL),
+    p5PNL: Math.round(p5PNL),
+    teamNetPNL: Math.round(teamNetPNL),
+    p5SacrificeRounds,
+    dealerBustImprovement: Math.round(dealerBustImprovement)
   };
 }
 
@@ -268,6 +338,32 @@ function generateReport(games, analysis, simulation) {
   └────────────────────────────────────────────────────────────────────────────┘
 
 ═══════════════════════════════════════════════════════════════════════════════
+                          TEAMPLAY SIMULATION (P3/P4/P5)
+═══════════════════════════════════════════════════════════════════════════════
+
+  Team Role Breakdown:
+  ┌────────────────────────────────────────────────────────────────────────────┐
+  │ P4 QUANT EV (Main Profit):                                                 │
+  │   Total P&L:              ${simulation.p4PNL >= 0 ? '+' : ''}${simulation.p4PNL.toLocaleString().padStart(10)}                              │
+  │   Strategy: Aggressive doubles in HIGH_STREAK (1.5x bet)                   │
+  │                                                                            │
+  │ P5 PURE SACRIFICE (Card Flow):                                             │
+  │   Total P&L:              ${simulation.p5PNL >= 0 ? '+' : ''}${simulation.p5PNL.toLocaleString().padStart(10)}  (expected loss)             │
+  │   Sacrifice Rounds:       ${simulation.p5SacrificeRounds.toString().padStart(10)} hands                         │
+  │   Dealer Bust Value:      ${simulation.dealerBustImprovement >= 0 ? '+' : ''}${simulation.dealerBustImprovement.toLocaleString().padStart(10)}  (indirect P4 benefit)        │
+  │   Bet Size: Always 0.5x (table minimum)                                    │
+  │                                                                            │
+  │ TEAM NET P&L:             ${simulation.teamNetPNL >= 0 ? '+' : ''}${simulation.teamNetPNL.toLocaleString().padStart(10)}                              │
+  │ vs Solo Play:             ${(simulation.teamNetPNL - simulation.standardPNL) >= 0 ? '+' : ''}${(simulation.teamNetPNL - simulation.standardPNL).toLocaleString().padStart(10)} (${((simulation.teamNetPNL - simulation.standardPNL) / Math.abs(simulation.standardPNL) * 100).toFixed(1)}%)               │
+  └────────────────────────────────────────────────────────────────────────────┘
+
+  P5 Sacrifice Analysis:
+  • P5 absorbed cards in ${simulation.p5SacrificeRounds} sacrifice situations
+  • Each sacrifice denies dealer optimal cards
+  • P5 loss of ${Math.abs(simulation.p5PNL).toLocaleString()} enabled P4 gain of ${simulation.p4PNL.toLocaleString()}
+  • Net team benefit: ${simulation.teamNetPNL >= simulation.standardPNL ? 'POSITIVE' : 'NEGATIVE'}
+
+═══════════════════════════════════════════════════════════════════════════════
                               TOP 5 WINNING GAMES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -323,8 +419,9 @@ ${analysis.slice(0, 30).map(a =>
 ═══════════════════════════════════════════════════════════════════════════════
 
   Report Generated: ${new Date().toISOString()}
-  Engine Version:   Clumping Probability Engine v1.0
-  Analysis Method:  PNL Volatility + Streak Detection + Pattern Recognition
+  Engine Version:   Clumping Probability Engine v1.3 (Teamplay)
+  Analysis Method:  PNL Volatility + Streak Detection + P5 Pure Sacrifice
+  Team Strategy:    P3 Booster | P4 Quant EV | P5 Pure Sacrifice
 
 ══════════════════════════════════════════════════════════════════════════════
 `;

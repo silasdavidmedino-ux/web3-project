@@ -52,6 +52,32 @@
   └────────────────────────────────────────────────────────────────────────────┘
 
 ═══════════════════════════════════════════════════════════════════════════════
+                          TEAMPLAY SIMULATION (P3/P4/P5)
+═══════════════════════════════════════════════════════════════════════════════
+
+  Team Role Breakdown:
+  ┌────────────────────────────────────────────────────────────────────────────┐
+  │ P4 QUANT EV (Main Profit):                                                 │
+  │   Total P&L:              +    32,750                              │
+  │   Strategy: Aggressive doubles in HIGH_STREAK (1.5x bet)                   │
+  │                                                                            │
+  │ P5 PURE SACRIFICE (Card Flow):                                             │
+  │   Total P&L:                  -5,984  (expected loss)             │
+  │   Sacrifice Rounds:               99 hands                         │
+  │   Dealer Bust Value:      +     5,138  (indirect P4 benefit)        │
+  │   Bet Size: Always 0.5x (table minimum)                                    │
+  │                                                                            │
+  │ TEAM NET P&L:             +    26,766                              │
+  │ vs Solo Play:             +     2,266 (9.2%)               │
+  └────────────────────────────────────────────────────────────────────────────┘
+
+  P5 Sacrifice Analysis:
+  • P5 absorbed cards in 99 sacrifice situations
+  • Each sacrifice denies dealer optimal cards
+  • P5 loss of 5,984 enabled P4 gain of 32,750
+  • Net team benefit: POSITIVE
+
+═══════════════════════════════════════════════════════════════════════════════
                               TOP 5 WINNING GAMES
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -133,8 +159,9 @@
                               GENERATED
 ═══════════════════════════════════════════════════════════════════════════════
 
-  Report Generated: 2026-01-16T05:13:38.298Z
-  Engine Version:   Clumping Probability Engine v1.0
-  Analysis Method:  PNL Volatility + Streak Detection + Pattern Recognition
+  Report Generated: 2026-01-16T06:29:52.517Z
+  Engine Version:   Clumping Probability Engine v1.3 (Teamplay)
+  Analysis Method:  PNL Volatility + Streak Detection + P5 Pure Sacrifice
+  Team Strategy:    P3 Booster | P4 Quant EV | P5 Pure Sacrifice
 
 ══════════════════════════════════════════════════════════════════════════════

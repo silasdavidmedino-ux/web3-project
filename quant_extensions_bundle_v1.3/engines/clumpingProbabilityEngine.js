@@ -420,110 +420,252 @@ export function getP4ClumpQuantEVStrategy(playerTotal, dealerUpcard, momentum, t
 }
 
 /**
- * P5 SACRIFICE with Clump Awareness
- * Rear Shield - absorbs cards AFTER P4, can hit hard 17+
+ * P5 PURE SACRIFICE - Clump Aware v1.3
  *
- * HIGH CLUMP: More aggressive - absorb 10s that would help dealer
- * LOW CLUMP: Less aggressive - let dealer take the low cards
+ * ULTIMATE ROLE: P5 exists ONLY to manipulate card flow for P4 (Quant EV).
+ * P5 is NOT intended to win. P5's job is to:
+ *   1. INCREASE dealer bust probability
+ *   2. DENY dealer good cards
+ *   3. PROTECT P4 from unfavorable situations
+ *
+ * STRATEGY PHILOSOPHY:
+ * - HIGH_STREAK: Aggressively absorb 10s (even bust yourself) to deny dealer
+ * - LOW_STREAK: Stand and let dealer take low cards (helps dealer NOT bust = bad for P4)
+ * - Always use MINIMUM bet (P5 expected to lose for team benefit)
+ *
+ * P5 sacrifices personal EV so P4 can maximize team profit.
  */
 export function getP5ClumpSacrificeStrategy(playerTotal, dealerUpcard, momentum, tc = 0, isSoft = false) {
   const dealerVal = dealerUpcard === 'A' ? 11 :
     ['J','Q','K','10'].includes(dealerUpcard) ? 10 : parseInt(dealerUpcard) || 0;
   const weakDealer = dealerVal >= 2 && dealerVal <= 6;
+  const strongDealer = dealerVal >= 7 || dealerVal === 11;
 
   let action = 'STAND';
-  let intent = 'AWAIT_DEALER_BUST';
+  let intent = 'NEUTRAL';
   let reason = '';
   let hitHard17 = false;
+  let hitHard18 = false;
+  let hitHard19 = false;
 
+  // P5 ALWAYS uses minimum bet - sacrifice player
+  const betMultiplier = 0.5; // Table minimum
+
+  // ============================================
+  // HIGH_STREAK: ABSORB 10s TO MAKE DEALER BUST
+  // ============================================
   if (momentum.trend === 'HIGH_STREAK') {
-    // High cards coming - absorb them so dealer can't improve
+    const streakStrength = momentum.highStreak || 3;
 
     if (weakDealer) {
-      // Dealer likely busts anyway, but absorb 10s to ensure it
-      if (playerTotal <= 16) {
+      // Dealer showing 2-6: Will bust with 10s
+      // P5's job: Absorb some 10s, but leave enough for dealer to bust
+
+      if (playerTotal <= 11) {
+        // Safe to hit - can't bust, absorb a card
         action = 'HIT';
-        intent = 'CLUMP_ABSORB_FOR_DEALER_BUST';
-        reason = `P5 Clump: Absorb 10s (streak ${momentum.highStreak}), ensure dealer ${dealerVal} busts`;
-      } else if (playerTotal >= 17 && playerTotal <= 19 && tc >= 2) {
-        // EXTREME: Hit hard 17-19 to absorb 10s
-        action = 'HIT';
-        intent = 'EXTREME_ABSORPTION';
-        hitHard17 = true;
-        reason = `P5 Clump: HIT HARD ${playerTotal}! TC+${tc}, absorb 10s for dealer bust`;
-      } else {
+        intent = 'SAFE_ABSORB';
+        reason = `P5 SAC: Absorb card (${playerTotal}), dealer ${dealerVal} still gets bust cards`;
+      }
+      else if (playerTotal >= 12 && playerTotal <= 16) {
+        // Key decision: absorb 10 (bust) or let it go to dealer (dealer busts)
+        // With weak dealer, let 10s flow to dealer to bust them
+        action = 'STAND';
+        intent = 'FEED_DEALER_BUST_CARD';
+        reason = `P5 SAC: STAND ${playerTotal} - let 10 reach dealer ${dealerVal} to BUST`;
+      }
+      else if (playerTotal === 17 || playerTotal === 18) {
+        // Dealer will bust anyway, but absorbing denies dealer the bust card
+        // ONLY hit if TC is very high (lots of 10s remaining for dealer)
+        if (tc >= 4) {
+          action = 'STAND';
+          intent = 'ENOUGH_TENS_FOR_DEALER';
+          reason = `P5 SAC: TC+${tc} = plenty 10s for dealer bust, stand ${playerTotal}`;
+        } else {
+          action = 'STAND';
+          intent = 'LET_DEALER_BUST';
+          reason = `P5 SAC: Stand ${playerTotal}, dealer ${dealerVal} will bust`;
+        }
+      }
+      else {
         action = 'STAND';
         intent = 'SOLID_HAND';
-        reason = `P5 Clump: ${playerTotal} solid, dealer ${dealerVal} will bust`;
+        reason = `P5 SAC: ${playerTotal} solid, await dealer bust`;
       }
-    } else {
-      // Strong dealer - more critical to absorb
-      if (playerTotal <= 14) {
+    }
+    else {
+      // Dealer showing 7-A: Strong dealer needs 10 to make good hand
+      // P5's job: ABSORB 10s to DENY dealer from making 17-21
+
+      if (playerTotal <= 11) {
         action = 'HIT';
-        intent = 'DENY_DEALER_TENS';
-        reason = `P5 Clump: Absorb 10s vs strong ${dealerVal} - deny dealer`;
-      } else if (playerTotal === 15 || playerTotal === 16) {
-        // Risky but might be worth it
-        action = tc >= 3 ? 'HIT' : 'STAND';
-        intent = tc >= 3 ? 'HIGH_TC_ABSORB' : 'RISKY_STAND';
-        reason = tc >= 3
-          ? `P5 Clump: TC+${tc}, absorb despite ${playerTotal}`
-          : `P5 Clump: Stand ${playerTotal}, too risky`;
-      } else {
+        intent = 'ABSORB_DENY_DEALER';
+        reason = `P5 SAC: Absorb card, deny dealer ${dealerVal} from improving`;
+      }
+      else if (playerTotal >= 12 && playerTotal <= 14) {
+        // Absorb 10 - we bust, but dealer doesn't get it
+        action = 'HIT';
+        intent = 'SACRIFICE_ABSORB';
+        reason = `P5 SAC: HIT ${playerTotal} - ABSORB 10, deny dealer ${dealerVal}!`;
+      }
+      else if (playerTotal === 15 || playerTotal === 16) {
+        // High value sacrifice - absorb if TC supports it
+        if (tc >= 2 || streakStrength >= 4) {
+          action = 'HIT';
+          intent = 'HIGH_VALUE_SACRIFICE';
+          reason = `P5 SAC: HIT ${playerTotal}! Streak ${streakStrength}, absorb 10 from dealer ${dealerVal}`;
+        } else {
+          action = 'STAND';
+          intent = 'MARGINAL_STAND';
+          reason = `P5 SAC: Stand ${playerTotal}, marginal sacrifice value`;
+        }
+      }
+      else if (playerTotal === 17) {
+        // EXTREME SACRIFICE: Hit hard 17 to absorb 10
+        if (tc >= 3 || streakStrength >= 5) {
+          action = 'HIT';
+          intent = 'EXTREME_SACRIFICE_17';
+          hitHard17 = true;
+          reason = `P5 SAC: HIT HARD 17! TC+${tc}, deny dealer ${dealerVal} the 10!`;
+        } else {
+          action = 'STAND';
+          intent = 'STAND_17';
+          reason = `P5 SAC: Stand 17 vs ${dealerVal}`;
+        }
+      }
+      else if (playerTotal === 18) {
+        // ULTRA SACRIFICE: Hit hard 18 only in extreme situations
+        if (tc >= 5 && streakStrength >= 5 && dealerVal === 10) {
+          action = 'HIT';
+          intent = 'ULTRA_SACRIFICE_18';
+          hitHard18 = true;
+          reason = `P5 SAC: HIT HARD 18! Extreme clump, deny dealer 10 their second 10!`;
+        } else {
+          action = 'STAND';
+          intent = 'STAND_18';
+          reason = `P5 SAC: Stand 18 vs ${dealerVal}`;
+        }
+      }
+      else {
         action = 'STAND';
-        intent = 'STANDARD';
-        reason = `P5 Clump: Stand ${playerTotal} vs ${dealerVal}`;
+        intent = 'SOLID_VS_STRONG';
+        reason = `P5 SAC: ${playerTotal} vs ${dealerVal}, solid`;
       }
     }
   }
+
+  // ============================================
+  // LOW_STREAK: LET DEALER TAKE LOW CARDS
+  // ============================================
   else if (momentum.trend === 'LOW_STREAK') {
-    // Low cards coming - let dealer take them (they help dealer make hand)
+    // Low cards coming - they HELP dealer make hands (not bust)
+    // P5's job: STAND and let dealer absorb the low cards
+    // This way dealer makes 17-20 instead of P4 facing a bust situation
+    // Wait... that's BAD for P4. Let me reconsider.
+    //
+    // Actually: If low cards are coming and dealer has weak card:
+    // - Dealer draws low, gets 12-16, draws again, might survive
+    // - P5 should ABSORB lows so dealer draws into bust range later
+    //
+    // If dealer has strong card (7-A):
+    // - Dealer + low = 12-17 range, needs another card
+    // - Low cards help dealer slowly build without busting
+    // - P5 should ABSORB lows to deny dealer safe builds
 
     if (weakDealer) {
-      // Low cards help weak dealer NOT bust - stand and let dealer take them
-      action = 'STAND';
-      intent = 'LET_DEALER_TAKE_LOWS';
-      reason = `P5 Clump: Low streak - let dealer ${dealerVal} take small cards (make 17-20)`;
-    } else {
-      // Strong dealer with low cards - dealer makes hands easily
+      // Dealer showing 2-6 + low streak = dealer might survive
+      // P5 should absorb lows so dealer eventually hits a 10 and busts
+
       if (playerTotal <= 11) {
         action = 'HIT';
-        intent = 'SAFE_BUILD';
-        reason = `P5 Clump: Safe hit in low streak`;
-      } else if (playerTotal >= 12 && playerTotal <= 16) {
-        // Hit to try to beat dealer who will make 17-20
+        intent = 'ABSORB_LOWS_SAFE';
+        reason = `P5 SAC: Absorb low cards, force dealer ${dealerVal} to draw into 10s later`;
+      }
+      else if (playerTotal >= 12 && playerTotal <= 16) {
+        // Absorb low cards - won't bust us, denies dealer survival cards
         action = 'HIT';
-        intent = 'MUST_COMPETE';
-        reason = `P5 Clump: Hit ${playerTotal} - dealer ${dealerVal} will make hand with lows`;
-      } else {
+        intent = 'ABSORB_DEALER_SURVIVAL_CARDS';
+        reason = `P5 SAC: HIT ${playerTotal} - absorb lows, deny dealer ${dealerVal} survival`;
+      }
+      else {
         action = 'STAND';
-        intent = 'HOPE_ENOUGH';
-        reason = `P5 Clump: Stand ${playerTotal}, hope it's enough`;
+        intent = 'LET_DEALER_DRAW';
+        reason = `P5 SAC: Stand ${playerTotal}, let dealer draw`;
+      }
+    }
+    else {
+      // Dealer showing 7-A + low streak = dealer builds safely
+      // P5 should absorb lows to deny dealer safe building cards
+
+      if (playerTotal <= 11) {
+        action = 'HIT';
+        intent = 'DENY_DEALER_BUILD';
+        reason = `P5 SAC: Hit ${playerTotal}, absorb lows from dealer ${dealerVal}`;
+      }
+      else if (playerTotal >= 12 && playerTotal <= 15) {
+        // Safe to hit in low streak - absorb dealer's building cards
+        action = 'HIT';
+        intent = 'SAFE_HIT_LOW_STREAK';
+        reason = `P5 SAC: HIT ${playerTotal} - low streak safe, deny dealer ${dealerVal}`;
+      }
+      else if (playerTotal === 16) {
+        // Marginal - low card might help us too
+        action = 'HIT';
+        intent = 'ABSORB_BUILD_CARD';
+        reason = `P5 SAC: HIT 16 - absorb low, deny dealer ${dealerVal} build card`;
+      }
+      else {
+        action = 'STAND';
+        intent = 'HAND_COMPLETE';
+        reason = `P5 SAC: Stand ${playerTotal} vs ${dealerVal}`;
       }
     }
   }
+
+  // ============================================
+  // NEUTRAL: Standard sacrifice play
+  // ============================================
   else {
-    // Neutral - standard sacrifice logic
     if (weakDealer) {
       if (playerTotal <= 11) {
         action = 'HIT';
-        intent = 'SAFE_BUILD';
-        reason = `P5 SAC: Safe hit vs weak ${dealerVal}`;
-      } else {
+        intent = 'BUILD';
+        reason = `P5 SAC: Build hand vs weak ${dealerVal}`;
+      }
+      else if (playerTotal >= 12) {
         action = 'STAND';
-        intent = 'LET_DEALER_BUST';
+        intent = 'AWAIT_BUST';
         reason = `P5 SAC: Stand ${playerTotal}, dealer ${dealerVal} busts`;
       }
-    } else {
+    }
+    else {
       if (playerTotal <= 16) {
         action = 'HIT';
-        intent = 'MUST_COMPETE';
+        intent = 'MUST_HIT';
         reason = `P5 SAC: Hit ${playerTotal} vs strong ${dealerVal}`;
-      } else {
-        action = 'STAND';
-        intent = 'SOLID_HAND';
-        reason = `P5 SAC: Stand ${playerTotal}`;
       }
+      else {
+        action = 'STAND';
+        intent = 'COMPETE';
+        reason = `P5 SAC: Stand ${playerTotal} vs ${dealerVal}`;
+      }
+    }
+  }
+
+  // ============================================
+  // SOFT HAND HANDLING
+  // ============================================
+  if (isSoft && playerTotal <= 17) {
+    // Soft hands can absorb cards without busting - perfect for sacrifice
+    if (momentum.trend === 'HIGH_STREAK' && strongDealer) {
+      action = 'HIT';
+      intent = 'SOFT_ABSORB_HIGH';
+      reason = `P5 SAC: Hit soft ${playerTotal} - absorb 10, deny dealer ${dealerVal}`;
+    }
+    else if (momentum.trend === 'LOW_STREAK') {
+      action = 'HIT';
+      intent = 'SOFT_ABSORB_LOW';
+      reason = `P5 SAC: Hit soft ${playerTotal} - absorb low, deny dealer build`;
     }
   }
 
@@ -532,8 +674,11 @@ export function getP5ClumpSacrificeStrategy(playerTotal, dealerUpcard, momentum,
     intent,
     reason,
     hitHard17,
+    hitHard18,
+    hitHard19,
+    betMultiplier,  // Always 0.5 (minimum)
     momentum: momentum.trend,
-    playerType: 'P5_SACRIFICE'
+    playerType: 'P5_PURE_SACRIFICE'
   };
 }
 
