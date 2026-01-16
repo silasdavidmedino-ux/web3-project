@@ -3123,37 +3123,42 @@ function autoToggleClumpStrategy() {
   const ac = AppState.antiClump;
 
   // Minimum sample size before auto-toggling
-  if (ac.recentCards.length < 15) {
+  if (ac.recentCards.length < 10) {
     return;
   }
 
-  const wasAutoEnabled = ac.autoEnabled || false;
-  const clumpThreshold = 60;  // Score >= 60 triggers auto-enable
-  const normalThreshold = 50; // Score <= 50 disables auto-mode
+  const clumpThreshold = 55;  // Score >= 55 triggers auto-enable (lowered for responsiveness)
+  const normalThreshold = 45; // Score <= 45 disables auto-mode
 
-  if (ac.clumpScore >= clumpThreshold && !ac.enabled && !wasAutoEnabled) {
-    // Auto-enable clump strategy
+  // ALWAYS auto-enable when heavy clumping detected (score >= 55)
+  if (ac.clumpScore >= clumpThreshold && !ac.autoEnabled) {
     ac.autoEnabled = true;
     ac.enabled = true;
-    showToast(`⚠️ CLUMP DETECTED (Score: ${ac.clumpScore}) - Auto-adjusting strategy`, 'warning');
-    logToConsole(`[AUTO-CLUMP] Clumping detected! Score: ${ac.clumpScore}. Strategy auto-enabled.`, 'warning');
+    const severity = ac.clumpScore >= 70 ? '🔴 HEAVY' : ac.clumpScore >= 60 ? '🟠 MODERATE' : '🟡 MILD';
+    showToast(`${severity} CLUMP DETECTED (${Math.round(ac.clumpScore)}) - Strategy auto-enabled!`, 'warning');
+    logToConsole(`[AUTO-CLUMP] ${severity} clumping detected! Score: ${Math.round(ac.clumpScore)}. Strategy auto-enabled.`, 'warning');
     updateAntiClumpDisplay();
     updateClumpAutoToggleIndicator();
-  } else if (ac.clumpScore <= normalThreshold && wasAutoEnabled) {
-    // Auto-disable clump strategy (only if it was auto-enabled, not manually)
+  }
+  // Auto-disable only when shuffle normalizes (score drops below threshold)
+  else if (ac.clumpScore <= normalThreshold && ac.autoEnabled) {
     ac.autoEnabled = false;
     ac.enabled = false;
-    showToast(`✓ Shuffle normalized (Score: ${ac.clumpScore}) - Resuming standard strategy`, 'success');
-    logToConsole(`[AUTO-CLUMP] Shuffle normalized. Score: ${ac.clumpScore}. Strategy auto-disabled.`, 'info');
+    showToast(`✓ Shuffle normalized (${Math.round(ac.clumpScore)}) - Standard strategy`, 'success');
+    logToConsole(`[AUTO-CLUMP] Shuffle normalized. Score: ${Math.round(ac.clumpScore)}. Strategy auto-disabled.`, 'info');
     updateAntiClumpDisplay();
     updateClumpAutoToggleIndicator();
-  } else if (ac.autoEnabled && ac.clumpScore >= 70) {
-    // Heavy clump warning while auto-enabled
-    if (!ac.lastHeavyClumpWarning || Date.now() - ac.lastHeavyClumpWarning > 30000) {
-      showToast(`🔴 HEAVY CLUMP (Score: ${ac.clumpScore}) - Consider reducing bets!`, 'error');
+  }
+  // Heavy clump warning (rate-limited)
+  else if (ac.autoEnabled && ac.clumpScore >= 70) {
+    if (!ac.lastHeavyClumpWarning || Date.now() - ac.lastHeavyClumpWarning > 20000) {
+      showToast(`🔴 HEAVY CLUMP (${Math.round(ac.clumpScore)}) - REDUCE BETS!`, 'error');
       ac.lastHeavyClumpWarning = Date.now();
     }
   }
+
+  // Always update the indicator to show current status
+  updateClumpAutoToggleIndicator();
 }
 
 /**
@@ -3165,14 +3170,31 @@ function updateClumpAutoToggleIndicator() {
 
   if (!indicator) return;
 
+  const score = Math.round(ac.clumpScore);
+
   if (ac.autoEnabled) {
+    // Auto-clump is ACTIVE
     indicator.classList.add('active');
-    indicator.textContent = `AUTO-CLUMP: ${ac.recommendation}`;
-    indicator.style.background = ac.clumpScore >= 70 ? '#ff4444' : '#ffc800';
-  } else {
+    indicator.textContent = `CLUMP: ${score} (${ac.recommendation})`;
+    indicator.style.background = score >= 70 ? '#ff4444' : score >= 55 ? '#ffc800' : '#00aa44';
+    indicator.style.color = '#fff';
+  } else if (ac.recentCards.length >= 10) {
+    // Monitoring but not triggered
     indicator.classList.remove('active');
-    indicator.textContent = 'AUTO-CLUMP: OFF';
+    if (score >= 50) {
+      indicator.textContent = `CLUMP: ${score} (monitoring)`;
+      indicator.style.background = score >= 55 ? '#664400' : '#444';
+    } else {
+      indicator.textContent = `CLUMP: ${score} (normal)`;
+      indicator.style.background = '#224422';
+    }
+    indicator.style.color = '#aaa';
+  } else {
+    // Not enough data yet
+    indicator.classList.remove('active');
+    indicator.textContent = `CLUMP: ... (${ac.recentCards.length}/10)`;
     indicator.style.background = '#333';
+    indicator.style.color = '#666';
   }
 }
 
@@ -4205,6 +4227,7 @@ function updateAllImmediate() {
     updateShoeCompDisplay();
     updateClumpProbDisplay();
     updateSitOutSignal();
+    updateClumpAutoToggleIndicator();
   } catch (err) {
     console.error('updateAll error:', err);
   }
