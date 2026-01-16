@@ -3315,22 +3315,27 @@ function computeAntiClumpScore() {
   const expectedMaxRun = Math.max(2, Math.log2(window.length));
   const runAnomaly = maxRun > expectedMaxRun * 1.5;
 
-  // 4. Compute composite score
+  // 4. Compute composite score - MORE SENSITIVE VERSION
   let clumpScore = 50;
-  const clumpRatioScore = (clumpRatio - 1) * 25;
-  const transitionScore = Math.min(15, normalizedVariance * 5);
-  const sameTypeScore = (sameTypeRatio - 0.5) * 30;
-  const runScore = runAnomaly ? 20 : (maxRun / expectedMaxRun - 1) * 10;
+
+  // Increase multipliers for more sensitivity
+  const clumpRatioScore = (clumpRatio - 1) * 40;  // Was 25
+  const transitionScore = Math.min(20, normalizedVariance * 8);  // Was 15, 5
+  const sameTypeScore = (sameTypeRatio - 0.5) * 50;  // Was 30
+  const runScore = runAnomaly ? 25 : (maxRun / expectedMaxRun - 1) * 15;  // Was 20, 10
 
   clumpScore = 50 + clumpRatioScore + transitionScore + sameTypeScore + runScore;
 
-  // Bayesian smoothing for low sample size
-  if (window.length < 25) {
-    const smoothingFactor = window.length / 25;
+  // REDUCED Bayesian smoothing - less aggressive
+  if (window.length < 15) {
+    const smoothingFactor = 0.5 + (window.length / 30);  // Much less smoothing
     clumpScore = 50 + (clumpScore - 50) * smoothingFactor;
   }
 
   clumpScore = Math.max(0, Math.min(100, clumpScore));
+
+  // DEBUG: Log the score components
+  console.log(`[CLUMP CALC] ratio=${clumpRatioScore.toFixed(1)}, trans=${transitionScore.toFixed(1)}, same=${sameTypeScore.toFixed(1)}, run=${runScore.toFixed(1)} => TOTAL=${clumpScore.toFixed(1)}`);
 
   // 5. Determine recommendation
   let recommendation, strategy, betMultiplier;
