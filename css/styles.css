@@ -9742,3 +9742,42 @@ body.touch-mode .input-group select {
   margin-top: 3px;
   letter-spacing: 0.5px;
 }
+
+/* ============================================
+   AUTO-CLUMP INDICATOR
+   ============================================ */
+.clump-auto-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  margin-top: 8px;
+  border-radius: 6px;
+  min-width: 120px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  font-family: 'Consolas', monospace;
+  background: #333;
+  color: #666;
+  border: 1px solid #444;
+  transition: all 0.3s ease;
+}
+
+.clump-auto-indicator.active {
+  color: #fff;
+  border: 2px solid currentColor;
+  animation: clumpPulse 2s ease-in-out infinite;
+  box-shadow: 0 0 15px rgba(255, 200, 0, 0.4);
+}
+
+@keyframes clumpPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.02);
+  }
+}

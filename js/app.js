@@ -287,12 +287,14 @@ const AppState = {
   // ============================================
   antiClump: {
     enabled: false,        // Toggle ON when suspecting clumping
+    autoEnabled: false,    // True when system auto-enabled due to detected clumping
     recentCards: [],       // Sliding window of last 25 cards dealt
     maxWindowSize: 25,     // Maximum cards to track
     clumpScore: 50,        // Current clump score (0-100)
     recommendation: 'NEUTRAL',
     strategy: 'STANDARD',
     betMultiplier: 1.0,
+    lastHeavyClumpWarning: null,  // Timestamp of last heavy clump warning
     // Momentum tracking for teamplay
     momentum: {
       trend: 'NEUTRAL',    // HIGH_STREAK, LOW_STREAK, NEUTRAL
@@ -3098,10 +3100,7 @@ function trackCardForAntiClump(card) {
 
   const ac = AppState.antiClump;
 
-  // Only track if enabled
-  if (!ac.enabled) return;
-
-  // Add to recent cards window
+  // ALWAYS track cards for real-time clump detection (even if not manually enabled)
   ac.recentCards.push(card);
 
   // Maintain window size limit
@@ -3109,8 +3108,72 @@ function trackCardForAntiClump(card) {
     ac.recentCards.shift();
   }
 
-  // Run the anti-clump engine computation
+  // Run the anti-clump engine computation (always compute for real-time detection)
   computeAntiClumpScore();
+
+  // AUTO-TOGGLE: Automatically enable/disable clump strategy based on detected patterns
+  autoToggleClumpStrategy();
+}
+
+/**
+ * Auto-toggle clump strategy based on real-time clump detection
+ * Enables clump adjustments when clumping is detected, disables when normal
+ */
+function autoToggleClumpStrategy() {
+  const ac = AppState.antiClump;
+
+  // Minimum sample size before auto-toggling
+  if (ac.recentCards.length < 15) {
+    return;
+  }
+
+  const wasAutoEnabled = ac.autoEnabled || false;
+  const clumpThreshold = 60;  // Score >= 60 triggers auto-enable
+  const normalThreshold = 50; // Score <= 50 disables auto-mode
+
+  if (ac.clumpScore >= clumpThreshold && !ac.enabled && !wasAutoEnabled) {
+    // Auto-enable clump strategy
+    ac.autoEnabled = true;
+    ac.enabled = true;
+    showToast(`⚠️ CLUMP DETECTED (Score: ${ac.clumpScore}) - Auto-adjusting strategy`, 'warning');
+    logToConsole(`[AUTO-CLUMP] Clumping detected! Score: ${ac.clumpScore}. Strategy auto-enabled.`, 'warning');
+    updateAntiClumpDisplay();
+    updateClumpAutoToggleIndicator();
+  } else if (ac.clumpScore <= normalThreshold && wasAutoEnabled) {
+    // Auto-disable clump strategy (only if it was auto-enabled, not manually)
+    ac.autoEnabled = false;
+    ac.enabled = false;
+    showToast(`✓ Shuffle normalized (Score: ${ac.clumpScore}) - Resuming standard strategy`, 'success');
+    logToConsole(`[AUTO-CLUMP] Shuffle normalized. Score: ${ac.clumpScore}. Strategy auto-disabled.`, 'info');
+    updateAntiClumpDisplay();
+    updateClumpAutoToggleIndicator();
+  } else if (ac.autoEnabled && ac.clumpScore >= 70) {
+    // Heavy clump warning while auto-enabled
+    if (!ac.lastHeavyClumpWarning || Date.now() - ac.lastHeavyClumpWarning > 30000) {
+      showToast(`🔴 HEAVY CLUMP (Score: ${ac.clumpScore}) - Consider reducing bets!`, 'error');
+      ac.lastHeavyClumpWarning = Date.now();
+    }
+  }
+}
+
+/**
+ * Update clump auto-toggle indicator in UI
+ */
+function updateClumpAutoToggleIndicator() {
+  const ac = AppState.antiClump;
+  const indicator = document.getElementById('clumpAutoIndicator');
+
+  if (!indicator) return;
+
+  if (ac.autoEnabled) {
+    indicator.classList.add('active');
+    indicator.textContent = `AUTO-CLUMP: ${ac.recommendation}`;
+    indicator.style.background = ac.clumpScore >= 70 ? '#ff4444' : '#ffc800';
+  } else {
+    indicator.classList.remove('active');
+    indicator.textContent = 'AUTO-CLUMP: OFF';
+    indicator.style.background = '#333';
+  }
 }
 
 /**
@@ -3462,6 +3525,9 @@ function updateAntiClumpDisplay() {
       </div>
     </div>
   `;
+
+  // Update the auto-clump indicator
+  updateClumpAutoToggleIndicator();
 }
 
 /**
@@ -3474,6 +3540,8 @@ function clearAntiClumpTracking() {
   ac.recommendation = 'NEUTRAL';
   ac.strategy = 'STANDARD';
   ac.betMultiplier = 1.0;
+  ac.autoEnabled = false;  // Reset auto-toggle on shuffle
+  ac.lastHeavyClumpWarning = null;
   ac.momentum = {
     trend: 'NEUTRAL',
     highStreak: 0,
@@ -5858,6 +5926,179 @@ function endGameSession() {
   }
 }
 
+/**
+ * Analyze dealer card patterns for clumping detection
+ * @param {Array} roundDetails - Array of round data with cards
+ * @returns {Object} Pattern analysis results
+ */
+function analyzeDealerCardPatterns(roundDetails) {
+  if (!roundDetails || roundDetails.length === 0) {
+    return { hasData: false };
+  }
+
+  // Flatten all cards dealt across all rounds in sequence
+  const allCards = [];
+  roundDetails.forEach(round => {
+    // Add cards in deal sequence if available
+    if (round.cardsDealtSequence && round.cardsDealtSequence.length > 0) {
+      allCards.push(...round.cardsDealtSequence);
+    } else {
+      // Fallback: collect from dealer and players
+      if (round.dealer?.cards) allCards.push(...round.dealer.cards);
+      Object.values(round.players || {}).forEach(p => {
+        if (p.cards) allCards.push(...p.cards);
+      });
+    }
+  });
+
+  if (allCards.length < 10) {
+    return { hasData: false, reason: 'Insufficient cards' };
+  }
+
+  // Classify cards as High (10,J,Q,K,A) or Low (2-6) or Neutral (7-9)
+  const classifyCard = (card) => {
+    const rank = normalizeRank(card);
+    if (['10', 'J', 'Q', 'K', 'A'].includes(rank)) return 'H';
+    if (['2', '3', '4', '5', '6'].includes(rank)) return 'L';
+    return 'N';
+  };
+
+  // Build sequence of H/L/N
+  const sequence = allCards.map(classifyCard);
+
+  // 1. Calculate clustering ratio
+  let highCount = sequence.filter(c => c === 'H').length;
+  let lowCount = sequence.filter(c => c === 'L').length;
+  const totalCards = allCards.length;
+
+  // Expected distribution in 8-deck shoe: H=160/416 (38.5%), L=200/416 (48.1%)
+  const expectedHighRatio = 0.385;
+  const expectedLowRatio = 0.481;
+  const actualHighRatio = highCount / totalCards;
+  const actualLowRatio = lowCount / totalCards;
+
+  // 2. Transition matrix (H→H, H→L, L→H, L→L)
+  const transitions = { HH: 0, HL: 0, LH: 0, LL: 0, total: 0 };
+  for (let i = 0; i < sequence.length - 1; i++) {
+    const curr = sequence[i];
+    const next = sequence[i + 1];
+    if (curr !== 'N' && next !== 'N') {
+      const key = curr + next;
+      if (transitions[key] !== undefined) {
+        transitions[key]++;
+        transitions.total++;
+      }
+    }
+  }
+
+  // Calculate transition probabilities (expected 25% each for random)
+  const transitionProbs = {
+    HH: transitions.total > 0 ? (transitions.HH / transitions.total * 100).toFixed(1) : 0,
+    HL: transitions.total > 0 ? (transitions.HL / transitions.total * 100).toFixed(1) : 0,
+    LH: transitions.total > 0 ? (transitions.LH / transitions.total * 100).toFixed(1) : 0,
+    LL: transitions.total > 0 ? (transitions.LL / transitions.total * 100).toFixed(1) : 0
+  };
+
+  // 3. Run detection (consecutive same-type cards)
+  let maxHighRun = 0, maxLowRun = 0, currentRun = 1, currentType = sequence[0];
+  for (let i = 1; i < sequence.length; i++) {
+    if (sequence[i] === currentType && sequence[i] !== 'N') {
+      currentRun++;
+    } else {
+      if (currentType === 'H') maxHighRun = Math.max(maxHighRun, currentRun);
+      if (currentType === 'L') maxLowRun = Math.max(maxLowRun, currentRun);
+      currentRun = 1;
+      currentType = sequence[i];
+    }
+  }
+  // Final check
+  if (currentType === 'H') maxHighRun = Math.max(maxHighRun, currentRun);
+  if (currentType === 'L') maxLowRun = Math.max(maxLowRun, currentRun);
+
+  // Expected max run ≈ log2(n) for random sequence
+  const expectedMaxRun = Math.ceil(Math.log2(totalCards));
+
+  // 4. Calculate clump score (0-100)
+  // Higher = more clumping detected
+  let clumpScore = 50; // Baseline neutral
+
+  // Adjust for clustering deviation
+  const clusteringDeviation = Math.abs(actualHighRatio - expectedHighRatio) + Math.abs(actualLowRatio - expectedLowRatio);
+  clumpScore += clusteringDeviation * 50;
+
+  // Adjust for transition anomalies (same-type transitions higher than expected)
+  const sameTypeTransitions = (parseFloat(transitionProbs.HH) + parseFloat(transitionProbs.LL)) / 2;
+  if (sameTypeTransitions > 30) clumpScore += (sameTypeTransitions - 25) * 1.5;
+
+  // Adjust for long runs
+  const maxRun = Math.max(maxHighRun, maxLowRun);
+  if (maxRun > expectedMaxRun * 1.5) {
+    clumpScore += (maxRun - expectedMaxRun) * 3;
+  }
+
+  clumpScore = Math.min(100, Math.max(0, Math.round(clumpScore)));
+
+  // 5. Dealer-specific patterns
+  const dealerPatterns = {
+    totalHands: roundDetails.length,
+    dealerBusts: roundDetails.filter(r => r.dealer?.busted).length,
+    dealerBJRate: roundDetails.filter(r => r.dealer?.total === 21 && r.dealer?.cards?.length === 2).length,
+    avgDealerTotal: roundDetails.reduce((sum, r) => sum + (r.dealer?.total || 0), 0) / roundDetails.length
+  };
+
+  // 6. Per-player card distribution
+  const playerCardStats = {};
+  for (let p = 1; p <= 8; p++) {
+    const playerCards = [];
+    roundDetails.forEach(r => {
+      if (r.players[p]?.cards) {
+        playerCards.push(...r.players[p].cards);
+      }
+    });
+    if (playerCards.length > 0) {
+      const pSeq = playerCards.map(classifyCard);
+      playerCardStats[p] = {
+        totalCards: playerCards.length,
+        highCards: pSeq.filter(c => c === 'H').length,
+        lowCards: pSeq.filter(c => c === 'L').length,
+        avgCardsPerRound: (playerCards.length / roundDetails.length).toFixed(1)
+      };
+    }
+  }
+
+  return {
+    hasData: true,
+    totalCardsAnalyzed: totalCards,
+    roundsAnalyzed: roundDetails.length,
+
+    // Clustering analysis
+    highCardRatio: (actualHighRatio * 100).toFixed(1) + '%',
+    lowCardRatio: (actualLowRatio * 100).toFixed(1) + '%',
+    expectedHighRatio: (expectedHighRatio * 100).toFixed(1) + '%',
+    expectedLowRatio: (expectedLowRatio * 100).toFixed(1) + '%',
+
+    // Transition matrix
+    transitions: transitionProbs,
+    sameTypeTransitionRate: sameTypeTransitions.toFixed(1) + '%',
+
+    // Run analysis
+    maxHighRun,
+    maxLowRun,
+    expectedMaxRun,
+    runAnomaly: maxRun > expectedMaxRun * 1.5,
+
+    // Overall clump score
+    clumpScore,
+    clumpLevel: clumpScore >= 70 ? 'HEAVY' : clumpScore >= 55 ? 'MILD' : clumpScore <= 30 ? 'DISPERSED' : 'NORMAL',
+
+    // Dealer patterns
+    dealerPatterns,
+
+    // Player card distribution
+    playerCardStats
+  };
+}
+
 function generateSessionAnalysis() {
   const history = AppState.gameHistory;
   const stats = history.statistics;
@@ -6272,8 +6513,36 @@ function archiveCurrentGame() {
     // Pattern data (summarized)
     dealerUpcardFrequency: { ...history.patterns.dealerUpcardFrequency },
     dealerBustByUpcard: { ...history.patterns.dealerBustByUpcard },
-    alertCount: history.alerts?.length || 0
+    alertCount: history.alerts?.length || 0,
+
+    // Round-by-round card data for dealer pattern analysis
+    roundDetails: history.rounds.map(r => ({
+      round: r.roundNumber,
+      dealer: {
+        cards: r.dealer?.cards || [],
+        total: r.dealer?.total || 0,
+        upcard: r.dealer?.upcard || null,
+        busted: r.dealer?.busted || false
+      },
+      players: Object.entries(r.players || {}).reduce((acc, [pNum, pData]) => {
+        acc[pNum] = {
+          cards: pData.cards || [],
+          total: pData.total || 0,
+          blackjack: pData.blackjack || false,
+          busted: pData.busted || false,
+          split: pData.split || null
+        };
+        return acc;
+      }, {}),
+      cardsDealtSequence: r.cardsDealtInRound || [],
+      tc: r.trueCountEnd || 0,
+      rc: r.runningCountEnd || 0,
+      penetration: r.penetration || '0'
+    }))
   };
+
+  // Run card pattern analysis on the round details
+  gameSummary.cardPatternAnalysis = analyzeDealerCardPatterns(gameSummary.roundDetails);
 
   // Add to archive (FIFO - remove oldest if exceeds maxGames)
   archive.games.push(gameSummary);
@@ -6352,6 +6621,78 @@ function loadGameArchive() {
 }
 
 /**
+ * Generate card pattern section for end-game report
+ */
+function generateCardPatternSection(analysis) {
+  if (!analysis || !analysis.hasData) {
+    return '  Insufficient data for pattern analysis.';
+  }
+
+  const clumpIcon = analysis.clumpLevel === 'HEAVY' ? '🔴' :
+                    analysis.clumpLevel === 'MILD' ? '🟡' :
+                    analysis.clumpLevel === 'DISPERSED' ? '🟢' : '⚪';
+
+  let section = `  Cards Analyzed:     ${analysis.totalCardsAnalyzed} cards over ${analysis.roundsAnalyzed} rounds
+  Pattern Clump Score: ${analysis.clumpScore}/100 (${analysis.clumpLevel}) ${clumpIcon}
+
+  CARD DISTRIBUTION
+  ┌────────────────────────────────────────────────────────────────────┐
+  │ High Cards (10-A):  ${analysis.highCardRatio.padStart(6)} (Expected: ${analysis.expectedHighRatio})       │
+  │ Low Cards (2-6):    ${analysis.lowCardRatio.padStart(6)} (Expected: ${analysis.expectedLowRatio})       │
+  └────────────────────────────────────────────────────────────────────┘
+
+  TRANSITION MATRIX (Expected: 25% each for random shuffle)
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ H→H: ${analysis.transitions.HH.toString().padStart(5)}%  │  H→L: ${analysis.transitions.HL.toString().padStart(5)}%  │  Same-Type Rate: ${analysis.sameTypeTransitionRate.padStart(6)} │
+  │ L→H: ${analysis.transitions.LH.toString().padStart(5)}%  │  L→L: ${analysis.transitions.LL.toString().padStart(5)}%  │  ${parseFloat(analysis.sameTypeTransitionRate) > 55 ? '⚠️ HIGH CLUMP' : '✓ NORMAL'}       │
+  └─────────────────────────────────────────────────────────────────────┘
+
+  RUN LENGTH ANALYSIS
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ Max High-Card Run:  ${String(analysis.maxHighRun).padStart(3)} cards                                    │
+  │ Max Low-Card Run:   ${String(analysis.maxLowRun).padStart(3)} cards                                    │
+  │ Expected Max Run:   ${String(analysis.expectedMaxRun).padStart(3)} cards  ${analysis.runAnomaly ? '⚠️ ANOMALY DETECTED' : '✓ NORMAL'}           │
+  └─────────────────────────────────────────────────────────────────────┘`;
+
+  // Add dealer pattern summary
+  if (analysis.dealerPatterns) {
+    const dp = analysis.dealerPatterns;
+    const bustRate = dp.totalHands > 0 ? ((dp.dealerBusts / dp.totalHands) * 100).toFixed(1) : '0.0';
+    section += `
+
+  DEALER PATTERNS
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ Total Hands:        ${String(dp.totalHands).padStart(4)}  │  Dealer Busts:      ${String(dp.dealerBusts).padStart(4)} (${bustRate}%)       │
+  │ Avg Dealer Total:   ${dp.avgDealerTotal.toFixed(1).padStart(5)}  │  Dealer Blackjacks: ${String(dp.dealerBJRate).padStart(4)}               │
+  └─────────────────────────────────────────────────────────────────────┘`;
+  }
+
+  // Add player card distribution if available
+  if (analysis.playerCardStats && Object.keys(analysis.playerCardStats).length > 0) {
+    section += `
+
+  PER-PLAYER CARD DISTRIBUTION
+  ┌───────┬────────┬──────────┬──────────┬────────────────┐
+  │ Seat  │ Cards  │ High (%) │ Low (%)  │ Avg/Round      │
+  ├───────┼────────┼──────────┼──────────┼────────────────┤`;
+
+    for (let p = 1; p <= 8; p++) {
+      const ps = analysis.playerCardStats[p];
+      if (ps) {
+        const highPct = ((ps.highCards / ps.totalCards) * 100).toFixed(1);
+        const lowPct = ((ps.lowCards / ps.totalCards) * 100).toFixed(1);
+        section += `
+  │  P${p}   │ ${String(ps.totalCards).padStart(5)}  │  ${highPct.padStart(5)}%  │  ${lowPct.padStart(5)}%  │  ${ps.avgCardsPerRound.padStart(4)} cards    │`;
+      }
+    }
+    section += `
+  └───────┴────────┴──────────┴──────────┴────────────────┘`;
+  }
+
+  return section;
+}
+
+/**
  * Generate comprehensive end-of-game report
  */
 function generateEndGameReport(gameSummary) {
@@ -6407,6 +6748,10 @@ function generateEndGameReport(gameSummary) {
   Recommendation:       ${gameSummary.clumpRecommendation}
   Momentum:             ${gameSummary.momentum}
   Count Correlation:    Win Avg TC: ${gameSummary.avgCountAtWin} | Loss Avg TC: ${gameSummary.avgCountAtLoss}
+
+  CARD DEALING PATTERN ANALYSIS (Dealer/Shoe Pattern Detection)
+  ───────────────────────────────────────────────────────────────────────────────
+${generateCardPatternSection(gameSummary.cardPatternAnalysis)}
 
   DEALER UPCARD PERFORMANCE
   ───────────────────────────────────────────────────────────────────────────────
