@@ -3134,6 +3134,13 @@ function autoToggleClumpStrategy() {
   if (ac.clumpScore >= clumpThreshold && !ac.autoEnabled) {
     ac.autoEnabled = true;
     ac.enabled = true;
+
+    // UPDATE THE UI TOGGLE CHECKBOX
+    const toggle = document.getElementById('antiClumpToggle');
+    const content = document.getElementById('antiClumpContent');
+    if (toggle) toggle.checked = true;
+    if (content) content.classList.remove('hidden');
+
     const severity = ac.clumpScore >= 70 ? '🔴 HEAVY' : ac.clumpScore >= 60 ? '🟠 MODERATE' : '🟡 MILD';
     showToast(`${severity} CLUMP DETECTED (${Math.round(ac.clumpScore)}) - Strategy auto-enabled!`, 'warning');
     logToConsole(`[AUTO-CLUMP] ${severity} clumping detected! Score: ${Math.round(ac.clumpScore)}. Strategy auto-enabled.`, 'warning');
@@ -3144,6 +3151,11 @@ function autoToggleClumpStrategy() {
   else if (ac.clumpScore <= normalThreshold && ac.autoEnabled) {
     ac.autoEnabled = false;
     ac.enabled = false;
+
+    // UPDATE THE UI TOGGLE CHECKBOX (but don't hide content so user can see score)
+    const toggle = document.getElementById('antiClumpToggle');
+    if (toggle) toggle.checked = false;
+
     showToast(`✓ Shuffle normalized (${Math.round(ac.clumpScore)}) - Standard strategy`, 'success');
     logToConsole(`[AUTO-CLUMP] Shuffle normalized. Score: ${Math.round(ac.clumpScore)}. Strategy auto-disabled.`, 'info');
     updateAntiClumpDisplay();
@@ -3589,24 +3601,21 @@ function clearAntiClumpTracking() {
  */
 function toggleAntiClump() {
   const toggle = document.getElementById('antiClumpToggle');
-  const content = document.getElementById('antiClumpContent');
   const ac = AppState.antiClump;
 
   ac.enabled = toggle?.checked ?? false;
 
-  if (content) {
-    if (ac.enabled) {
-      content.classList.remove('hidden');
-      // Start tracking from current point
-      showToast('Anti-Clump Detection enabled', 'info');
-    } else {
-      content.classList.add('hidden');
-      // Clear tracking when disabled
-      ac.recentCards = [];
-      ac.clumpScore = 50;
-      showToast('Anti-Clump Detection disabled', 'info');
-    }
+  // When manually toggled, clear autoEnabled flag
+  if (ac.enabled) {
+    ac.autoEnabled = false; // Manual enable - not auto
+    showToast('Anti-Clump Strategy ENABLED - adjustments active', 'success');
+  } else {
+    ac.autoEnabled = false; // Clear auto flag on manual disable
+    showToast('Anti-Clump Strategy DISABLED - monitoring only', 'info');
   }
+
+  // DON'T hide content - clump score should always be visible
+  // The toggle only controls whether strategy adjustments are APPLIED
 
   // Save preference to localStorage
   try {
@@ -3614,6 +3623,7 @@ function toggleAntiClump() {
   } catch (e) {}
 
   updateAntiClumpDisplay();
+  updateClumpAutoToggleIndicator();
 }
 
 /**
@@ -3635,11 +3645,14 @@ function initAntiClumpToggle() {
     toggle.checked = saved;
   }
 
+  // ALWAYS show content - clump score should always be visible for real-time monitoring
+  // The toggle only controls whether the strategy adjustments are ACTIVE, not visibility
   if (content) {
-    if (!saved) {
-      content.classList.add('hidden');
-    }
+    content.classList.remove('hidden');
   }
+
+  // Initialize the clump indicator
+  updateClumpAutoToggleIndicator();
 }
 
 // ============================================
