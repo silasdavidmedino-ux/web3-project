@@ -9009,3 +9009,736 @@ body.touch-mode .input-group select {
   font-size: 14px;
   color: #00ffff;
 }
+
+/* ============================================
+   GAME HISTORY ARCHIVE PANEL
+   ============================================ */
+
+.game-history-panel {
+  position: fixed;
+  top: 0;
+  right: -500px;
+  width: 480px;
+  height: 100vh;
+  background: linear-gradient(180deg, #0a0a14 0%, #12121f 50%, #0d0d1a 100%);
+  border-left: 2px solid #00ffff;
+  box-shadow: -5px 0 30px rgba(0, 255, 255, 0.2);
+  z-index: 10000;
+  transition: right 0.3s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.game-history-panel.visible {
+  right: 0;
+}
+
+.game-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: linear-gradient(90deg, rgba(0, 255, 255, 0.1) 0%, rgba(0, 200, 255, 0.05) 100%);
+  border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+}
+
+.game-history-header h2 {
+  color: #00ffff;
+  font-size: 18px;
+  margin: 0;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+.game-history-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.game-history-controls button {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-export-all {
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  color: white;
+  border: none;
+}
+
+.btn-export-all:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(46, 204, 113, 0.4);
+}
+
+.btn-clear-archive {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  color: white;
+  border: none;
+}
+
+.btn-clear-archive:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(231, 76, 60, 0.4);
+}
+
+.btn-close-history {
+  background: #333;
+  color: #aaa;
+  border: 1px solid #555;
+  font-size: 16px;
+  padding: 4px 10px;
+}
+
+.btn-close-history:hover {
+  background: #444;
+  color: #fff;
+}
+
+/* Archive Summary Section */
+.game-history-summary {
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+.archive-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.archive-stat {
+  background: rgba(0, 50, 80, 0.3);
+  padding: 10px;
+  border-radius: 6px;
+  text-align: center;
+  border: 1px solid rgba(0, 255, 255, 0.15);
+}
+
+.archive-stat .stat-label {
+  display: block;
+  font-size: 10px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.archive-stat .stat-value {
+  display: block;
+  font-size: 16px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.archive-stat .stat-value.profit {
+  color: #00ff88;
+}
+
+.archive-stat .stat-value.loss {
+  color: #ff4466;
+}
+
+/* Game List Section */
+.game-history-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.game-list-header {
+  color: #888;
+  font-size: 12px;
+  padding: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 10px;
+}
+
+.no-games-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+}
+
+.no-games-message p {
+  margin: 5px 0;
+}
+
+.game-list-item {
+  background: linear-gradient(135deg, rgba(20, 30, 50, 0.8) 0%, rgba(15, 25, 40, 0.9) 100%);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.game-list-item:hover {
+  border-color: #00ffff;
+  transform: translateX(-5px);
+  box-shadow: 5px 0 20px rgba(0, 255, 255, 0.2);
+}
+
+.game-item-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.game-number {
+  color: #00ffff;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.game-date {
+  color: #888;
+  font-size: 11px;
+}
+
+.game-item-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.game-rounds {
+  color: #aaa;
+  font-size: 12px;
+}
+
+.game-winrate {
+  color: #ffd700;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.game-profit {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.game-profit.profit {
+  color: #00ff88;
+}
+
+.game-profit.loss {
+  color: #ff4466;
+}
+
+.game-item-footer {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.game-clump {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.game-clump.heavy-clump {
+  background: rgba(255, 68, 68, 0.3);
+  color: #ff6666;
+}
+
+.game-clump.mild-clump {
+  background: rgba(255, 200, 0, 0.3);
+  color: #ffc800;
+}
+
+.game-clump.neutral {
+  background: rgba(0, 200, 255, 0.2);
+  color: #00c8ff;
+}
+
+.game-duration {
+  color: #666;
+  font-size: 11px;
+}
+
+/* Game Detail Section */
+.game-history-detail {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.game-detail-header {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+.btn-back,
+.btn-export-single {
+  padding: 8px 15px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-back {
+  background: #333;
+  color: #fff;
+  border: 1px solid #555;
+}
+
+.btn-back:hover {
+  background: #444;
+  border-color: #00ffff;
+}
+
+.btn-export-single {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+  border: none;
+}
+
+.btn-export-single:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(52, 152, 219, 0.4);
+}
+
+.game-report {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #ccc;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 15px;
+  border-radius: 6px;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+/* End Game Popup */
+.end-game-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 20000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.end-game-popup.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.popup-content {
+  background: linear-gradient(135deg, #0d1b2a 0%, #1b2838 50%, #0d1b2a 100%);
+  border: 2px solid #00ffff;
+  border-radius: 12px;
+  padding: 25px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 0 50px rgba(0, 255, 255, 0.3);
+  animation: popupSlideIn 0.3s ease-out;
+}
+
+@keyframes popupSlideIn {
+  from {
+    transform: translateY(-30px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+}
+
+.popup-header h2 {
+  color: #00ffff;
+  font-size: 20px;
+  margin: 0;
+  text-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+}
+
+.popup-profit {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.popup-profit.profit {
+  color: #00ff88;
+  text-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+}
+
+.popup-profit.loss {
+  color: #ff4466;
+  text-shadow: 0 0 15px rgba(255, 68, 102, 0.5);
+}
+
+.popup-quick-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.quick-stat {
+  background: rgba(0, 50, 80, 0.4);
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid rgba(0, 255, 255, 0.15);
+}
+
+.qs-label {
+  display: block;
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.qs-value {
+  display: block;
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.popup-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.popup-actions button {
+  padding: 12px 15px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.btn-view-report {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+}
+
+.btn-export-report {
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  color: white;
+}
+
+.btn-view-history {
+  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+  color: white;
+}
+
+.btn-close-popup {
+  background: #333;
+  color: #aaa;
+  border: 1px solid #555 !important;
+}
+
+.popup-actions button:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* History Button in Header */
+.btn-history {
+  background: linear-gradient(135deg, rgba(0, 200, 255, 0.2) 0%, rgba(0, 150, 200, 0.3) 100%);
+  color: #00c8ff;
+  border: 1px solid rgba(0, 200, 255, 0.4);
+  padding: 8px 15px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-history:hover {
+  background: linear-gradient(135deg, rgba(0, 200, 255, 0.3) 0%, rgba(0, 150, 200, 0.4) 100%);
+  border-color: #00ffff;
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(0, 200, 255, 0.3);
+}
+
+/* Scrollbar styling for history panel */
+.game-history-list::-webkit-scrollbar,
+.game-history-detail::-webkit-scrollbar {
+  width: 6px;
+}
+
+.game-history-list::-webkit-scrollbar-track,
+.game-history-detail::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.game-history-list::-webkit-scrollbar-thumb,
+.game-history-detail::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.game-history-list::-webkit-scrollbar-thumb:hover,
+.game-history-detail::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 255, 0.5);
+}
+
+/* ============================================
+   SPLIT DEAL PHASE UI
+   ============================================ */
+
+.split-phase-header {
+  background: linear-gradient(90deg, rgba(255, 200, 0, 0.2) 0%, rgba(255, 150, 0, 0.1) 100%);
+  color: #ffc800;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 10px;
+  border: 1px solid rgba(255, 200, 0, 0.3);
+  text-shadow: 0 0 10px rgba(255, 200, 0, 0.3);
+}
+
+.split-dealing {
+  background: linear-gradient(135deg, #ffc800 0%, #ff9500 100%);
+  color: #000;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  animation: dealPulse 0.8s ease-in-out infinite;
+}
+
+@keyframes dealPulse {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(255, 200, 0, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 200, 0, 0.8);
+  }
+}
+
+.split-busted {
+  background: linear-gradient(135deg, #ff4466 0%, #cc3355 100%);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+/* Active hand indicator during split */
+.split-hand.active-hand {
+  border-color: #00ffff !important;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+}
+
+.split-hand.active-hand .split-hand-label {
+  color: #00ffff;
+  font-weight: bold;
+}
+
+/* Fix for split hands visibility in decision panel */
+.decision-panel.active {
+  display: flex;
+  flex-direction: column;
+  overflow: visible !important;
+  min-width: 180px;
+}
+
+.decision-panel .split-phase-header {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.decision-panel .split-hands-container {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+.decision-panel .split-hand {
+  flex: 1;
+  min-width: 70px;
+  max-width: 85px;
+  padding: 6px;
+  background: rgba(0, 40, 60, 0.6);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 6px;
+}
+
+.decision-panel .split-hand-label {
+  font-size: 9px;
+  color: #aaa;
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+
+.decision-panel .split-hand-cards {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  margin-bottom: 4px;
+}
+
+.decision-panel .split-hand-cards .mini-card {
+  width: 20px;
+  height: 28px;
+  font-size: 11px;
+  background: white;
+  color: #000;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.decision-panel .split-hand-total {
+  font-size: 12px;
+  font-weight: bold;
+  color: #00ff88;
+  margin-bottom: 4px;
+}
+
+.decision-panel .split-divider {
+  color: #555;
+  font-size: 20px;
+  align-self: center;
+}
+
+/* ============================================
+   SIT-OUT SIGNAL PANEL
+   ============================================ */
+
+.sitout-signal-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 15px;
+  margin-top: 8px;
+  border-radius: 8px;
+  min-width: 90px;
+  transition: all 0.3s ease;
+  cursor: default;
+}
+
+/* PLAY state - Green */
+.sitout-signal-panel.play {
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 200, 100, 0.3) 100%);
+  border: 2px solid #00ff88;
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.3), inset 0 0 20px rgba(0, 255, 136, 0.1);
+}
+
+.sitout-signal-panel.play .sitout-signal-icon {
+  color: #00ff88;
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.8);
+}
+
+.sitout-signal-panel.play .sitout-signal-text {
+  color: #00ff88;
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+}
+
+/* SIT OUT state - Red */
+.sitout-signal-panel.sitout {
+  background: linear-gradient(135deg, rgba(255, 68, 68, 0.2) 0%, rgba(200, 50, 50, 0.3) 100%);
+  border: 2px solid #ff4444;
+  box-shadow: 0 0 15px rgba(255, 68, 68, 0.3), inset 0 0 20px rgba(255, 68, 68, 0.1);
+  animation: sitoutPulse 1.5s ease-in-out infinite;
+}
+
+.sitout-signal-panel.sitout .sitout-signal-icon {
+  color: #ff4444;
+  text-shadow: 0 0 10px rgba(255, 68, 68, 0.8);
+}
+
+.sitout-signal-panel.sitout .sitout-signal-text {
+  color: #ff4444;
+  text-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+}
+
+/* NEUTRAL state - Yellow/Orange */
+.sitout-signal-panel.neutral {
+  background: linear-gradient(135deg, rgba(255, 200, 0, 0.15) 0%, rgba(255, 150, 0, 0.2) 100%);
+  border: 2px solid #ffc800;
+  box-shadow: 0 0 10px rgba(255, 200, 0, 0.2);
+}
+
+.sitout-signal-panel.neutral .sitout-signal-icon {
+  color: #ffc800;
+  text-shadow: 0 0 8px rgba(255, 200, 0, 0.6);
+}
+
+.sitout-signal-panel.neutral .sitout-signal-text {
+  color: #ffc800;
+}
+
+@keyframes sitoutPulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(255, 68, 68, 0.3), inset 0 0 20px rgba(255, 68, 68, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(255, 68, 68, 0.5), inset 0 0 30px rgba(255, 68, 68, 0.2);
+  }
+}
+
+.sitout-signal-icon {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 2px;
+  transition: all 0.3s ease;
+}
+
+.sitout-signal-text {
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: all 0.3s ease;
+}
+
+.sitout-signal-reason {
+  font-size: 9px;
+  color: #888;
+  margin-top: 3px;
+  letter-spacing: 0.5px;
+}

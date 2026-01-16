@@ -192,6 +192,23 @@ const AppState = {
   },
 
   // ============================================
+  // GAME ARCHIVE (Up to 20 games)
+  // ============================================
+  gameArchive: {
+    maxGames: 20,
+    games: [],        // Array of completed game summaries
+    totalStats: {     // Aggregate stats across all archived games
+      gamesPlayed: 0,
+      totalRounds: 0,
+      totalProfit: 0,
+      totalWins: 0,
+      totalLosses: 0,
+      bestGame: null,
+      worstGame: null
+    }
+  },
+
+  // ============================================
   // NEW FEATURES STATE
   // ============================================
 
@@ -528,6 +545,12 @@ function init() {
   // Initialize game history session
   initGameSession('Casino', 'Table 1');
 
+  // Load game archive from localStorage
+  loadGameArchive();
+
+  // Add game history button to header
+  addGameHistoryButton();
+
   // Initialize anti-clump toggle state
   initAntiClumpToggle();
 
@@ -679,6 +702,49 @@ function handleCardClick(card) {
   if (AppState.activeSplitPlayer !== null) {
     const split = AppState.splitHands[AppState.activeSplitPlayer];
     if (split && split.active) {
+
+      // === DEAL PHASE: Dealer deals 1 card to each hand before decisions ===
+      if (split.dealPhase !== null) {
+        // During deal phase, route cards to the correct hand
+        const targetHand = split.dealPhase; // 1 or 2
+        const handKey = `hand${targetHand}`;
+
+        // Remove card from shoe
+        AppState.rankCounts[rank]--;
+        AppState.rankSeen[rank]++;
+        AppState.cardsDealt++;
+        AppState.runningCount += getCountValue(rank);
+        addBeadRoad(card);
+        trackCardForAntiClump(card);
+
+        split[handKey].push(card);
+
+        // Save to history
+        AppState.dealHistory.push({
+          card: card,
+          rank: rank,
+          position: `split_${AppState.activeSplitPlayer}_${targetHand}`
+        });
+        if (AppState.dealHistory.length > 200) {
+          AppState.dealHistory.shift();
+        }
+
+        // Move to next deal phase or complete dealing
+        if (split.dealPhase === 1) {
+          split.dealPhase = 2;
+          showToast(`Hand 1 (RIGHT): ${card}. Now deal card to Hand 2 (LEFT)`, 'info');
+        } else {
+          // Deal phase complete - both hands have 2 cards
+          split.dealPhase = null;
+          split.activeHand = 1; // Start decisions with Hand 1 (RIGHT)
+          showToast(`Hand 2 (LEFT): ${card}. Now play Hand 1 (RIGHT) - HIT or STAY`, 'success');
+        }
+
+        updateAll();
+        return;
+      }
+
+      // === DECISION PHASE: Player is hitting on active hand ===
       // Check if current hand has already STAYED (including after double)
       const currentDecision = split[`decision${split.activeHand}`];
       if (currentDecision === 'STAY') {
@@ -713,6 +779,43 @@ function handleCardClick(card) {
       });
       if (AppState.dealHistory.length > 200) {
         AppState.dealHistory.shift();
+      }
+
+      // Check if hand busted or got 21 - auto-move to next hand
+      const newTotal = calculateHandTotal(split[handKey]);
+      if (newTotal > 21) {
+        showToast(`Hand ${split.activeHand} BUSTED (${newTotal})!`, 'warning');
+        split[`decision${split.activeHand}`] = 'BUST';
+        // Auto-move to next hand if hand 1 busted
+        if (split.activeHand === 1) {
+          split.activeHand = 2;
+          showToast(`Now play Hand 2 (LEFT)`, 'info');
+        } else {
+          // Both hands done
+          split.active = false;
+          AppState.activeSplitPlayer = null;
+          showToast(`Split complete for Player ${AppState.activeSplitPlayer}`, 'success');
+        }
+      } else if (newTotal === 21) {
+        showToast(`Hand ${split.activeHand} has 21!`, 'success');
+        split[`decision${split.activeHand}`] = 'STAY';
+        // Auto-move to next hand
+        if (split.activeHand === 1) {
+          split.activeHand = 2;
+          showToast(`Now play Hand 2 (LEFT)`, 'info');
+        } else {
+          // Both hands done
+          if (!AppState.completedSplits) AppState.completedSplits = {};
+          AppState.completedSplits[AppState.activeSplitPlayer] = {
+            hand1: [...split.hand1],
+            hand2: [...split.hand2],
+            decision1: split.decision1,
+            decision2: split.decision2
+          };
+          split.active = false;
+          AppState.activeSplitPlayer = null;
+          showToast(`Split complete!`, 'success');
+        }
       }
 
       updateAll();
@@ -3941,6 +4044,64 @@ function calculateHandValue(cards) {
   return { total, soft: aces > 0 && total <= 21 };
 }
 
+// ============================================
+// SIT-OUT SIGNAL UPDATE
+// ============================================
+
+/**
+ * Update the sit-out signal panel based on true count
+ * Strategy:
+ * - PLAY: TC > 0 (positive count = player advantage)
+ * - SIT OUT: TC < 0 (negative count = house advantage)
+ * - NEUTRAL: TC = 0 (no advantage either way)
+ */
+function updateSitOutSignal() {
+  const panel = document.getElementById('sitoutSignalPanel');
+  const iconEl = document.getElementById('sitoutIcon');
+  const textEl = document.getElementById('sitoutText');
+  const reasonEl = document.getElementById('sitoutReason');
+
+  if (!panel || !iconEl || !textEl || !reasonEl) return;
+
+  const tc = getTrueCount();
+  const tcRounded = Math.round(tc * 10) / 10; // Round to 1 decimal
+
+  // Remove all state classes
+  panel.classList.remove('play', 'sitout', 'neutral');
+
+  if (tc > 0.1) {
+    // PLAY - Positive count = player advantage
+    panel.classList.add('play');
+    iconEl.textContent = '▶';
+    textEl.textContent = 'PLAY';
+    if (tc >= 2) {
+      reasonEl.textContent = `TC +${tcRounded} HOT!`;
+    } else if (tc >= 1) {
+      reasonEl.textContent = `TC +${tcRounded} GOOD`;
+    } else {
+      reasonEl.textContent = `TC +${tcRounded}`;
+    }
+  } else if (tc < -0.1) {
+    // SIT OUT - Negative count = house advantage
+    panel.classList.add('sitout');
+    iconEl.textContent = '⏸';
+    textEl.textContent = 'SIT OUT';
+    if (tc <= -2) {
+      reasonEl.textContent = `TC ${tcRounded} BAD!`;
+    } else if (tc <= -1) {
+      reasonEl.textContent = `TC ${tcRounded} COLD`;
+    } else {
+      reasonEl.textContent = `TC ${tcRounded}`;
+    }
+  } else {
+    // NEUTRAL - Count is around zero
+    panel.classList.add('neutral');
+    iconEl.textContent = '⏳';
+    textEl.textContent = 'NEUTRAL';
+    reasonEl.textContent = `TC ${tcRounded >= 0 ? '+' : ''}${tcRounded}`;
+  }
+}
+
 // UI Update Functions
 // ============================================
 let updateAllPending = false;
@@ -3975,6 +4136,7 @@ function updateAllImmediate() {
     updateDecisionPanels();
     updateShoeCompDisplay();
     updateClumpProbDisplay();
+    updateSitOutSignal();
   } catch (err) {
     console.error('updateAll error:', err);
   }
@@ -5108,11 +5270,17 @@ function handleSplit(playerNum) {
   }
 
   // Create split hands - each starts with one card from the pair
+  // hand1 = RIGHT hand (played first), hand2 = LEFT hand (played second)
+  // NEW FLOW: dealPhase controls card dealing before decisions
+  // dealPhase: 1 = waiting for card to hand1 (right)
+  // dealPhase: 2 = waiting for card to hand2 (left)
+  // dealPhase: null = dealing complete, now making decisions
   AppState.splitHands[playerNum] = {
     active: true,
-    activeHand: 1,
-    hand1: [originalCards[0]],
-    hand2: [originalCards[1]],
+    dealPhase: 1,        // NEW: Start in deal phase 1
+    activeHand: 1,       // Will be used for decisions after deal phase
+    hand1: [originalCards[0]],  // RIGHT hand
+    hand2: [originalCards[1]],  // LEFT hand
     decision1: null,
     decision2: null
   };
@@ -5123,7 +5291,7 @@ function handleSplit(playerNum) {
   // Activate split mode - wait for user to input actual cards dealt
   AppState.activeSplitPlayer = playerNum;
 
-  showToast(`Player ${playerNum} SPLIT! Click card buttons to add cards to Hand 1`, 'success');
+  showToast(`Player ${playerNum} SPLIT! Deal card to Hand 1 (RIGHT)`, 'success');
   updateAll();
 }
 
@@ -5200,20 +5368,36 @@ function renderSplitDecisions(playerNum, panel) {
   const hand1Ready = split.hand1.length >= 2;
   const hand2Ready = split.hand2.length >= 2;
 
+  // Check if in deal phase
+  const inDealPhase = split.dealPhase !== null;
+  const dealingToHand1 = split.dealPhase === 1;
+  const dealingToHand2 = split.dealPhase === 2;
+
   const getBtn = (hand, handNum, isReady) => {
+    // During deal phase, show DEAL indicator
+    if (inDealPhase) {
+      if ((handNum === 1 && dealingToHand1) || (handNum === 2 && dealingToHand2)) {
+        return `<span class="split-dealing">DEAL ←</span>`;
+      }
+      return `<span class="split-waiting">...</span>`;
+    }
+
     // Don't show decision until hand has 2 cards
     if (!isReady) {
       return `<span class="split-waiting">...</span>`;
     }
 
-    // If already decided (stayed)
+    // If already decided (stayed or busted)
     const decided = split[`decision${handNum}`];
     if (decided === 'STAY') {
       return `<span class="split-decided">STAY</span>`;
     }
+    if (decided === 'BUST') {
+      return `<span class="split-busted">BUST</span>`;
+    }
 
-    // Only show decision for active hand
-    const isActiveHand = isActivePlayer && split.activeHand === handNum;
+    // Only show decision for active hand (after deal phase)
+    const isActiveHand = isActivePlayer && split.activeHand === handNum && !inDealPhase;
     if (!isActiveHand) {
       if (split.activeHand > handNum) {
         return `<span class="split-decided">DONE</span>`;
@@ -5246,27 +5430,38 @@ function renderSplitDecisions(playerNum, panel) {
     `;
   };
 
-  const hand1Active = isActivePlayer && split.activeHand === 1;
-  const hand2Active = isActivePlayer && split.activeHand === 2;
+  // Hand 1 is active during decision phase (activeHand === 1)
+  // Hand 2 is active during decision phase (activeHand === 2)
+  // During deal phase, show which hand is being dealt to
+  const hand1Active = isActivePlayer && ((dealingToHand1) || (!inDealPhase && split.activeHand === 1));
+  const hand2Active = isActivePlayer && ((dealingToHand2) || (!inDealPhase && split.activeHand === 2));
 
+  // Deal phase header
+  const phaseHeader = inDealPhase
+    ? `<div class="split-phase-header">DEALING: Click card for Hand ${split.dealPhase} (${split.dealPhase === 1 ? 'RIGHT' : 'LEFT'})</div>`
+    : `<div class="split-phase-header">PLAYING: Hand ${split.activeHand} (${split.activeHand === 1 ? 'RIGHT' : 'LEFT'}) - HIT or STAY</div>`;
+
+  // Layout: [Hand 2 LEFT] | [Hand 1 RIGHT]
+  // Player plays Hand 1 (RIGHT) first, then Hand 2 (LEFT)
   panel.innerHTML = `
+    ${phaseHeader}
     <div class="split-hands-container">
-      <div class="split-hand ${hand1Active ? 'active-hand' : ''}">
-        <div class="split-hand-label">Hand 1 ${hand1Active ? '◀' : ''}</div>
-        <div class="split-hand-cards">
-          ${split.hand1.map(c => `<span class="mini-card">${c}</span>`).join('')}
-        </div>
-        <div class="split-hand-total">${hand1Total}</div>
-        <div class="split-hand-decision">${getBtn(split.hand1, 1, hand1Ready)}</div>
-      </div>
-      <div class="split-divider">|</div>
       <div class="split-hand ${hand2Active ? 'active-hand' : ''}">
-        <div class="split-hand-label">Hand 2 ${hand2Active ? '◀' : ''}</div>
+        <div class="split-hand-label">Hand 2 (LEFT) ${hand2Active ? '◀' : ''}</div>
         <div class="split-hand-cards">
           ${split.hand2.map(c => `<span class="mini-card">${c}</span>`).join('')}
         </div>
         <div class="split-hand-total">${hand2Total}</div>
         <div class="split-hand-decision">${getBtn(split.hand2, 2, hand2Ready)}</div>
+      </div>
+      <div class="split-divider">|</div>
+      <div class="split-hand ${hand1Active ? 'active-hand' : ''}">
+        <div class="split-hand-label">Hand 1 (RIGHT) ${hand1Active ? '◀' : ''}</div>
+        <div class="split-hand-cards">
+          ${split.hand1.map(c => `<span class="mini-card">${c}</span>`).join('')}
+        </div>
+        <div class="split-hand-total">${hand1Total}</div>
+        <div class="split-hand-decision">${getBtn(split.hand1, 1, hand1Ready)}</div>
       </div>
     </div>
   `;
@@ -5277,15 +5472,23 @@ function handleSplitStay(playerNum, handNum) {
   const split = AppState.splitHands[playerNum];
   if (!split) return;
 
+  // Don't allow stay during deal phase
+  if (split.dealPhase !== null) {
+    showToast('Complete dealing first - click a card', 'warning');
+    return;
+  }
+
   split[`decision${handNum}`] = 'STAY';
   const hand = handNum === 1 ? split.hand1 : split.hand2;
   const total = calculateHandTotal(hand);
+  const handLabel = handNum === 1 ? 'RIGHT' : 'LEFT';
 
-  showToast(`Hand ${handNum} stays on ${total}`, 'success');
+  showToast(`Hand ${handNum} (${handLabel}) STAY on ${total}`, 'success');
 
   if (handNum === 1) {
+    // Move to Hand 2 (LEFT)
     split.activeHand = 2;
-    showToast(`Hand 2 active - click cards to hit`, 'info');
+    showToast(`Now play Hand 2 (LEFT) - HIT or STAY`, 'info');
   } else {
     // Save completed split data
     if (!AppState.completedSplits) AppState.completedSplits = {};
@@ -5297,7 +5500,7 @@ function handleSplitStay(playerNum, handNum) {
     };
     split.active = false;
     AppState.activeSplitPlayer = null;
-    showToast(`Split complete for Player ${playerNum}`, 'success');
+    showToast(`Split complete for Player ${playerNum}!`, 'success');
   }
 
   updateAll();
@@ -5643,7 +5846,16 @@ function endGameSession() {
   // Generate final analysis
   generateSessionAnalysis();
 
-  showToast('Game session ended. Ready to export.', 'info');
+  // Archive the game to history (max 20 games)
+  const gameSummary = archiveCurrentGame();
+
+  // Show end-of-game report popup
+  if (gameSummary) {
+    showEndGameReportPopup(gameSummary);
+    console.log('[SESSION] Game archived and report generated');
+  } else {
+    showToast('Game session ended. No rounds to archive.', 'info');
+  }
 }
 
 function generateSessionAnalysis() {
@@ -5972,6 +6184,664 @@ function downloadFile(content, filename, mimeType) {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+// ============================================
+// GAME ARCHIVE SYSTEM (Up to 20 games)
+// ============================================
+
+/**
+ * Archives the current game session to gameArchive
+ * Called at end of each game session
+ * FIFO: Removes oldest game if archive exceeds 20 games
+ */
+function archiveCurrentGame() {
+  const history = AppState.gameHistory;
+  const stats = history.statistics;
+  const archive = AppState.gameArchive;
+
+  // Don't archive empty sessions
+  if (stats.totalRounds === 0) {
+    return null;
+  }
+
+  // Ensure analysis is generated
+  if (!history.analysis) {
+    generateSessionAnalysis();
+  }
+
+  // Create game summary for archive
+  const gameSummary = {
+    gameNumber: archive.totalStats.gamesPlayed + 1,
+    sessionId: history.sessionId,
+    date: new Date().toISOString(),
+    dateFormatted: new Date().toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    }),
+    casinoName: history.casinoName || 'Unknown',
+    tableName: history.tableName || 'Unknown',
+    numDecks: history.numDecks,
+    duration: history.analysis?.duration || calculateSessionDuration(),
+
+    // Core statistics
+    rounds: stats.totalRounds,
+    wins: stats.playerWins,
+    losses: stats.playerLosses,
+    pushes: stats.pushes,
+    blackjacks: stats.blackjacks,
+    playerBusts: stats.playerBusts,
+    dealerBusts: stats.dealerBusts,
+    splits: stats.splits,
+    doubles: stats.doubles,
+    surrenders: stats.surrenders || 0,
+
+    // Financial (from session tracker if available)
+    startingBankroll: AppState.sessionTracker.startingBankroll,
+    endingBankroll: AppState.sessionTracker.currentBankroll,
+    netProfit: AppState.sessionTracker.currentBankroll - AppState.sessionTracker.startingBankroll,
+    peakBankroll: AppState.sessionTracker.peakBankroll,
+    lowestBankroll: AppState.sessionTracker.lowestBankroll,
+    biggestWin: AppState.sessionTracker.biggestWin,
+    biggestLoss: AppState.sessionTracker.biggestLoss,
+
+    // Calculated rates
+    winRate: (stats.playerWins + stats.playerLosses) > 0
+      ? ((stats.playerWins / (stats.playerWins + stats.playerLosses)) * 100).toFixed(1)
+      : '0.0',
+    dealerBustRate: stats.totalRounds > 0
+      ? ((stats.dealerBusts / stats.totalRounds) * 100).toFixed(1)
+      : '0.0',
+    blackjackRate: stats.totalRounds > 0
+      ? ((stats.blackjacks / stats.totalRounds) * 100).toFixed(1)
+      : '0.0',
+
+    // Clumping data
+    clumpScore: AppState.antiClump?.clumpScore || 50,
+    clumpRecommendation: AppState.antiClump?.recommendation || 'NEUTRAL',
+    momentum: AppState.antiClump?.momentum || 'NEUTRAL',
+
+    // Streaks
+    longestWinStreak: AppState.sessionTracker.longestWinStreak,
+    longestLoseStreak: AppState.sessionTracker.longestLoseStreak,
+
+    // Analysis & recommendations
+    avgCountAtWin: history.analysis?.averageCountAtWin || 0,
+    avgCountAtLoss: history.analysis?.averageCountAtLoss || 0,
+    recommendations: history.analysis?.recommendations || [],
+
+    // Pattern data (summarized)
+    dealerUpcardFrequency: { ...history.patterns.dealerUpcardFrequency },
+    dealerBustByUpcard: { ...history.patterns.dealerBustByUpcard },
+    alertCount: history.alerts?.length || 0
+  };
+
+  // Add to archive (FIFO - remove oldest if exceeds maxGames)
+  archive.games.push(gameSummary);
+  if (archive.games.length > archive.maxGames) {
+    archive.games.shift(); // Remove oldest
+  }
+
+  // Update aggregate stats
+  archive.totalStats.gamesPlayed++;
+  archive.totalStats.totalRounds += stats.totalRounds;
+  archive.totalStats.totalProfit += gameSummary.netProfit;
+  archive.totalStats.totalWins += stats.playerWins;
+  archive.totalStats.totalLosses += stats.playerLosses;
+
+  // Track best/worst games
+  if (!archive.totalStats.bestGame || gameSummary.netProfit > archive.totalStats.bestGame.netProfit) {
+    archive.totalStats.bestGame = {
+      gameNumber: gameSummary.gameNumber,
+      netProfit: gameSummary.netProfit,
+      date: gameSummary.dateFormatted
+    };
+  }
+  if (!archive.totalStats.worstGame || gameSummary.netProfit < archive.totalStats.worstGame.netProfit) {
+    archive.totalStats.worstGame = {
+      gameNumber: gameSummary.gameNumber,
+      netProfit: gameSummary.netProfit,
+      date: gameSummary.dateFormatted
+    };
+  }
+
+  // Save to localStorage for persistence
+  saveGameArchive();
+
+  console.log(`[ARCHIVE] Game #${gameSummary.gameNumber} archived: ${gameSummary.rounds} rounds, P&L: ${gameSummary.netProfit >= 0 ? '+' : ''}${gameSummary.netProfit}`);
+
+  return gameSummary;
+}
+
+/**
+ * Save game archive to localStorage
+ */
+function saveGameArchive() {
+  try {
+    localStorage.setItem('bjEngine_gameArchive', JSON.stringify(AppState.gameArchive));
+  } catch (e) {
+    console.warn('Could not save game archive to localStorage:', e);
+  }
+}
+
+/**
+ * Load game archive from localStorage
+ */
+function loadGameArchive() {
+  try {
+    const saved = localStorage.getItem('bjEngine_gameArchive');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      AppState.gameArchive = {
+        maxGames: 20,
+        games: parsed.games || [],
+        totalStats: parsed.totalStats || {
+          gamesPlayed: 0,
+          totalRounds: 0,
+          totalProfit: 0,
+          totalWins: 0,
+          totalLosses: 0,
+          bestGame: null,
+          worstGame: null
+        }
+      };
+      console.log(`[ARCHIVE] Loaded ${AppState.gameArchive.games.length} archived games`);
+    }
+  } catch (e) {
+    console.warn('Could not load game archive from localStorage:', e);
+  }
+}
+
+/**
+ * Generate comprehensive end-of-game report
+ */
+function generateEndGameReport(gameSummary) {
+  if (!gameSummary) return '';
+
+  const profitColor = gameSummary.netProfit >= 0 ? '32m' : '31m';
+  const profitSign = gameSummary.netProfit >= 0 ? '+' : '';
+
+  let report = `
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    GAME #${String(gameSummary.gameNumber).padStart(3, '0')} - END OF SESSION REPORT                     ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  SESSION DETAILS
+  ───────────────────────────────────────────────────────────────────────────────
+  Date:           ${gameSummary.dateFormatted}
+  Casino:         ${gameSummary.casinoName}
+  Table:          ${gameSummary.tableName}
+  Duration:       ${gameSummary.duration}
+  Total Rounds:   ${gameSummary.rounds}
+
+  FINANCIAL SUMMARY
+  ───────────────────────────────────────────────────────────────────────────────
+  Starting Bankroll:    ${formatCurrency(gameSummary.startingBankroll)}
+  Ending Bankroll:      ${formatCurrency(gameSummary.endingBankroll)}
+  ────────────────────────────────
+  NET PROFIT/LOSS:      ${profitSign}${formatCurrency(Math.abs(gameSummary.netProfit))} ${gameSummary.netProfit >= 0 ? '🟢' : '🔴'}
+
+  Peak:                 ${formatCurrency(gameSummary.peakBankroll)}
+  Lowest:               ${formatCurrency(gameSummary.lowestBankroll)}
+  Biggest Single Win:   ${formatCurrency(gameSummary.biggestWin)}
+  Biggest Single Loss:  ${formatCurrency(gameSummary.biggestLoss)}
+
+  GAME STATISTICS
+  ───────────────────────────────────────────────────────────────────────────────
+  ┌─────────────────────┬──────────┬──────────────────────┬──────────┐
+  │ Metric              │ Count    │ Metric               │ Rate     │
+  ├─────────────────────┼──────────┼──────────────────────┼──────────┤
+  │ Player Wins         │ ${String(gameSummary.wins).padStart(6)}   │ Win Rate             │ ${gameSummary.winRate.padStart(5)}%   │
+  │ Player Losses       │ ${String(gameSummary.losses).padStart(6)}   │ Dealer Bust Rate     │ ${gameSummary.dealerBustRate.padStart(5)}%   │
+  │ Pushes              │ ${String(gameSummary.pushes).padStart(6)}   │ Blackjack Rate       │ ${gameSummary.blackjackRate.padStart(5)}%   │
+  │ Blackjacks          │ ${String(gameSummary.blackjacks).padStart(6)}   │                      │          │
+  │ Player Busts        │ ${String(gameSummary.playerBusts).padStart(6)}   │ Longest Win Streak   │ ${String(gameSummary.longestWinStreak).padStart(6)}   │
+  │ Dealer Busts        │ ${String(gameSummary.dealerBusts).padStart(6)}   │ Longest Lose Streak  │ ${String(gameSummary.longestLoseStreak).padStart(6)}   │
+  │ Splits              │ ${String(gameSummary.splits).padStart(6)}   │                      │          │
+  │ Doubles             │ ${String(gameSummary.doubles).padStart(6)}   │                      │          │
+  │ Surrenders          │ ${String(gameSummary.surrenders).padStart(6)}   │                      │          │
+  └─────────────────────┴──────────┴──────────────────────┴──────────┘
+
+  CLUMPING ANALYSIS
+  ───────────────────────────────────────────────────────────────────────────────
+  Final Clump Score:    ${gameSummary.clumpScore}/100
+  Recommendation:       ${gameSummary.clumpRecommendation}
+  Momentum:             ${gameSummary.momentum}
+  Count Correlation:    Win Avg TC: ${gameSummary.avgCountAtWin} | Loss Avg TC: ${gameSummary.avgCountAtLoss}
+
+  DEALER UPCARD PERFORMANCE
+  ───────────────────────────────────────────────────────────────────────────────
+  Card │ Freq │ Busts │ Bust%     Card │ Freq │ Busts │ Bust%
+  ─────┼──────┼───────┼──────     ─────┼──────┼───────┼──────`;
+
+  // Add dealer upcard data in two columns
+  const cards = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'A'];
+  for (let i = 0; i < 5; i++) {
+    const c1 = cards[i];
+    const c2 = cards[i + 5];
+    const f1 = gameSummary.dealerUpcardFrequency[c1] || 0;
+    const b1 = gameSummary.dealerBustByUpcard[c1] || 0;
+    const r1 = f1 > 0 ? ((b1 / f1) * 100).toFixed(0) : '0';
+    const f2 = gameSummary.dealerUpcardFrequency[c2] || 0;
+    const b2 = gameSummary.dealerBustByUpcard[c2] || 0;
+    const r2 = f2 > 0 ? ((b2 / f2) * 100).toFixed(0) : '0';
+
+    report += `\n  ${c1.padEnd(4)} │ ${String(f1).padStart(4)} │ ${String(b1).padStart(5)} │ ${r1.padStart(4)}%     ${c2.padEnd(4)} │ ${String(f2).padStart(4)} │ ${String(b2).padStart(5)} │ ${r2.padStart(4)}%`;
+  }
+
+  report += `
+
+  STRATEGIC RECOMMENDATIONS
+  ───────────────────────────────────────────────────────────────────────────────`;
+
+  if (gameSummary.recommendations && gameSummary.recommendations.length > 0) {
+    gameSummary.recommendations.forEach((rec, i) => {
+      report += `\n  ${i + 1}. ${rec}`;
+    });
+  } else {
+    report += '\n  No significant patterns detected.';
+  }
+
+  report += `
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  Generated by BJ Probability Engine v3.9.41 | ${new Date().toISOString()}  ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+`;
+
+  return report;
+}
+
+/**
+ * Format currency for display
+ */
+function formatCurrency(amount) {
+  if (typeof amount !== 'number' || isNaN(amount)) return '0';
+  return amount.toLocaleString('en-US');
+}
+
+/**
+ * Show the game history panel
+ */
+function showGameHistoryPanel() {
+  let panel = document.getElementById('game-history-panel');
+
+  if (!panel) {
+    panel = createGameHistoryPanel();
+    document.body.appendChild(panel);
+  }
+
+  updateGameHistoryPanel();
+  panel.classList.add('visible');
+}
+
+/**
+ * Create the game history panel HTML
+ */
+function createGameHistoryPanel() {
+  const panel = document.createElement('div');
+  panel.id = 'game-history-panel';
+  panel.className = 'game-history-panel';
+
+  panel.innerHTML = `
+    <div class="game-history-header">
+      <h2>📊 Game History Archive</h2>
+      <div class="game-history-controls">
+        <button class="btn-export-all" onclick="exportAllArchivedGames()">Export All</button>
+        <button class="btn-clear-archive" onclick="clearGameArchive()">Clear Archive</button>
+        <button class="btn-close-history" onclick="hideGameHistoryPanel()">✕</button>
+      </div>
+    </div>
+
+    <div class="game-history-summary" id="archive-summary">
+      <!-- Populated by updateGameHistoryPanel -->
+    </div>
+
+    <div class="game-history-list" id="game-list">
+      <!-- Populated by updateGameHistoryPanel -->
+    </div>
+
+    <div class="game-history-detail" id="game-detail" style="display: none;">
+      <!-- Shows detailed report when a game is selected -->
+    </div>
+  `;
+
+  return panel;
+}
+
+/**
+ * Update the game history panel content
+ */
+function updateGameHistoryPanel() {
+  const archive = AppState.gameArchive;
+  const summaryEl = document.getElementById('archive-summary');
+  const listEl = document.getElementById('game-list');
+
+  if (!summaryEl || !listEl) return;
+
+  // Update summary section
+  const avgProfit = archive.totalStats.gamesPlayed > 0
+    ? (archive.totalStats.totalProfit / archive.totalStats.gamesPlayed).toFixed(0)
+    : 0;
+  const overallWinRate = (archive.totalStats.totalWins + archive.totalStats.totalLosses) > 0
+    ? ((archive.totalStats.totalWins / (archive.totalStats.totalWins + archive.totalStats.totalLosses)) * 100).toFixed(1)
+    : 0;
+
+  summaryEl.innerHTML = `
+    <div class="archive-stats-grid">
+      <div class="archive-stat">
+        <span class="stat-label">Games Played</span>
+        <span class="stat-value">${archive.totalStats.gamesPlayed}</span>
+      </div>
+      <div class="archive-stat">
+        <span class="stat-label">Total Rounds</span>
+        <span class="stat-value">${archive.totalStats.totalRounds.toLocaleString()}</span>
+      </div>
+      <div class="archive-stat">
+        <span class="stat-label">Total P&L</span>
+        <span class="stat-value ${archive.totalStats.totalProfit >= 0 ? 'profit' : 'loss'}">
+          ${archive.totalStats.totalProfit >= 0 ? '+' : ''}${archive.totalStats.totalProfit.toLocaleString()}
+        </span>
+      </div>
+      <div class="archive-stat">
+        <span class="stat-label">Avg P&L/Game</span>
+        <span class="stat-value ${avgProfit >= 0 ? 'profit' : 'loss'}">
+          ${avgProfit >= 0 ? '+' : ''}${avgProfit}
+        </span>
+      </div>
+      <div class="archive-stat">
+        <span class="stat-label">Win Rate</span>
+        <span class="stat-value">${overallWinRate}%</span>
+      </div>
+      <div class="archive-stat">
+        <span class="stat-label">Best Game</span>
+        <span class="stat-value profit">
+          ${archive.totalStats.bestGame ? `#${archive.totalStats.bestGame.gameNumber} (+${archive.totalStats.bestGame.netProfit})` : '-'}
+        </span>
+      </div>
+      <div class="archive-stat">
+        <span class="stat-label">Worst Game</span>
+        <span class="stat-value loss">
+          ${archive.totalStats.worstGame ? `#${archive.totalStats.worstGame.gameNumber} (${archive.totalStats.worstGame.netProfit})` : '-'}
+        </span>
+      </div>
+    </div>
+  `;
+
+  // Update game list
+  if (archive.games.length === 0) {
+    listEl.innerHTML = `
+      <div class="no-games-message">
+        <p>No games archived yet.</p>
+        <p>Complete a game session to see it here.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Show games in reverse order (newest first)
+  let listHTML = '<div class="game-list-header">Recent Games (Latest First)</div>';
+
+  const reversedGames = [...archive.games].reverse();
+  reversedGames.forEach((game, idx) => {
+    const profitClass = game.netProfit >= 0 ? 'profit' : 'loss';
+    const profitSign = game.netProfit >= 0 ? '+' : '';
+    const clumpClass = game.clumpScore >= 70 ? 'heavy-clump' : game.clumpScore >= 56 ? 'mild-clump' : 'neutral';
+
+    listHTML += `
+      <div class="game-list-item" onclick="showGameDetail(${archive.games.length - 1 - idx})">
+        <div class="game-item-header">
+          <span class="game-number">#${game.gameNumber}</span>
+          <span class="game-date">${game.dateFormatted}</span>
+        </div>
+        <div class="game-item-stats">
+          <span class="game-rounds">${game.rounds} rounds</span>
+          <span class="game-winrate">${game.winRate}% WR</span>
+          <span class="game-profit ${profitClass}">${profitSign}${game.netProfit.toLocaleString()}</span>
+        </div>
+        <div class="game-item-footer">
+          <span class="game-clump ${clumpClass}">Clump: ${game.clumpScore}</span>
+          <span class="game-duration">${game.duration}</span>
+        </div>
+      </div>
+    `;
+  });
+
+  listEl.innerHTML = listHTML;
+}
+
+/**
+ * Show detailed report for a specific game
+ */
+function showGameDetail(gameIndex) {
+  const archive = AppState.gameArchive;
+  const game = archive.games[gameIndex];
+
+  if (!game) return;
+
+  const detailEl = document.getElementById('game-detail');
+  const listEl = document.getElementById('game-list');
+
+  if (!detailEl || !listEl) return;
+
+  // Generate and display the report
+  const report = generateEndGameReport(game);
+
+  detailEl.innerHTML = `
+    <div class="game-detail-header">
+      <button class="btn-back" onclick="hideGameDetail()">← Back to List</button>
+      <button class="btn-export-single" onclick="exportSingleGame(${gameIndex})">Export This Game</button>
+    </div>
+    <pre class="game-report">${report}</pre>
+  `;
+
+  listEl.style.display = 'none';
+  detailEl.style.display = 'block';
+}
+
+/**
+ * Hide game detail and show list
+ */
+function hideGameDetail() {
+  const detailEl = document.getElementById('game-detail');
+  const listEl = document.getElementById('game-list');
+
+  if (detailEl) detailEl.style.display = 'none';
+  if (listEl) listEl.style.display = 'block';
+}
+
+/**
+ * Hide the game history panel
+ */
+function hideGameHistoryPanel() {
+  const panel = document.getElementById('game-history-panel');
+  if (panel) {
+    panel.classList.remove('visible');
+    hideGameDetail();
+  }
+}
+
+/**
+ * Export a single archived game
+ */
+function exportSingleGame(gameIndex) {
+  const game = AppState.gameArchive.games[gameIndex];
+  if (!game) return;
+
+  const report = generateEndGameReport(game);
+  const filename = `bj-game-${game.gameNumber}-${game.sessionId || 'report'}.txt`;
+  downloadFile(report, filename, 'text/plain');
+  showToast(`Exported Game #${game.gameNumber}`, 'success');
+}
+
+/**
+ * Export all archived games
+ */
+function exportAllArchivedGames() {
+  const archive = AppState.gameArchive;
+
+  if (archive.games.length === 0) {
+    showToast('No games to export', 'warning');
+    return;
+  }
+
+  let fullReport = `
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                 BJ PROBABILITY ENGINE - COMPLETE GAME ARCHIVE                 ║
+║                          ${archive.games.length} Games | Total P&L: ${archive.totalStats.totalProfit >= 0 ? '+' : ''}${archive.totalStats.totalProfit.toLocaleString()}                          ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+ARCHIVE SUMMARY
+═══════════════════════════════════════════════════════════════════════════════
+  Total Games:        ${archive.totalStats.gamesPlayed}
+  Total Rounds:       ${archive.totalStats.totalRounds.toLocaleString()}
+  Total P&L:          ${archive.totalStats.totalProfit >= 0 ? '+' : ''}${archive.totalStats.totalProfit.toLocaleString()}
+  Average P&L/Game:   ${(archive.totalStats.totalProfit / archive.totalStats.gamesPlayed).toFixed(0)}
+  Total Wins:         ${archive.totalStats.totalWins}
+  Total Losses:       ${archive.totalStats.totalLosses}
+  Win Rate:           ${((archive.totalStats.totalWins / (archive.totalStats.totalWins + archive.totalStats.totalLosses)) * 100).toFixed(1)}%
+  Best Game:          #${archive.totalStats.bestGame?.gameNumber || '-'} (+${archive.totalStats.bestGame?.netProfit || 0})
+  Worst Game:         #${archive.totalStats.worstGame?.gameNumber || '-'} (${archive.totalStats.worstGame?.netProfit || 0})
+
+`;
+
+  // Add each game's report
+  archive.games.forEach((game, idx) => {
+    fullReport += '\n' + '═'.repeat(80) + '\n';
+    fullReport += generateEndGameReport(game);
+  });
+
+  const filename = `bj-complete-archive-${new Date().toISOString().split('T')[0]}.txt`;
+  downloadFile(fullReport, filename, 'text/plain');
+  showToast(`Exported ${archive.games.length} games`, 'success');
+}
+
+/**
+ * Clear the game archive (with confirmation)
+ */
+function clearGameArchive() {
+  if (!confirm('Are you sure you want to clear all archived games? This cannot be undone.')) {
+    return;
+  }
+
+  AppState.gameArchive = {
+    maxGames: 20,
+    games: [],
+    totalStats: {
+      gamesPlayed: 0,
+      totalRounds: 0,
+      totalProfit: 0,
+      totalWins: 0,
+      totalLosses: 0,
+      bestGame: null,
+      worstGame: null
+    }
+  };
+
+  saveGameArchive();
+  updateGameHistoryPanel();
+  showToast('Game archive cleared', 'info');
+}
+
+/**
+ * Show end-of-game report popup
+ */
+function showEndGameReportPopup(gameSummary) {
+  if (!gameSummary) return;
+
+  const report = generateEndGameReport(gameSummary);
+
+  // Create popup
+  let popup = document.getElementById('end-game-popup');
+  if (!popup) {
+    popup = document.createElement('div');
+    popup.id = 'end-game-popup';
+    popup.className = 'end-game-popup';
+    document.body.appendChild(popup);
+  }
+
+  const profitClass = gameSummary.netProfit >= 0 ? 'profit' : 'loss';
+  const profitSign = gameSummary.netProfit >= 0 ? '+' : '';
+
+  popup.innerHTML = `
+    <div class="popup-content">
+      <div class="popup-header">
+        <h2>Game #${gameSummary.gameNumber} Complete!</h2>
+        <span class="popup-profit ${profitClass}">${profitSign}${gameSummary.netProfit.toLocaleString()}</span>
+      </div>
+      <div class="popup-quick-stats">
+        <div class="quick-stat">
+          <span class="qs-label">Rounds</span>
+          <span class="qs-value">${gameSummary.rounds}</span>
+        </div>
+        <div class="quick-stat">
+          <span class="qs-label">Win Rate</span>
+          <span class="qs-value">${gameSummary.winRate}%</span>
+        </div>
+        <div class="quick-stat">
+          <span class="qs-label">Duration</span>
+          <span class="qs-value">${gameSummary.duration}</span>
+        </div>
+        <div class="quick-stat">
+          <span class="qs-label">Clump Score</span>
+          <span class="qs-value">${gameSummary.clumpScore}</span>
+        </div>
+      </div>
+      <div class="popup-actions">
+        <button class="btn-view-report" onclick="viewFullReport()">View Full Report</button>
+        <button class="btn-export-report" onclick="exportSingleGame(${AppState.gameArchive.games.length - 1})">Export Report</button>
+        <button class="btn-view-history" onclick="showGameHistoryPanel(); hideEndGamePopup();">View All Games</button>
+        <button class="btn-close-popup" onclick="hideEndGamePopup()">Close</button>
+      </div>
+    </div>
+  `;
+
+  popup.classList.add('visible');
+}
+
+/**
+ * View full report from popup
+ */
+function viewFullReport() {
+  const archive = AppState.gameArchive;
+  if (archive.games.length > 0) {
+    showGameHistoryPanel();
+    showGameDetail(archive.games.length - 1);
+    hideEndGamePopup();
+  }
+}
+
+/**
+ * Hide the end game popup
+ */
+function hideEndGamePopup() {
+  const popup = document.getElementById('end-game-popup');
+  if (popup) {
+    popup.classList.remove('visible');
+  }
+}
+
+/**
+ * Add game history button to the header/control area
+ * Note: Button is already in HTML, this function just ensures it exists
+ */
+function addGameHistoryButton() {
+  // Check if button already exists in HTML
+  const existingBtn = document.getElementById('btnGameHistory');
+  if (existingBtn) {
+    console.log('[UI] Game History button found in HTML');
+    return;
+  }
+
+  // Fallback: Add floating button if not in HTML
+  const floatBtn = document.createElement('button');
+  floatBtn.id = 'btnGameHistory';
+  floatBtn.className = 'btn-history';
+  floatBtn.style.cssText = 'position: fixed; bottom: 20px; right: 20px; z-index: 9999;';
+  floatBtn.innerHTML = '<span>📊</span> History';
+  floatBtn.onclick = showGameHistoryPanel;
+  document.body.appendChild(floatBtn);
+
+  console.log('[UI] Game History floating button added as fallback');
 }
 
 // ============================================
@@ -10473,6 +11343,7 @@ function updateUI() {
   updateDealerTableCards();
   updateCountDisplay();
   updateShoeStatus();
+  updateSitOutSignal(); // Update sit-out signal in live sim
 }
 
 function updateCountDisplay() {

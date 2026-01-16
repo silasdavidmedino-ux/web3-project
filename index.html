@@ -71,6 +71,13 @@
         <span class="count-label">TRUE<br>COUNT</span>
       </div>
 
+      <!-- Sit-Out Signal Panel -->
+      <div class="sitout-signal-panel neutral" id="sitoutSignalPanel">
+        <div class="sitout-signal-icon" id="sitoutIcon">⏳</div>
+        <div class="sitout-signal-text" id="sitoutText">NEUTRAL</div>
+        <div class="sitout-signal-reason" id="sitoutReason">TC 0.0 (wait)</div>
+      </div>
+
       <!-- Formula Info Button -->
       <button class="btn-formula-info" id="btnFormulaInfo">
         <span>?</span>
@@ -794,6 +801,7 @@
         <button class="btn-simulate-shoe" id="btnSimulateShoe" onclick="simulateOneShoe()">1 SHOE</button>
         <button class="btn-full-sim" id="btnFullSim" onclick="runFullEngineSimulation()">FULL SIM</button>
         <button class="btn-end-game" id="btnEndGame">END GAME</button>
+        <button class="btn-history" id="btnGameHistory" onclick="showGameHistoryPanel()">📊 HISTORY</button>
       </div>
 
     </div>
