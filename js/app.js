@@ -334,6 +334,47 @@ const AppState = {
   },
 
   // ============================================
+  // DEALER COUNTER ENGINE STATE (v2.0 - Holy Grail)
+  // Tracks dealer patterns to counter dealer advantage
+  // ============================================
+  dealerCounter: {
+    enabled: true,          // Always enabled - core detection system
+    recentOutcomes: [],     // Last 20 dealer hands
+    upcardOutcomes: {},     // Outcomes by upcard
+    hotScore: 50,           // 0-100 (50=neutral, 100=on fire)
+    hotLevel: 'NEUTRAL',    // COLD, NEUTRAL, WARM, HOT, ON_FIRE
+    streakCount: 0,         // Current non-bust streak
+    maxStreak: 0,           // Max non-bust streak this session
+    totalHands: 0,          // Total dealer hands tracked
+    bustCount: 0,           // Total busts
+    twentyCount: 0,         // Dealer 20s
+    twentyOneCount: 0,      // Dealer 21s (non-BJ)
+    blackjackCount: 0,      // Dealer blackjacks
+    // Strategy adjustments
+    strategyAdjustment: null,
+    betMultiplier: 1.0,
+    // Card flow analysis
+    cardFlow: {
+      dealerHighCardRatio: 0.28,
+      isFlowingToDealer: false,
+      flowScore: 0
+    },
+    // Seat recommendations
+    seatRecommendations: [],
+    // Signals for UI
+    signals: {
+      dealerHot: false,
+      dealerOnFire: false,
+      dealerCold: false,
+      shouldReduceBet: false,
+      shouldSitOut: false,
+      p5ShouldDisrupt: false
+    },
+    // Round tracking for card flow
+    recentRounds: []
+  },
+
+  // ============================================
   // QUANT EV GAME HISTORY TRACKER (5 Players)
   // ============================================
   quantEvTracker: {
@@ -862,6 +903,19 @@ function handleCardClick(card) {
   // Add to active position (normal flow)
   AppState.positions[AppState.activePosition].push(card);
 
+  // CASINO RULE: After double, player must stay (one card only)
+  if (activePos !== 'dealer') {
+    const playerNum = parseInt(activePos.replace('player', ''));
+    if (AppState.playerDecisions[playerNum] === 'DBL') {
+      // Player doubled - automatically set to STAY after receiving one card
+      AppState.playerDecisions[playerNum] = 'STAY';
+      const playerCards = AppState.positions[activePos];
+      const playerTotal = calculateHandTotal(playerCards);
+      showToast(`P${playerNum} doubled and stays on ${playerTotal}`, 'success');
+      logToConsole(`[CASINO RULE] Player ${playerNum} doubled down - must stand on ${playerTotal}`, 'info');
+    }
+  }
+
   // Save to history for undo (with size limit to prevent memory growth)
   AppState.dealHistory.push({
     card: card,
@@ -935,6 +989,27 @@ function handleUndo() {
   if (AppState.activeSplitPlayer !== null) {
     const split = AppState.splitHands[AppState.activeSplitPlayer];
     if (split && split.active) {
+      // First check if the most recent action is a split_action (no cards dealt yet)
+      const splitActionPos = `split_action_${AppState.activeSplitPlayer}`;
+      for (let i = AppState.dealHistory.length - 1; i >= 0; i--) {
+        const entry = AppState.dealHistory[i];
+        if (entry.position === splitActionPos) {
+          // Undo the split action entirely
+          const playerKey = `player${AppState.activeSplitPlayer}`;
+          AppState.positions[playerKey] = entry.originalCards || [];
+          AppState.splitHands[AppState.activeSplitPlayer] = null;
+          AppState.activeSplitPlayer = null;
+          AppState.dealHistory.splice(i, 1);
+          updateAll();
+          showToast(`Split undone - restored original pair`, 'success');
+          return;
+        }
+        // Stop if we find a split card deal (means cards were dealt after split)
+        if (entry.position.startsWith(`split_${AppState.activeSplitPlayer}_`)) {
+          break;
+        }
+      }
+
       // Look for ANY split hand position for this player (hand 1 or 2)
       const splitPos1 = `split_${AppState.activeSplitPlayer}_1`;
       const splitPos2 = `split_${AppState.activeSplitPlayer}_2`;
@@ -1024,25 +1099,65 @@ function handleUndo() {
       if (split[`decision${splitHandNum}`] === 'STAY' && split[handKey].length <= 2) {
         split[`decision${splitHandNum}`] = null;
       }
+      if (split[`decision${splitHandNum}`] === 'BUST') {
+        split[`decision${splitHandNum}`] = null;
+      }
 
-      // Handle hand transition after undo
-      if (splitHandNum === 2 && split.hand2.length === 1) {
-        // Hand 2 only has the initial split card, switch back to hand 1
+      // Handle DEAL PHASE undo - restore dealPhase state
+      const hand1Len = split.hand1.length;
+      const hand2Len = split.hand2.length;
+
+      if (hand2Len === 1 && hand1Len === 2) {
+        // Hand 2 only has initial card, hand 1 has 2 cards
+        // We're back to deal phase 2 (waiting for card to hand 2)
+        split.dealPhase = 2;
         split.activeHand = 1;
-        split.decision1 = null; // Allow more actions on hand 1
-      } else if (splitHandNum === 1 && split.activeHand === 2) {
-        // Undoing from hand 1 when we were on hand 2
-        // Check if hand 1 should become active again
-        if (split.hand1.length > 1) {
+        showToast(`Deal phase restored - deal card to Hand 2 (LEFT)`, 'info');
+      } else if (hand1Len === 1 && hand2Len === 1) {
+        // Both hands only have initial split cards
+        // We're back to deal phase 1 (waiting for card to hand 1)
+        split.dealPhase = 1;
+        split.activeHand = 1;
+        showToast(`Deal phase restored - deal card to Hand 1 (RIGHT)`, 'info');
+      } else if (hand1Len === 0 || hand2Len === 0) {
+        // One hand is empty - undo the split entirely
+        const originalCard1 = split.hand1[0] || split.hand2[0];
+        const originalCard2 = split.hand2[0] || split.hand1[0];
+        const playerKey = `player${splitPlayerNum}`;
+
+        // Restore original cards to player position
+        if (originalCard1 && originalCard2) {
+          AppState.positions[playerKey] = [originalCard1, originalCard2];
+        }
+
+        // Clear split state
+        AppState.splitHands[splitPlayerNum] = null;
+        AppState.activeSplitPlayer = null;
+
+        updateAll();
+        showToast(`Split undone - restored original pair`, 'success');
+        return;
+      } else {
+        // Normal decision phase undo
+        // Handle hand transition after undo
+        if (splitHandNum === 2 && split.hand2.length === 1) {
+          // Hand 2 only has the initial split card, switch back to hand 1
           split.activeHand = 1;
           split.decision1 = null;
+        } else if (splitHandNum === 1 && split.activeHand === 2) {
+          // Undoing from hand 1 when we were on hand 2
+          if (split.hand1.length > 1) {
+            split.activeHand = 1;
+            split.decision1 = null;
+          }
         }
+        // Ensure dealPhase is null for decision phase
+        split.dealPhase = null;
       }
 
-      // Ensure activeSplitPlayer is set
-      if (split.active) {
-        AppState.activeSplitPlayer = splitPlayerNum;
-      }
+      // Re-activate split if it was marked inactive
+      split.active = true;
+      AppState.activeSplitPlayer = splitPlayerNum;
     }
     updateAll();
     showToast(`Undid ${lastDeal.card} from Split Hand ${splitHandNum}`, 'info');
@@ -1181,6 +1296,11 @@ function resetShoe() {
   // Clear anti-clump tracking on shoe reset
   if (typeof clearAntiClumpTracking === 'function') {
     clearAntiClumpTracking();
+  }
+
+  // Reset dealer counter engine on new shoe
+  if (typeof resetDealerCounter === 'function') {
+    resetDealerCounter();
   }
 
   updateAll();
@@ -2701,6 +2821,23 @@ function getUnifiedDecision(playerNum) {
     betReason = `Negative count: TC ${tc.toFixed(1)}`;
   }
 
+  // Apply Dealer Counter adjustment (Holy Grail Engine)
+  const dcBet = AppState.dealerCounter;
+  if (dcBet && dcBet.enabled && dcBet.totalHands >= 5) {
+    const dcMultiplier = dcBet.betMultiplier || 1.0;
+    if (dcMultiplier !== 1.0) {
+      betMultiplier = Math.max(1, betMultiplier * dcMultiplier);
+      if (dcMultiplier < 1) {
+        betReason += ` | DEALER HOT: ${Math.round((1 - dcMultiplier) * 100)}% reduction`;
+        if (betAction === 'MAX' || betAction === 'INCREASE') {
+          betAction = dcMultiplier <= 0.5 ? 'MIN' : 'CAUTIOUS';
+        }
+      } else if (dcMultiplier > 1) {
+        betReason += ` | DEALER COLD: ${Math.round((dcMultiplier - 1) * 100)}% boost`;
+      }
+    }
+  }
+
   // ===== SIDE BET RECOMMENDATIONS =====
 
   const sideBets = {
@@ -2746,6 +2883,29 @@ function getUnifiedDecision(playerNum) {
       weight: 70 + Math.min(20, Math.abs(tc) * 5),
       reason: `TC: ${tc >= 0 ? '+' : ''}${tc.toFixed(1)}`
     });
+  }
+
+  // Add dealer counter signal (Holy Grail Engine)
+  const dc = AppState.dealerCounter;
+  if (dc && dc.enabled && dc.totalHands >= 5) {
+    const hotLevel = dc.hotLevel;
+    const hotScore = dc.hotScore;
+
+    if (hotLevel === 'ON_FIRE' || hotLevel === 'HOT') {
+      signals.push({
+        source: 'DEALER_HOT',
+        action: 'CONSERVATIVE',
+        weight: 80 + (hotScore - 50),
+        reason: `Dealer ${hotLevel.replace('_', ' ')}: ${hotScore}/100 - REDUCE exposure`
+      });
+    } else if (hotLevel === 'COLD') {
+      signals.push({
+        source: 'DEALER_COLD',
+        action: 'AGGRESSIVE',
+        weight: 75 + (50 - hotScore),
+        reason: `Dealer COLD: ${hotScore}/100 - INCREASE aggression`
+      });
+    }
   }
 
   // ===== FINAL UNIFIED DECISION =====
@@ -2850,6 +3010,31 @@ function getUnifiedDecision(playerNum) {
     }
   }
 
+  // ===== DEALER COUNTER OVERRIDE (Holy Grail Engine) =====
+  // When dealer is HOT (not busting), hit 12-14 vs weak upcards instead of standing
+  // When dealer is COLD (busting often), stand on 12 vs weak upcards
+  if (dc && dc.enabled && dc.totalHands >= 5 && !overrideReason) {
+    const weakUpcard = [2, 3, 4, 5, 6].includes(dealerVal);
+
+    // DEALER HOT: Hit 12-14 vs weak upcard (dealer won't bust)
+    if ((dc.hotLevel === 'HOT' || dc.hotLevel === 'ON_FIRE') && isHard && weakUpcard) {
+      if (total >= 12 && total <= 14 && primaryAction === 'STAY') {
+        primaryAction = 'HIT';
+        overrideReason = `DEALER HOT: HIT ${total} vs ${dealerVal} - dealer bust rate ${Math.round(dc.bustCount/dc.totalHands*100)}% (exp: 28%)`;
+        console.log(`[HOLY GRAIL] ${overrideReason}`);
+      }
+    }
+
+    // DEALER COLD: Stand on 12 vs 2-3 (dealer busting, don't risk)
+    if (dc.hotLevel === 'COLD' && isHard && (dealerVal === 2 || dealerVal === 3)) {
+      if (total === 12 && primaryAction === 'HIT') {
+        primaryAction = 'STAY';
+        overrideReason = `DEALER COLD: STAY on 12 vs ${dealerVal} - dealer busting at ${Math.round(dc.bustCount/dc.totalHands*100)}%`;
+        console.log(`[HOLY GRAIL] ${overrideReason}`);
+      }
+    }
+  }
+
   // Determine play aggressiveness
   let playStyle = 'STANDARD';
   if (tc >= 3 && pWin > 0.45) playStyle = 'AGGRESSIVE';
@@ -2912,6 +3097,15 @@ function getUnifiedDecision(playerNum) {
       score: Math.round(windowScore),
       decision: windowDecision
     },
+
+    // Dealer Counter (Holy Grail Engine)
+    dealerCounter: dc && dc.enabled ? {
+      hotScore: dc.hotScore,
+      hotLevel: dc.hotLevel,
+      bustRate: dc.totalHands > 0 ? Math.round(dc.bustCount / dc.totalHands * 100) : 0,
+      betMultiplier: dc.betMultiplier,
+      active: dc.totalHands >= 5
+    } : null,
 
     // All Signals (for transparency)
     signals: signals,
@@ -3002,7 +3196,15 @@ function updatePlayerDecisionDisplay(playerNum, decision) {
   const styleIcon = decision.style === 'AGGRESSIVE' ? '▲' :
                     decision.style === 'CONSERVATIVE' ? '▼' : '●';
 
-  indicator.className = `unified-decision ${actionClass} ${decision.strategy.isDeviation ? 'deviation' : ''}`;
+  // Check for Holy Grail (Dealer Counter) override
+  const isHolyGrail = decision.strategy.reason && decision.strategy.reason.includes('DEALER HOT:');
+  const isDealerCold = decision.strategy.reason && decision.strategy.reason.includes('DEALER COLD:');
+  const hasDealerSignal = decision.dealerCounter && decision.dealerCounter.active &&
+                          (decision.dealerCounter.hotLevel === 'HOT' ||
+                           decision.dealerCounter.hotLevel === 'ON_FIRE' ||
+                           decision.dealerCounter.hotLevel === 'COLD');
+
+  indicator.className = `unified-decision ${actionClass} ${decision.strategy.isDeviation ? 'deviation' : ''} ${isHolyGrail ? 'holy-grail' : ''} ${isDealerCold ? 'dealer-cold' : ''}`;
   indicator.innerHTML = `
     <div class="ud-main">
       <span class="ud-action">${shortAction}</span>
@@ -3012,13 +3214,16 @@ function updatePlayerDecisionDisplay(playerNum, decision) {
       <span class="ud-edge ${edgeClass}">${decision.edge.player}</span>
       <span class="ud-style">${styleIcon}</span>
       ${decision.strategy.isDeviation ? '<span class="ud-i18">I18</span>' : ''}
+      ${isHolyGrail ? '<span class="ud-hg">🔥HG</span>' : ''}
+      ${isDealerCold ? '<span class="ud-hg cold">❄️HG</span>' : ''}
+      ${hasDealerSignal && !isHolyGrail && !isDealerCold ? '<span class="ud-dc">' + (decision.dealerCounter.hotLevel === 'COLD' ? '❄️' : '🔥') + '</span>' : ''}
     </div>
     <div class="ud-bet">
       <span class="ud-bet-action">${decision.betting.action}</span>
-      <span class="ud-bet-mult">×${decision.betting.multiplier}</span>
+      <span class="ud-bet-mult">×${decision.betting.multiplier.toFixed(1)}</span>
     </div>
   `;
-  indicator.title = `${decision.strategy.reason}\nEdge: ${decision.edge.player} | TC: ${decision.count.true.toFixed(1)}\nBet: ${decision.betting.reason}`;
+  indicator.title = `${decision.strategy.reason}\nEdge: ${decision.edge.player} | TC: ${decision.count.true.toFixed(1)}\nBet: ${decision.betting.reason}${decision.dealerCounter?.active ? '\nDealer: ' + decision.dealerCounter.hotLevel + ' (' + decision.dealerCounter.hotScore + ')' : ''}`;
 }
 
 // Composition bias active
@@ -3511,6 +3716,614 @@ function computePlayerClumpRecs(ac, momentum, highStreak, lowStreak, clumpScore)
       betMod: 0.5,
       detail: 'Minimum bet, card flow control'
     };
+  }
+}
+
+// ============================================
+// DEALER COUNTER ENGINE FUNCTIONS (v2.0 - Holy Grail)
+// ============================================
+
+/**
+ * Record dealer outcome after each round
+ * This is the core tracking function for the dealer counter engine
+ */
+function recordDealerOutcomeForCounter() {
+  const dc = AppState.dealerCounter;
+  const dealerCards = AppState.positions.dealer;
+
+  if (!dealerCards || dealerCards.length === 0) return;
+
+  const upcard = dealerCards[0];
+  const finalTotal = calculateHandTotal(dealerCards);
+  const busted = finalTotal > 21;
+  const blackjack = dealerCards.length === 2 && finalTotal === 21;
+
+  // Create outcome record
+  const record = {
+    upcard: normalizeRank(upcard),
+    finalTotal,
+    cards: [...dealerCards],
+    busted,
+    blackjack,
+    timestamp: Date.now()
+  };
+
+  // Add to recent outcomes (keep last 20)
+  dc.recentOutcomes.push(record);
+  if (dc.recentOutcomes.length > 20) {
+    dc.recentOutcomes.shift();
+  }
+
+  // Track by upcard
+  const upcardKey = record.upcard;
+  if (!dc.upcardOutcomes[upcardKey]) {
+    dc.upcardOutcomes[upcardKey] = { total: 0, busts: 0, twentyPlus: 0 };
+  }
+  dc.upcardOutcomes[upcardKey].total++;
+  if (busted) dc.upcardOutcomes[upcardKey].busts++;
+  if (finalTotal >= 20 && !busted) dc.upcardOutcomes[upcardKey].twentyPlus++;
+
+  // Update totals
+  dc.totalHands++;
+  if (busted) {
+    dc.bustCount++;
+    dc.streakCount = 0; // Reset streak
+  } else {
+    dc.streakCount++;
+    dc.maxStreak = Math.max(dc.maxStreak, dc.streakCount);
+
+    if (blackjack) dc.blackjackCount++;
+    else if (finalTotal === 21) dc.twentyOneCount++;
+    else if (finalTotal === 20) dc.twentyCount++;
+  }
+
+  // Recalculate hot score
+  calculateDealerHotScore();
+
+  // Update round tracking for card flow analysis
+  trackRoundForCardFlow();
+
+  // Update UI
+  updateDealerCounterDisplay();
+
+  // Log significant changes
+  if (dc.hotScore >= 70 && dc.totalHands >= 5) {
+    const level = dc.hotScore >= 85 ? '🔥 ON FIRE' : '🟠 HOT';
+    logToConsole(`[DEALER COUNTER] ${level} - Hot Score: ${dc.hotScore}, Bust Rate: ${Math.round(dc.bustCount/dc.totalHands*100)}%, Streak: ${dc.streakCount}`, 'warning');
+  } else if (dc.hotScore <= 30 && dc.totalHands >= 5) {
+    logToConsole(`[DEALER COUNTER] ❄️ COLD - Hot Score: ${dc.hotScore}, Dealer busting often!`, 'success');
+  }
+}
+
+/**
+ * Calculate dealer hot score (0-100)
+ */
+function calculateDealerHotScore() {
+  const dc = AppState.dealerCounter;
+  const outcomes = dc.recentOutcomes;
+
+  if (outcomes.length < 5) {
+    dc.hotScore = 50;
+    dc.hotLevel = 'NEUTRAL';
+    return;
+  }
+
+  const windowSize = Math.min(15, outcomes.length);
+  const window = outcomes.slice(-windowSize);
+
+  // Expected rates
+  const EXPECTED_BUST_RATE = 0.284;
+  const EXPECTED_STRONG_RATE = 0.25; // 20 + 21 + BJ
+
+  // Observed rates
+  const bustCount = window.filter(o => o.busted).length;
+  const observedBustRate = bustCount / windowSize;
+
+  const strongCount = window.filter(o => (o.finalTotal >= 20 && !o.busted) || o.blackjack).length;
+  const observedStrongRate = strongCount / windowSize;
+
+  // Calculate deviations
+  const bustDeviation = (EXPECTED_BUST_RATE - observedBustRate) / EXPECTED_BUST_RATE;
+  const strongDeviation = (observedStrongRate - EXPECTED_STRONG_RATE) / EXPECTED_STRONG_RATE;
+
+  // Streak bonus
+  let streakScore = 0;
+  if (dc.streakCount >= 3) streakScore = 5;
+  if (dc.streakCount >= 5) streakScore = 15;
+  if (dc.streakCount >= 8) streakScore = 25;
+  if (dc.streakCount >= 10) streakScore = 35;
+
+  // Combine into hot score
+  let hotScore = 50;
+  hotScore += bustDeviation * 30;
+  hotScore += strongDeviation * 20;
+  hotScore += streakScore;
+
+  // Clamp to 0-100
+  dc.hotScore = Math.max(0, Math.min(100, Math.round(hotScore)));
+
+  // Determine level
+  if (dc.hotScore <= 30) dc.hotLevel = 'COLD';
+  else if (dc.hotScore <= 50) dc.hotLevel = 'NEUTRAL';
+  else if (dc.hotScore <= 70) dc.hotLevel = 'WARM';
+  else if (dc.hotScore <= 85) dc.hotLevel = 'HOT';
+  else dc.hotLevel = 'ON_FIRE';
+
+  // Update signals
+  dc.signals.dealerHot = dc.hotScore >= 60;
+  dc.signals.dealerOnFire = dc.hotScore >= 85;
+  dc.signals.dealerCold = dc.hotScore <= 30;
+  dc.signals.shouldReduceBet = dc.hotScore >= 60;
+  dc.signals.shouldSitOut = dc.hotScore >= 90;
+  dc.signals.p5ShouldDisrupt = dc.hotScore >= 70;
+
+  // Calculate bet multiplier
+  if (dc.hotScore >= 85) dc.betMultiplier = 0.5;
+  else if (dc.hotScore >= 70) dc.betMultiplier = 0.7;
+  else if (dc.hotScore >= 55) dc.betMultiplier = 0.85;
+  else if (dc.hotScore <= 30) dc.betMultiplier = 1.3;
+  else dc.betMultiplier = 1.0;
+}
+
+/**
+ * Track round data for card flow analysis
+ */
+function trackRoundForCardFlow() {
+  const dc = AppState.dealerCounter;
+  const dealerCards = AppState.positions.dealer;
+
+  // Collect all player cards
+  let playerCards = [];
+  for (let i = 1; i <= 8; i++) {
+    const cards = AppState.positions['player' + i];
+    if (cards && cards.length > 0) {
+      playerCards = playerCards.concat(cards);
+    }
+  }
+
+  // Add round to tracking
+  dc.recentRounds.push({
+    dealerCards: [...dealerCards],
+    playerCards: playerCards,
+    timestamp: Date.now()
+  });
+
+  // Keep only last 10 rounds
+  if (dc.recentRounds.length > 10) {
+    dc.recentRounds.shift();
+  }
+
+  // Analyze card flow
+  analyzeCardFlowPatterns();
+}
+
+/**
+ * Analyze card flow - are high cards going to dealer?
+ */
+function analyzeCardFlowPatterns() {
+  const dc = AppState.dealerCounter;
+  const rounds = dc.recentRounds;
+
+  if (rounds.length < 3) {
+    dc.cardFlow = { dealerHighCardRatio: 0.28, isFlowingToDealer: false, flowScore: 0 };
+    return;
+  }
+
+  const HIGH_CARDS = ['10', 'J', 'Q', 'K', 'A'];
+
+  let dealerHighCards = 0;
+  let playerHighCards = 0;
+  let totalHighCards = 0;
+
+  for (const round of rounds) {
+    // Count dealer high cards
+    for (const card of round.dealerCards) {
+      const rank = normalizeRank(card);
+      if (HIGH_CARDS.includes(rank) || rank === '10') {
+        dealerHighCards++;
+        totalHighCards++;
+      }
+    }
+
+    // Count player high cards
+    for (const card of round.playerCards) {
+      const rank = normalizeRank(card);
+      if (HIGH_CARDS.includes(rank) || rank === '10') {
+        playerHighCards++;
+        totalHighCards++;
+      }
+    }
+  }
+
+  if (totalHighCards === 0) {
+    dc.cardFlow = { dealerHighCardRatio: 0.28, isFlowingToDealer: false, flowScore: 0 };
+    return;
+  }
+
+  const expectedDealerRatio = 0.28;
+  const actualDealerRatio = dealerHighCards / totalHighCards;
+  const flowScore = ((actualDealerRatio - expectedDealerRatio) / expectedDealerRatio) * 100;
+
+  dc.cardFlow = {
+    dealerHighCards,
+    playerHighCards,
+    totalHighCards,
+    dealerHighCardRatio: Math.round(actualDealerRatio * 1000) / 1000,
+    expectedRatio: expectedDealerRatio,
+    flowScore: Math.round(flowScore),
+    isFlowingToDealer: flowScore > 15
+  };
+}
+
+/**
+ * Get dealer counter strategy adjustment for current hand
+ */
+function getDealerCounterStrategyAdjustment(playerTotal, dealerUpcard, canDouble = true) {
+  const dc = AppState.dealerCounter;
+  const hotScore = dc.hotScore;
+  const hotLevel = dc.hotLevel;
+
+  const upcard = normalizeRank(dealerUpcard);
+  const upcardValue = upcard === 'A' ? 11 : (upcard === '10' ? 10 : parseInt(upcard) || 0);
+  const isWeakUpcard = upcardValue >= 2 && upcardValue <= 6;
+
+  let adjustment = null;
+
+  // DEALER ON FIRE - Maximum caution
+  if (hotLevel === 'ON_FIRE') {
+    if (isWeakUpcard && playerTotal >= 12 && playerTotal <= 16) {
+      adjustment = {
+        action: playerTotal <= 15 ? 'HIT' : 'EVALUATE',
+        reason: `🔥 COUNTER: Dealer ON FIRE (${hotScore}) - won't bust on ${upcard}!`,
+        betMultiplier: 0.5,
+        isDeviation: true
+      };
+    }
+    if (playerTotal === 9 && isWeakUpcard && canDouble) {
+      adjustment = {
+        action: 'HIT',
+        reason: `🔥 COUNTER: Skip double 9 - dealer ON FIRE`,
+        betMultiplier: 0.5,
+        isDeviation: true
+      };
+    }
+    if (playerTotal === 10 && isWeakUpcard && canDouble) {
+      adjustment = {
+        action: 'HIT',
+        reason: `🔥 COUNTER: Skip double 10 - dealer hitting 20-21`,
+        betMultiplier: 0.5,
+        isDeviation: true
+      };
+    }
+  }
+
+  // DEALER HOT
+  else if (hotLevel === 'HOT') {
+    if (isWeakUpcard && playerTotal >= 12 && playerTotal <= 14) {
+      adjustment = {
+        action: 'HIT',
+        reason: `🟠 COUNTER: Dealer HOT (${hotScore}) vs ${upcard} - hit ${playerTotal}`,
+        betMultiplier: 0.75,
+        isDeviation: true
+      };
+    }
+    if (playerTotal === 9 && isWeakUpcard && canDouble) {
+      adjustment = {
+        action: 'HIT',
+        reason: `🟠 COUNTER: Skip double 9 - dealer HOT`,
+        betMultiplier: 0.75,
+        isDeviation: true
+      };
+    }
+  }
+
+  // DEALER WARM
+  else if (hotLevel === 'WARM') {
+    if (isWeakUpcard && playerTotal === 12) {
+      adjustment = {
+        action: 'HIT',
+        reason: `⚠️ CAUTION: Dealer WARM (${hotScore}) - hit 12 vs ${upcard}`,
+        betMultiplier: 0.9,
+        isDeviation: true
+      };
+    }
+  }
+
+  // DEALER COLD - Be aggressive!
+  else if (hotLevel === 'COLD') {
+    if (isWeakUpcard && playerTotal >= 12 && playerTotal <= 16) {
+      adjustment = {
+        action: 'STAND',
+        reason: `❄️ AGGRESSIVE: Dealer COLD (${hotScore}) - stand ${playerTotal}, dealer WILL bust!`,
+        betMultiplier: 1.3,
+        isDeviation: false
+      };
+    }
+    if (playerTotal === 9 && isWeakUpcard && canDouble) {
+      adjustment = {
+        action: 'DOUBLE',
+        reason: `❄️ AGGRESSIVE: Double 9 - dealer COLD, busting often!`,
+        betMultiplier: 1.3,
+        isDeviation: true
+      };
+    }
+  }
+
+  dc.strategyAdjustment = adjustment;
+  return adjustment;
+}
+
+/**
+ * Update dealer counter display in UI
+ */
+function updateDealerCounterDisplay() {
+  const dc = AppState.dealerCounter;
+
+  // Update hot level badge
+  const hotLevelEl = document.getElementById('dealerHotLevel');
+  if (hotLevelEl) {
+    hotLevelEl.textContent = dc.hotLevel.replace('_', ' ');
+    hotLevelEl.className = 'dealer-counter-level ' + dc.hotLevel.toLowerCase().replace('_', '-');
+  }
+
+  // Update hot score bar
+  const hotBarEl = document.getElementById('dealerHotBar');
+  if (hotBarEl) {
+    hotBarEl.style.width = dc.hotScore + '%';
+  }
+
+  // Update hot score number
+  const hotScoreEl = document.getElementById('dealerHotScore');
+  if (hotScoreEl) {
+    hotScoreEl.textContent = dc.hotScore;
+  }
+
+  // Update bust rate
+  const bustRateEl = document.getElementById('dealerBustRate');
+  if (bustRateEl) {
+    const bustRate = dc.totalHands > 0 ? Math.round(dc.bustCount / dc.totalHands * 100) : 0;
+    bustRateEl.textContent = bustRate + '%';
+    bustRateEl.style.color = bustRate < 20 ? '#ef4444' : bustRate > 35 ? '#22c55e' : '';
+  }
+
+  // Update 20-21 rate
+  const rate2021El = document.getElementById('dealer2021Rate');
+  if (rate2021El) {
+    const rate2021 = dc.totalHands > 0 ? Math.round((dc.twentyCount + dc.twentyOneCount) / dc.totalHands * 100) : 0;
+    rate2021El.textContent = rate2021 + '%';
+    rate2021El.style.color = rate2021 > 35 ? '#ef4444' : rate2021 < 20 ? '#22c55e' : '';
+  }
+
+  // Update streak
+  const streakEl = document.getElementById('dealerStreak');
+  if (streakEl) {
+    streakEl.textContent = dc.streakCount;
+    streakEl.style.color = dc.streakCount >= 5 ? '#ef4444' : dc.streakCount >= 3 ? '#f59e0b' : '';
+  }
+
+  // Update signal
+  const signalEl = document.getElementById('dealerCounterSignal');
+  const signalTextEl = document.getElementById('dealerSignalText');
+  const signalIconEl = signalEl?.querySelector('.signal-icon');
+
+  if (signalEl && signalTextEl) {
+    signalEl.className = 'dealer-counter-signal';
+
+    if (dc.totalHands < 5) {
+      signalTextEl.textContent = 'Waiting for data...';
+      if (signalIconEl) signalIconEl.textContent = '⏳';
+    } else if (dc.signals.shouldSitOut) {
+      signalEl.classList.add('reduce-bet');
+      signalTextEl.textContent = 'SIT OUT - Dealer on fire!';
+      if (signalIconEl) signalIconEl.textContent = '🚫';
+    } else if (dc.signals.shouldReduceBet || dc.hotLevel === 'HOT' || dc.hotLevel === 'ON_FIRE') {
+      signalEl.classList.add('reduce-bet');
+      const reduction = dc.betMultiplier <= 0.5 ? '50%' : '25%';
+      signalTextEl.textContent = `REDUCE BET ${reduction} - Dealer running hot`;
+      if (signalIconEl) signalIconEl.textContent = '⚠️';
+    } else if (dc.hotLevel === 'COLD') {
+      signalEl.classList.add('favorable');
+      signalTextEl.textContent = 'FAVORABLE - Dealer busting often!';
+      if (signalIconEl) signalIconEl.textContent = '✓';
+    } else {
+      signalTextEl.textContent = 'Normal conditions';
+      if (signalIconEl) signalIconEl.textContent = '●';
+    }
+  }
+}
+
+/**
+ * Reset dealer counter for new shoe
+ */
+function resetDealerCounter() {
+  AppState.dealerCounter = {
+    enabled: true,
+    recentOutcomes: [],
+    upcardOutcomes: {},
+    hotScore: 50,
+    hotLevel: 'NEUTRAL',
+    streakCount: 0,
+    maxStreak: 0,
+    totalHands: 0,
+    bustCount: 0,
+    twentyCount: 0,
+    twentyOneCount: 0,
+    blackjackCount: 0,
+    strategyAdjustment: null,
+    betMultiplier: 1.0,
+    cardFlow: {
+      dealerHighCardRatio: 0.28,
+      isFlowingToDealer: false,
+      flowScore: 0
+    },
+    seatRecommendations: [],
+    signals: {
+      dealerHot: false,
+      dealerOnFire: false,
+      dealerCold: false,
+      shouldReduceBet: false,
+      shouldSitOut: false,
+      p5ShouldDisrupt: false
+    },
+    recentRounds: []
+  };
+  updateDealerCounterDisplay();
+  logToConsole('[DEALER COUNTER] Reset for new shoe', 'info');
+}
+
+/**
+ * Calculate combined signal from Anti-Clump + Dealer Counter engines
+ * This is the "Double Danger" detection system
+ */
+function calculateCombinedSignal() {
+  const ac = AppState.antiClump;
+  const dc = AppState.dealerCounter;
+
+  const result = {
+    level: 'SAFE',           // SAFE, CAUTION, DANGER, EXTREME_DANGER
+    signal: 'PLAY',          // PLAY, REDUCE, MINIMUM, SIT_OUT
+    betMultiplier: 1.0,
+    reasons: [],
+    clumpActive: false,
+    dealerHotActive: false
+  };
+
+  // Check Anti-Clump Engine
+  const clumpScore = ac?.clumpScore || 50;
+  const clumpEnabled = ac?.enabled || ac?.autoEnabled;
+  const isHeavyClump = clumpScore >= 70;
+  const isMildClump = clumpScore >= 56;
+
+  // Check Dealer Counter Engine
+  const hotScore = dc?.hotScore || 50;
+  const hotLevel = dc?.hotLevel || 'NEUTRAL';
+  const dealerEnabled = dc?.enabled && dc?.totalHands >= 5;
+  const isDealerHot = hotLevel === 'HOT' || hotLevel === 'ON_FIRE';
+  const isDealerWarm = hotLevel === 'WARM';
+
+  // Track which engines are active
+  result.clumpActive = clumpEnabled && (isHeavyClump || isMildClump);
+  result.dealerHotActive = dealerEnabled && (isDealerHot || isDealerWarm);
+
+  // Calculate combined danger level
+  let dangerPoints = 0;
+
+  // Anti-Clump contributions
+  if (clumpEnabled) {
+    if (isHeavyClump) {
+      dangerPoints += 3;
+      result.reasons.push(`Heavy Clump: ${clumpScore}%`);
+    } else if (isMildClump) {
+      dangerPoints += 1;
+      result.reasons.push(`Mild Clump: ${clumpScore}%`);
+    }
+  }
+
+  // Dealer Counter contributions
+  if (dealerEnabled) {
+    if (hotLevel === 'ON_FIRE') {
+      dangerPoints += 4;
+      result.reasons.push(`Dealer ON FIRE: ${hotScore}`);
+    } else if (hotLevel === 'HOT') {
+      dangerPoints += 2;
+      result.reasons.push(`Dealer HOT: ${hotScore}`);
+    } else if (hotLevel === 'WARM') {
+      dangerPoints += 1;
+      result.reasons.push(`Dealer WARM: ${hotScore}`);
+    } else if (hotLevel === 'COLD') {
+      dangerPoints -= 2;
+      result.reasons.push(`Dealer COLD: ${hotScore} (favorable)`);
+    }
+  }
+
+  // Determine level and signal
+  if (dangerPoints >= 5) {
+    result.level = 'EXTREME_DANGER';
+    result.signal = 'SIT_OUT';
+    result.betMultiplier = 0;
+  } else if (dangerPoints >= 3) {
+    result.level = 'DANGER';
+    result.signal = 'MINIMUM';
+    result.betMultiplier = 0.25;
+  } else if (dangerPoints >= 1) {
+    result.level = 'CAUTION';
+    result.signal = 'REDUCE';
+    result.betMultiplier = 0.5;
+  } else if (dangerPoints <= -1) {
+    result.level = 'FAVORABLE';
+    result.signal = 'AGGRESSIVE';
+    result.betMultiplier = 1.3;
+  } else {
+    result.level = 'SAFE';
+    result.signal = 'PLAY';
+    result.betMultiplier = 1.0;
+  }
+
+  // Store in AppState for access by other functions
+  AppState.combinedSignal = result;
+
+  return result;
+}
+
+/**
+ * Update the combined signal display in the UI
+ */
+function updateCombinedSignalDisplay() {
+  const signal = calculateCombinedSignal();
+  const panel = document.getElementById('combinedSignalPanel');
+
+  if (!panel) return;
+
+  // Update classes
+  panel.className = 'combined-signal-panel ' + signal.level.toLowerCase().replace('_', '-');
+
+  // Update content
+  const levelEl = panel.querySelector('.combined-signal-level');
+  const textEl = panel.querySelector('.combined-signal-text');
+  const reasonsEl = panel.querySelector('.combined-signal-reasons');
+
+  if (levelEl) {
+    let icon = '';
+    let text = '';
+    switch (signal.level) {
+      case 'EXTREME_DANGER':
+        icon = '🚫';
+        text = 'SIT OUT';
+        break;
+      case 'DANGER':
+        icon = '⛔';
+        text = 'MINIMUM BET';
+        break;
+      case 'CAUTION':
+        icon = '⚠️';
+        text = 'REDUCE BET';
+        break;
+      case 'FAVORABLE':
+        icon = '✓';
+        text = 'AGGRESSIVE';
+        break;
+      default:
+        icon = '●';
+        text = 'NORMAL';
+    }
+    levelEl.innerHTML = `<span class="signal-icon">${icon}</span><span class="signal-label">${text}</span>`;
+  }
+
+  if (textEl) {
+    const indicators = [];
+    if (signal.clumpActive) indicators.push('CLUMP');
+    if (signal.dealerHotActive) indicators.push('DEALER HOT');
+    textEl.textContent = indicators.length > 0 ? indicators.join(' + ') : 'Normal conditions';
+  }
+
+  if (reasonsEl) {
+    reasonsEl.innerHTML = signal.reasons.map(r => `<div class="reason-item">${r}</div>`).join('');
+  }
+
+  // Update bet multiplier display
+  const betEl = panel.querySelector('.combined-bet-mult');
+  if (betEl) {
+    betEl.textContent = signal.betMultiplier === 0 ? 'x0 (Sit Out)' : `x${signal.betMultiplier.toFixed(2)}`;
   }
 }
 
@@ -4270,6 +5083,8 @@ function updateAllImmediate() {
     updateClumpProbDisplay();
     updateSitOutSignal();
     updateClumpAutoToggleIndicator();
+    updateDealerCounterDisplay();
+    updateCombinedSignalDisplay();
   } catch (err) {
     console.error('updateAll error:', err);
   }
@@ -5337,8 +6152,23 @@ function updateDecisionPanels() {
 
     const panel = document.querySelector(`.decision-panel[data-player="${i}"]`);
     const toggleInput = document.querySelector(`.decision-toggle-input[data-player="${i}"]`);
+    const playerBox = document.getElementById(`player${i}`);
+
+    // Add/remove has-split-hands class for CSS expansion
+    if (playerBox) {
+      if (hasSplit) {
+        playerBox.classList.add('has-split-hands');
+      } else {
+        playerBox.classList.remove('has-split-hands');
+      }
+    }
 
     if (!panel || !toggleInput) continue;
+
+    // Auto-enable toggle when player has cards and dealer has upcard
+    if (canShowDecisions && !toggleInput.checked) {
+      toggleInput.checked = true;
+    }
 
     // If player has split hands, show split UI
     if (hasSplit && toggleInput.checked) {
@@ -5350,6 +6180,10 @@ function updateDecisionPanels() {
     // Only show decision panel if toggle is ON AND cards are dealt
     if (toggleInput.checked && canShowDecisions) {
       const optimal = calculatePlayerDecision(i);
+
+      // Check if player has a pair (for split option)
+      const hand = analyzeHand(playerCards);
+      const hasPair = hand.isPair && playerCards.length === 2;
 
       if (optimal.action) {
         // Build single button for the recommended action
@@ -5364,11 +6198,25 @@ function updateDecisionPanels() {
         const config = btnConfig[optimal.action];
         if (config) {
           if (config.isSplit) {
-            // Show split CTA button
+            // Show split CTA button (recommended)
             panel.innerHTML = `
               <button class="decision-btn split-cta recommended"
                       onclick="handleSplit(${i})"
                       title="${config.title}: ${optimal.reason}">
+                SPLIT
+              </button>
+            `;
+          } else if (hasPair) {
+            // Has pair but split not recommended - show both options
+            panel.innerHTML = `
+              <button class="decision-btn ${config.class} recommended"
+                      onclick="recordDecision(${i}, '${optimal.action}')"
+                      title="${config.title}: ${optimal.reason}">
+                ${config.label}
+              </button>
+              <button class="decision-btn split split-option"
+                      onclick="handleSplit(${i})"
+                      title="Split (optional - not recommended)">
                 SPLIT
               </button>
             `;
@@ -5423,6 +6271,17 @@ function handleSplit(playerNum) {
 
   // Activate split mode - wait for user to input actual cards dealt
   AppState.activeSplitPlayer = playerNum;
+
+  // Record split action in history for undo
+  AppState.dealHistory.push({
+    card: null,
+    rank: null,
+    position: `split_action_${playerNum}`,
+    originalCards: [...originalCards]  // Store original pair for undo
+  });
+  if (AppState.dealHistory.length > 200) {
+    AppState.dealHistory.shift();
+  }
 
   showToast(`Player ${playerNum} SPLIT! Deal card to Hand 1 (RIGHT)`, 'success');
   updateAll();
@@ -5829,6 +6688,11 @@ function recordRoundToHistory(roundData) {
 
   // Detect card clusters
   detectCardClusters(roundData.cardsDealt || []);
+
+  // Track dealer outcome for counter-strategy engine
+  if (typeof recordDealerOutcomeForCounter === 'function') {
+    recordDealerOutcomeForCounter(round);
+  }
 
   // Add round to history (with size limit)
   history.rounds.push(round);

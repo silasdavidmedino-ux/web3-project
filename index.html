@@ -16,13 +16,13 @@
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 
   <!-- Performance: Preload critical CSS -->
-  <link rel="preload" href="css/styles.css?v=3.9.47" as="style">
+  <link rel="preload" href="css/styles.css?v=3.9.54" as="style">
 
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32x32.png">
   <link rel="apple-touch-icon" href="icons/icon-192x192.png">
 
-  <link rel="stylesheet" href="css/styles.css?v=3.9.47">
+  <link rel="stylesheet" href="css/styles.css?v=3.9.54">
 
   <!-- ML Libraries disabled - load only when AI detection is used -->
   <!-- <script async src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script> -->
@@ -78,6 +78,23 @@
         <div class="sitout-signal-reason" id="sitoutReason">TC 0.0 (wait)</div>
       </div>
 
+      <!-- Combined Signal Panel (Double Danger Detection) -->
+      <div class="combined-signal-panel safe" id="combinedSignalPanel">
+        <div class="combined-signal-header">
+          <span class="combined-signal-title">COMBINED SIGNAL</span>
+        </div>
+        <div class="combined-signal-level">
+          <span class="signal-icon">●</span>
+          <span class="signal-label">NORMAL</span>
+        </div>
+        <div class="combined-signal-text">Normal conditions</div>
+        <div class="combined-signal-reasons"></div>
+        <div class="combined-signal-bet">
+          <span class="bet-label">Bet:</span>
+          <span class="combined-bet-mult">x1.00</span>
+        </div>
+      </div>
+
       <!-- Auto-Clump Indicator Panel -->
       <div class="clump-auto-indicator" id="clumpAutoIndicator">
         AUTO-CLUMP: OFF
@@ -106,6 +123,38 @@
         </div>
         <div class="dealer-history-list" id="dealerHistoryList">
           <div class="no-history">No rounds yet</div>
+        </div>
+      </div>
+
+      <!-- Dealer Counter Panel (Holy Grail Engine) -->
+      <div class="dealer-counter-panel" id="dealerCounterPanel">
+        <div class="dealer-counter-header">
+          <span class="dealer-counter-title">DEALER HOT</span>
+          <span class="dealer-counter-level" id="dealerHotLevel">NEUTRAL</span>
+        </div>
+        <div class="dealer-counter-meter">
+          <div class="dealer-counter-bar" id="dealerHotBar" style="width: 50%"></div>
+          <span class="dealer-counter-score" id="dealerHotScore">50</span>
+        </div>
+        <div class="dealer-counter-stats">
+          <div class="dealer-stat-row">
+            <span class="stat-label">Bust Rate</span>
+            <span class="stat-value" id="dealerBustRate">0%</span>
+            <span class="stat-expected">(exp: 28%)</span>
+          </div>
+          <div class="dealer-stat-row">
+            <span class="stat-label">20-21 Rate</span>
+            <span class="stat-value" id="dealer2021Rate">0%</span>
+            <span class="stat-expected">(exp: 25%)</span>
+          </div>
+          <div class="dealer-stat-row">
+            <span class="stat-label">Win Streak</span>
+            <span class="stat-value" id="dealerStreak">0</span>
+          </div>
+        </div>
+        <div class="dealer-counter-signal" id="dealerCounterSignal">
+          <span class="signal-icon">-</span>
+          <span class="signal-text" id="dealerSignalText">Waiting for data...</span>
         </div>
       </div>
     </div>
