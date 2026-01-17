@@ -2071,6 +2071,15 @@ main {
   color: #dc2626;
 }
 
+.card-chip.hole-card {
+  background: linear-gradient(135deg, #1e3a8a, #1e40af);
+  color: #fbbf24;
+  font-size: 16px;
+  font-weight: 900;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  border: 2px solid #3b82f6;
+}
+
 /* ============================================
    Decision Toggle & Panel
    ============================================ */
@@ -6917,21 +6926,21 @@ main {
 }
 
 .strategy-indicator.double {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: white;
-  border: 2px solid #fbbf24;
+  border: 2px solid #60a5fa;
 }
 
 .strategy-indicator.split {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  background: linear-gradient(135deg, #f97316, #ea580c);
   color: white;
-  border: 2px solid #a78bfa;
+  border: 2px solid #fb923c;
 }
 
 .strategy-indicator.surrender {
-  background: linear-gradient(135deg, #6b7280, #4b5563);
+  background: linear-gradient(135deg, #1f2937, #111827);
   color: white;
-  border: 2px solid #9ca3af;
+  border: 2px solid #374151;
 }
 
 .strategy-indicator.deviation {
@@ -6951,6 +6960,28 @@ main {
   padding: 2px 4px;
   border-radius: 4px;
   letter-spacing: 0.5px;
+}
+
+.deviation-badge.super-sac {
+  background: linear-gradient(135deg, #dc2626, #f97316);
+  color: #fff;
+  animation: super-pulse 1s infinite;
+}
+
+.deviation-badge.early-boost {
+  background: linear-gradient(135deg, #2563eb, #06b6d4);
+  color: #fff;
+  animation: early-pulse 1s infinite;
+}
+
+@keyframes super-pulse {
+  0%, 100% { box-shadow: 0 0 4px #dc2626; }
+  50% { box-shadow: 0 0 12px #f97316; }
+}
+
+@keyframes early-pulse {
+  0%, 100% { box-shadow: 0 0 4px #2563eb; }
+  50% { box-shadow: 0 0 12px #06b6d4; }
 }
 
 @keyframes strategy-pop {

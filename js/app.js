@@ -76,6 +76,9 @@ const AppState = {
   dealerHistory: [],
   currentRoundNum: 0,
 
+  // V2: Dealer hole card visibility (false = face down until revealed)
+  dealerHoleCardRevealed: false,
+
   // Player decisions (post-deal: STAY, HIT, SPLIT, DBL)
   playerDecisions: {
     1: null, 2: null, 3: null, 4: null,
@@ -438,15 +441,39 @@ const AppState = {
     maxBetUnits: 3,
     tcThreshold: 1,
 
-    // TEAMPLAY ALWAYS WINS Configuration v1.6
-    // P1-P2: Basic Strategy (foundation players)
-    // P3: P4 BOOSTER v1.0 (optimizes card flow for P4)
-    // P4: Quant EV + Martingale + TC Deviations (winning player)
-    // P5: Sacrifice v1.4 (late sacrifice - absorbs last)
-    quantEvPlayerIndex: 4,
-    sacrificePlayerIndex: 5,
-    boosterPlayerIndex: 3,  // P3 is the P4 Booster
-    sacrificePlayers: [5],  // Only P5 is sacrifice now
+    // ============================================
+    // STRATEGY VERSION SELECTOR
+    // ============================================
+    // V1 (5-seat): P1-P2 Basic | P3 Booster | P4 Quant EV | P5 Sacrifice
+    // V2 (7-seat): P1-P4 Basic | P5 Booster | P6 Quant EV | P7 Sacrifice
+    strategyVersion: 2,  // 1 or 2
+
+    // VERSION 1 Configuration (5-seat table) - ENHANCED
+    v1Config: {
+      quantEvPlayerIndex: 4,
+      sacrificePlayerIndex: 5,
+      boosterPlayerIndex: 3,
+      sacrificePlayers: [5],
+      basicPlayers: [1, 2],           // P1-P2 stay basic
+      superSacrificeEnabled: true,    // Enable Super Sacrifice for P5
+      description: 'P1-P2 Basic | P3 Booster | P4 Quant EV | P5 Super-Sac'
+    },
+
+    // VERSION 2 Configuration (7-seat table)
+    v2Config: {
+      quantEvPlayerIndex: 6,
+      sacrificePlayerIndex: 7,
+      boosterPlayerIndex: 5,
+      sacrificePlayers: [7],
+      basicPlayers: [1, 2, 3, 4],
+      description: 'P1-P4 Basic | P5 Booster | P6 Quant EV | P7 Sacrifice'
+    },
+
+    // Active config (set by version)
+    quantEvPlayerIndex: 6,
+    sacrificePlayerIndex: 7,
+    boosterPlayerIndex: 5,
+    sacrificePlayers: [7],
     quantEvTcThreshold: 0.9,
     quantEvStrategy: 'quantEv',
     boosterStrategy: 'p4_booster_v1.0',
@@ -480,6 +507,23 @@ const AppState = {
     sacrificeMaxAbsorption: 4,
     sacrificeTeamSaturation: 10,
     sacrificeTcScaling: true,
+
+    // SUPER SACRIFICE MODE (P5/P7 Ultra-Aggressive)
+    superSacrificeEnabled: true,  // Enable super sacrifice
+    superSacrificeSettings: {
+      hitHard17Always: true,       // Hit hard 17 vs ANY strong dealer (7-A)
+      hitHard18VsStrong: true,     // Hit hard 18 vs 9, 10, A
+      hitSoft18Always: true,       // Always hit soft 18 vs strong dealer
+      doubleOn9to11: true,         // Double on 9-11 to absorb 2 cards
+      splitAllPairs: true,         // Split ALL pairs (more card exposure)
+      maxAbsorption: 6,            // Hit up to 6 cards if needed
+      bustForTeam: true,           // Willing to bust to absorb cards
+      // TOTAL SACRIFICE MODE - P5 bets 5X smaller than P4
+      totalSacrificeMode: true,    // Enable extreme sacrifice (hit on 19-20)
+      betMultiplier: 0.2,          // Sacrifice bet = 20% of P4's bet (5X smaller)
+      hitOn19VsStrong: true,       // Hit hard 19 vs 9, 10, A to absorb
+      hitOn20ToDealerBust: true    // Hit 20 if dealer likely needs our card to NOT bust
+    },
 
     // ============================================
     // UNIFIED P3/P5 SACRIFICE POLICIES v1.0
@@ -570,6 +614,11 @@ const AppState = {
 // Initialize Application
 // ============================================
 function init() {
+  // Clear all positions to ensure clean state on init
+  for (const pos in AppState.positions) {
+    AppState.positions[pos] = [];
+  }
+
   // Store initial counts for reset
   AppState.initialCounts = JSON.parse(JSON.stringify(AppState.rankCounts));
 
@@ -603,8 +652,94 @@ function init() {
   // Initialize clumping probability toggle state
   initClumpProbToggle();
 
+  // Initialize strategy version display (V2 default)
+  updateStrategyVersionDisplay();
+
   // Initial calculations
   updateAll();
+}
+
+// ============================================
+// Strategy Version Management
+// ============================================
+
+/**
+ * Apply strategy version configuration
+ * V1 (5-seat): P1-P2 Basic | P3 Booster | P4 Quant EV | P5 Sacrifice
+ * V2 (7-seat): P1-P4 Basic | P5 Booster | P6 Quant EV | P7 Sacrifice
+ */
+function applyStrategyVersion(version) {
+  const settings = AppState.quantEvSettings;
+  settings.strategyVersion = version;
+
+  const vConfig = version === 1 ? settings.v1Config : settings.v2Config;
+
+  // Apply version-specific config to active settings
+  settings.quantEvPlayerIndex = vConfig.quantEvPlayerIndex;
+  settings.sacrificePlayerIndex = vConfig.sacrificePlayerIndex;
+  settings.boosterPlayerIndex = vConfig.boosterPlayerIndex;
+  settings.sacrificePlayers = vConfig.sacrificePlayers;
+
+  // Update UI selector
+  const selector = document.getElementById('strategyVersionSelect');
+  if (selector) selector.value = version;
+
+  // Update strategy version display
+  updateStrategyVersionDisplay();
+
+  // Log the change
+  const desc = vConfig.description;
+  logToConsole(`[STRATEGY] Version ${version} active: ${desc}`, 'info');
+  showToast(`Strategy V${version}: ${desc}`, 'success');
+}
+
+/**
+ * Get player strategy type based on current version
+ */
+function getPlayerStrategyType(playerNum) {
+  const settings = AppState.quantEvSettings;
+  const version = settings.strategyVersion || 2;
+  const vConfig = version === 1 ? settings.v1Config : settings.v2Config;
+
+  if (playerNum === vConfig.quantEvPlayerIndex) return 'QEV';
+  if (playerNum === vConfig.boosterPlayerIndex) return 'BOOST';
+  if (playerNum === vConfig.sacrificePlayerIndex) {
+    // Check if Super Sacrifice is enabled for this version
+    if (vConfig.superSacrificeEnabled) return 'SUPER_SAC';
+    return 'SAC';
+  }
+  if (vConfig.basicPlayers.includes(playerNum)) return 'BASIC';
+  return 'BASIC';
+}
+
+/**
+ * Update strategy version display in UI
+ */
+function updateStrategyVersionDisplay() {
+  const settings = AppState.quantEvSettings;
+  const version = settings.strategyVersion || 2;
+  const vConfig = version === 1 ? settings.v1Config : settings.v2Config;
+
+  // Update player labels to show their strategy
+  for (let i = 1; i <= 8; i++) {
+    const label = document.querySelector(`#player${i} .position-label`);
+    if (label) {
+      const stratType = getPlayerStrategyType(i);
+      const stratBadge = {
+        'QEV': ' [QEV]',
+        'BOOST': ' [BOOST]',
+        'SAC': ' [SAC]',
+        'SUPER_SAC': ' [S-SAC]',
+        'BASIC': ''
+      }[stratType] || '';
+
+      // Only show badge if player is within active count
+      const numPlayers = AppState.numPlayers || 7;
+      if (i <= numPlayers) {
+        label.textContent = `PLAYER ${i}${stratBadge}`;
+      }
+    }
+  }
 }
 
 // ============================================
@@ -888,6 +1023,36 @@ function handleCardClick(card) {
       if (dealerTotal > 21) {
         showToast(`Dealer busted - cannot add more cards`, 'info');
         return;
+      }
+    }
+
+    // BLACKJACK RULE: Dealer cannot draw 3rd+ card until all players finish decisions
+    if (dealerCards.length >= 2) {
+      // Check if any player with cards hasn't made a final decision
+      for (let i = 1; i <= 8; i++) {
+        const playerCards = AppState.positions[`player${i}`];
+        if (playerCards && playerCards.length >= 2) {
+          const playerDecision = AppState.playerDecisions[i];
+          const playerTotal = calculateHandTotal(playerCards);
+
+          // Check if player is still in play (not stayed, not busted, not 21)
+          if (playerDecision !== 'STAY' && playerTotal < 21) {
+            showToast(`Wait for Player ${i} to finish (STAY, BUST, or 21) before dealer draws`, 'warning');
+            return;
+          }
+
+          // Check for active split hands
+          const split = AppState.splitHands[i];
+          if (split && split.active) {
+            showToast(`Wait for Player ${i} split hands to complete before dealer draws`, 'warning');
+            return;
+          }
+        }
+      }
+
+      // All players finished - reveal hole card before drawing 3rd card
+      if (!AppState.dealerHoleCardRevealed) {
+        revealDealerHoleCard();
       }
     }
   }
@@ -1967,6 +2132,145 @@ function updateP5UnifiedState(action, cardsAbsorbed, aggression) {
 // - Hand Synergy: Coordinate with P4's likely hand outcomes
 // ============================================
 
+// ============================================
+// P1 EARLY BOOSTER ENGINE v1.0 (V1 Strategy Only)
+// First position player that starts card flow optimization
+// ============================================
+function getP1EarlyBoosterDecision(playerCards, dealerUpcard) {
+  const hand = analyzeHand(playerCards);
+  const tc = getTrueCount();
+  const playerTotal = hand.total;
+  const isSoft = hand.isSoft;
+  const dealerVal = dealerUpcard === 'A' ? 11 : (parseInt(dealerUpcard) || 10);
+  const weakDealer = dealerVal >= 2 && dealerVal <= 6;
+  const strongDealer = dealerVal >= 7;
+
+  let action = 'STAND';
+  let intent = 'STANDARD';
+  let confidence = 70;
+
+  // ============================================
+  // EARLY BOOSTER STRATEGY
+  // Goal: Start card flow optimization before P3
+  // - At negative TC: Burn small cards aggressively
+  // - At positive TC: Play conservatively to preserve 10s
+  // - Split pairs aggressively to expose more cards
+  // - Double on 9-11 to absorb extra card
+  // ============================================
+
+  // RULE 1: SPLIT ALL PAIRS (expose more cards for team)
+  if (hand.isPair && playerCards.length === 2) {
+    return {
+      action: 'SPLIT',
+      reason: `EARLY-BOOST: Split ${playerCards[0]}s to expose cards for team`,
+      confidence: 90,
+      boosterIntent: 'SPLIT_EXPOSE',
+      isEarlyBooster: true
+    };
+  }
+
+  // RULE 2: DOUBLE ON 9-11 (absorb extra card)
+  if (playerTotal >= 9 && playerTotal <= 11 && playerCards.length === 2) {
+    return {
+      action: 'DBL',
+      reason: `EARLY-BOOST: Double ${playerTotal} to absorb card`,
+      confidence: 88,
+      boosterIntent: 'DOUBLE_ABSORB',
+      isEarlyBooster: true
+    };
+  }
+
+  // RULE 3: TC-BASED AGGRESSIVE BURNING
+  if (tc <= -2) {
+    // Negative TC = too many small cards, burn them
+    if (playerTotal <= 16) {
+      return {
+        action: 'HIT',
+        reason: `EARLY-BOOST: TC ${tc.toFixed(1)} low, burn small cards`,
+        confidence: 85,
+        boosterIntent: 'BURN_SMALL',
+        isEarlyBooster: true
+      };
+    }
+  }
+
+  // RULE 4: SOFT HANDS - Always hit soft 17 or less
+  if (isSoft && playerTotal <= 17) {
+    return {
+      action: 'HIT',
+      reason: `EARLY-BOOST: Hit soft ${playerTotal} safely`,
+      confidence: 92,
+      boosterIntent: 'SOFT_BUILD',
+      isEarlyBooster: true
+    };
+  }
+
+  // RULE 5: LOW TOTALS - Always hit 11 or less
+  if (playerTotal <= 11) {
+    return {
+      action: 'HIT',
+      reason: `EARLY-BOOST: Hit ${playerTotal} to build hand`,
+      confidence: 95,
+      boosterIntent: 'BUILD_HAND',
+      isEarlyBooster: true
+    };
+  }
+
+  // RULE 6: STIFF HANDS VS WEAK DEALER
+  if (weakDealer && playerTotal >= 12 && playerTotal <= 16) {
+    // At neutral/positive TC, stand to let dealer bust
+    if (tc >= 1) {
+      return {
+        action: 'STAND',
+        reason: `EARLY-BOOST: Stand ${playerTotal} vs ${dealerVal}, TC +${tc.toFixed(1)}`,
+        confidence: 75,
+        boosterIntent: 'LET_DEALER_BUST',
+        isEarlyBooster: true
+      };
+    }
+    // At negative TC, hit to burn small cards
+    return {
+      action: 'HIT',
+      reason: `EARLY-BOOST: Hit ${playerTotal} vs ${dealerVal}, burn lows`,
+      confidence: 70,
+      boosterIntent: 'BURN_LOWS',
+      isEarlyBooster: true
+    };
+  }
+
+  // RULE 7: STIFF HANDS VS STRONG DEALER
+  if (strongDealer && playerTotal >= 12 && playerTotal <= 16) {
+    // Must hit against strong dealer
+    return {
+      action: 'HIT',
+      reason: `EARLY-BOOST: Hit ${playerTotal} vs strong ${dealerVal}`,
+      confidence: 80,
+      boosterIntent: 'COMPETE_STRONG',
+      isEarlyBooster: true
+    };
+  }
+
+  // RULE 8: GOOD HANDS - Stand on 17+
+  if (playerTotal >= 17) {
+    return {
+      action: 'STAND',
+      reason: `EARLY-BOOST: Stand on ${playerTotal}`,
+      confidence: 95,
+      boosterIntent: 'STRONG_HAND',
+      isEarlyBooster: true
+    };
+  }
+
+  // Default
+  return {
+    action: action,
+    reason: `EARLY-BOOST: Default ${action} on ${playerTotal}`,
+    confidence: confidence,
+    boosterIntent: intent,
+    isEarlyBooster: true
+  };
+}
+
 function getP3BoosterDecision(playerCards, dealerUpcard, p1Cards = [], p2Cards = []) {
   const hand = analyzeHand(playerCards);
   const tc = getTrueCount();
@@ -2236,13 +2540,138 @@ function getP3BoosterDecision(playerCards, dealerUpcard, p1Cards = [], p2Cards =
 // ENHC Rules: Dealer 1 upcard, draws after all players
 // ============================================
 
-function getSacrificeDecision(playerCards, dealerUpcard, otherPlayersCards = [], isP5Sacrifice = false) {
+function getSacrificeDecision(playerCards, dealerUpcard, otherPlayersCards = [], isP5Sacrifice = false, isSuperSacrifice = false) {
   const hand = analyzeHand(playerCards);
   const tc = getTrueCount();
   const rc = AppState.runningCount;
   const playerTotal = hand.total;
   const dealerVal = dealerUpcard === 'A' ? 11 : (parseInt(dealerUpcard) || 10);
   const decksRemaining = (AppState.totalCards - AppState.cardsDealt) / 52;
+  const settings = AppState.quantEvSettings;
+  const superSettings = settings.superSacrificeSettings || {};
+
+  // ============================================
+  // SMART SACRIFICE MODE v2.0
+  // P5 plays AFTER P4, so focus on making DEALER bust
+  // Strategy: Absorb cards dealer needs, keep good hands to pressure dealer
+  // ============================================
+  if (isSuperSacrifice && settings.superSacrificeEnabled) {
+    const strongDealer = dealerVal >= 7;
+    const weakDealer = dealerVal >= 2 && dealerVal <= 6;
+
+    // What does dealer need to reach 17?
+    const dealerNeeds = 17 - dealerVal;
+
+    // RULE 0: Already busted or 21
+    if (playerTotal >= 21) {
+      return {
+        action: 'STAND',
+        reason: playerTotal > 21 ? 'SMART SAC: Busted' : 'SMART SAC: 21!',
+        confidence: 100,
+        isSacrifice: true,
+        isSuperSacrifice: true,
+        sacrificeIntent: playerTotal > 21 ? 'BUSTED' : 'PERFECT_21',
+        tcUsed: tc,
+        version: 'SMART_2.0'
+      };
+    }
+
+    // RULE 1: ALWAYS stand on 17+ (pressure dealer to beat us)
+    // If P5 has 17+, dealer MUST draw to try to beat us
+    if (playerTotal >= 17) {
+      return {
+        action: 'STAND',
+        reason: `SMART SAC: Stand ${playerTotal} - force dealer to draw!`,
+        confidence: 95,
+        isSacrifice: true,
+        isSuperSacrifice: true,
+        sacrificeIntent: 'PRESSURE_DEALER',
+        tcUsed: tc,
+        version: 'SMART_2.0'
+      };
+    }
+
+    // RULE 2: Hit soft hands up to soft 17 (safe improvement)
+    if (hand.isSoft && playerTotal <= 17) {
+      return {
+        action: 'HIT',
+        reason: `SMART SAC: Hit soft ${playerTotal} - improve safely`,
+        confidence: 90,
+        isSacrifice: true,
+        isSuperSacrifice: true,
+        sacrificeIntent: 'SOFT_IMPROVE',
+        tcUsed: tc,
+        version: 'SMART_2.0'
+      };
+    }
+
+    // RULE 3: Always hit 11 or less (can't bust)
+    if (playerTotal <= 11) {
+      return {
+        action: 'HIT',
+        reason: `SMART SAC: Hit ${playerTotal} - can't bust`,
+        confidence: 98,
+        isSacrifice: true,
+        isSuperSacrifice: true,
+        sacrificeIntent: 'SAFE_HIT',
+        tcUsed: tc,
+        version: 'SMART_2.0'
+      };
+    }
+
+    // RULE 4: vs WEAK dealer (2-6) - STAND on 12-16 to let dealer bust
+    if (weakDealer && playerTotal >= 12 && playerTotal <= 16) {
+      // Exception: At very negative TC, hit to absorb small cards dealer needs
+      if (tc <= -3) {
+        return {
+          action: 'HIT',
+          reason: `SMART SAC: Hit ${playerTotal} vs ${dealerVal} - TC ${tc.toFixed(1)}, absorb dealer's safe cards`,
+          confidence: 75,
+          isSacrifice: true,
+          isSuperSacrifice: true,
+          sacrificeIntent: 'ABSORB_SMALL',
+          tcUsed: tc,
+          version: 'SMART_2.0'
+        };
+      }
+      return {
+        action: 'STAND',
+        reason: `SMART SAC: Stand ${playerTotal} vs ${dealerVal} - let dealer bust`,
+        confidence: 85,
+        isSacrifice: true,
+        isSuperSacrifice: true,
+        sacrificeIntent: 'LET_DEALER_BUST',
+        tcUsed: tc,
+        version: 'SMART_2.0'
+      };
+    }
+
+    // RULE 5: vs STRONG dealer (7+) - Hit 12-16 to improve or absorb
+    if (strongDealer && playerTotal >= 12 && playerTotal <= 16) {
+      return {
+        action: 'HIT',
+        reason: `SMART SAC: Hit ${playerTotal} vs ${dealerVal} - must improve`,
+        confidence: 80,
+        isSacrifice: true,
+        isSuperSacrifice: true,
+        sacrificeIntent: 'IMPROVE_VS_STRONG',
+        tcUsed: tc,
+        version: 'SMART_2.0'
+      };
+    }
+
+    // Default: Stand
+    return {
+      action: 'STAND',
+      reason: `SMART SAC: Stand ${playerTotal}`,
+      confidence: 75,
+      isSacrifice: true,
+      isSuperSacrifice: true,
+      sacrificeIntent: 'DEFAULT_STAND',
+      tcUsed: tc,
+      version: 'SMART_2.0'
+    };
+  }
 
   // ============================================
   // UNIFIED P5 SACRIFICE ENGINE v1.0
@@ -2250,7 +2679,7 @@ function getSacrificeDecision(playerCards, dealerUpcard, otherPlayersCards = [],
   // ============================================
 
   // Get unified coordination parameters (only for P5)
-  const unifiedParams = (isP5Sacrifice && AppState.quantEvSettings.unifiedSacrificeEnabled)
+  const unifiedParams = (isP5Sacrifice && settings.unifiedSacrificeEnabled)
     ? getUnifiedP5Params()
     : { aggressionMod: 0, maxAbsorption: 5, hitHard17Allowed: false, coordinationMode: 'BALANCED', p3Absorbed: 0, p3StoodOnStiff: false };
 
@@ -5181,10 +5610,28 @@ function updatePositionCards(singlePos = null) {
         `;
       } else {
         // Normal cards display
-        container.innerHTML = cards.map(c => {
-          const isRed = ['A', '2', '3', '4', '5', '6', '7', '8', '9'].includes(c) && Math.random() > 0.5;
-          return `<span class="card-chip ${isRed ? 'red' : ''}">${c}</span>`;
-        }).join('');
+        // V2: Hide hole card for dealer until revealed
+        const settings = AppState.quantEvSettings;
+        const isV2 = (settings.strategyVersion || 2) === 2;
+        const isDealerWithHoleCard = pos === 'dealer' && isV2 && cards.length === 2 && !AppState.dealerHoleCardRevealed;
+
+        // V2: Show hole card placeholder when dealer has 1 card
+        if (pos === 'dealer' && isV2 && cards.length === 1) {
+          const isRed = ['A', '2', '3', '4', '5', '6', '7', '8', '9'].includes(cards[0]) && Math.random() > 0.5;
+          container.innerHTML = `
+            <span class="card-chip ${isRed ? 'red' : ''}">${cards[0]}</span>
+            <span class="card-chip hole-card" title="Hole card (not dealt yet)">?</span>
+          `;
+        } else {
+          container.innerHTML = cards.map((c, idx) => {
+            // Hide second dealer card if hole card not revealed in V2
+            if (isDealerWithHoleCard && idx === 1) {
+              return `<span class="card-chip hole-card" title="Hole card (face down)">?</span>`;
+            }
+            const isRed = ['A', '2', '3', '4', '5', '6', '7', '8', '9'].includes(c) && Math.random() > 0.5;
+            return `<span class="card-chip ${isRed ? 'red' : ''}">${c}</span>`;
+          }).join('');
+        }
       }
     }
 
@@ -5208,15 +5655,27 @@ function updatePositionCards(singlePos = null) {
           playerBox.classList.toggle('bust', hand1Total > 21 || hand2Total > 21);
         }
       } else {
-        const handTotal = calculateHandTotal(cards);
-        if (handTotal > 21) {
+        // V2: Show only upcard value for dealer when hole card hidden
+        const settings = AppState.quantEvSettings;
+        const isV2 = (settings.strategyVersion || 2) === 2;
+        const isDealerWithHoleCard = pos === 'dealer' && isV2 && cards.length === 2 && !AppState.dealerHoleCardRevealed;
+
+        let displayTotal;
+        if (isDealerWithHoleCard) {
+          // Show only upcard value
+          displayTotal = calculateHandTotal([cards[0]]);
+        } else {
+          displayTotal = calculateHandTotal(cards);
+        }
+
+        if (displayTotal > 21) {
           badge.textContent = 'BUST';
           badge.classList.add('bust');
           if (playerBox && pos !== 'dealer') {
             playerBox.classList.add('bust');
           }
         } else {
-          badge.textContent = handTotal;
+          badge.textContent = displayTotal;
           badge.classList.remove('bust');
           if (playerBox && pos !== 'dealer') {
             playerBox.classList.remove('bust');
@@ -5234,50 +5693,97 @@ function updateDealerCardsPanel() {
   const dealerCards = AppState.positions.dealer;
   const container = document.getElementById('dealerCardsLeft');
   const totalEl = document.getElementById('dealerTotal');
+  const settings = AppState.quantEvSettings;
+
+  // V2: Show hole card face down until revealed
+  const isV2 = (settings.strategyVersion || 2) === 2;
+  const holeCardHidden = isV2 && dealerCards.length === 2 && !AppState.dealerHoleCardRevealed;
 
   if (container) {
     if (dealerCards.length === 0) {
       container.innerHTML = '<span class="no-cards">—</span>';
     } else {
-      container.innerHTML = dealerCards.map(c => {
-        const isRed = ['A'].includes(c) || Math.random() > 0.5;
-        return `<span class="card-chip ${isRed ? 'red' : ''}">${c}</span>`;
-      }).join('');
+      // V2: Show hole card placeholder when dealer has only 1 card
+      if (isV2 && dealerCards.length === 1) {
+        const isRed = ['A'].includes(dealerCards[0]) || Math.random() > 0.5;
+        container.innerHTML = `
+          <span class="card-chip ${isRed ? 'red' : ''}">${dealerCards[0]}</span>
+          <span class="card-chip hole-card" title="Hole card (not dealt yet)">?</span>
+        `;
+      } else {
+        container.innerHTML = dealerCards.map((c, idx) => {
+          // V2: Second card (index 1) is face down when hole card hidden
+          if (holeCardHidden && idx === 1) {
+            return `<span class="card-chip hole-card" title="Hole card (face down)">?</span>`;
+          }
+          const isRed = ['A'].includes(c) || Math.random() > 0.5;
+          return `<span class="card-chip ${isRed ? 'red' : ''}">${c}</span>`;
+        }).join('');
+      }
     }
   }
 
   if (totalEl) {
-    const total = calculateHandTotal(dealerCards);
-    if (total > 21) {
-      totalEl.textContent = 'BUST';
-      totalEl.classList.add('bust');
-    } else {
-      totalEl.textContent = total;
+    if (holeCardHidden) {
+      // Only show upcard value when hole card is hidden
+      const upcardTotal = getValue(dealerCards[0]);
+      totalEl.textContent = upcardTotal;
       totalEl.classList.remove('bust');
+    } else {
+      const total = calculateHandTotal(dealerCards);
+      if (total > 21) {
+        totalEl.textContent = 'BUST';
+        totalEl.classList.add('bust');
+      } else {
+        totalEl.textContent = total;
+        totalEl.classList.remove('bust');
+      }
     }
   }
 
   // Update dealer badge on the table
   const dealerBadge = document.getElementById('dealerBadge');
   const dealerBox = document.getElementById('dealer');
-  const dealerTotal = calculateHandTotal(dealerCards);
 
   if (dealerBadge) {
-    if (dealerTotal > 21) {
-      dealerBadge.textContent = 'BUST';
-      dealerBadge.classList.add('bust');
-    } else {
-      dealerBadge.textContent = dealerTotal;
+    if (holeCardHidden) {
+      // Show only upcard value
+      const upcardTotal = getValue(dealerCards[0]);
+      dealerBadge.textContent = upcardTotal;
       dealerBadge.classList.remove('bust');
+    } else {
+      const dealerTotal = calculateHandTotal(dealerCards);
+      if (dealerTotal > 21) {
+        dealerBadge.textContent = 'BUST';
+        dealerBadge.classList.add('bust');
+      } else {
+        dealerBadge.textContent = dealerTotal;
+        dealerBadge.classList.remove('bust');
+      }
     }
   }
 
   if (dealerBox) {
-    if (dealerTotal > 21) {
+    const dealerTotal = calculateHandTotal(dealerCards);
+    if (!holeCardHidden && dealerTotal > 21) {
       dealerBox.classList.add('bust');
     } else {
       dealerBox.classList.remove('bust');
     }
+  }
+}
+
+/**
+ * Reveal dealer's hole card (V2)
+ */
+function revealDealerHoleCard() {
+  AppState.dealerHoleCardRevealed = true;
+  updateDealerCardsPanel();
+  updatePositionCards('dealer');
+
+  const dealerCards = AppState.positions.dealer;
+  if (dealerCards.length >= 2) {
+    showToast(`Dealer hole card: ${dealerCards[1]} (Total: ${calculateHandTotal(dealerCards)})`, 'info');
   }
 }
 
@@ -9831,18 +10337,23 @@ async function simPlayerPlay(pos, dealerVal, cards) {
   const playerNum = parseInt(pos.replace('player', ''));
   const dealerUpcard = AppState.positions.dealer[0];
   const settings = AppState.quantEvSettings;
-  const quantEvPlayer = settings.quantEvPlayerIndex || 4;
-  const sacrificePlayers = settings.sacrificePlayers || [3, 5];  // P3 and P5 are sacrifice players
+
+  // Get version-specific config
+  const version = settings.strategyVersion || 2;
+  const vConfig = version === 1 ? settings.v1Config : settings.v2Config;
+  const quantEvPlayer = vConfig?.quantEvPlayerIndex || settings.quantEvPlayerIndex || 4;
+  const boosterPlayer = vConfig?.boosterPlayerIndex || settings.boosterPlayerIndex || 3;
+  const sacrificePlayer = vConfig?.sacrificePlayerIndex || settings.sacrificePlayerIndex || 5;
+  const basicPlayers = vConfig?.basicPlayers || [1, 2];
   let hits = 0;
 
-  // Determine player strategy:
-  // P1-P2: Basic Strategy (foundation)
-  // P3: P4 BOOSTER v1.0 (optimizes card flow for P4)
-  // P4: Quant EV (getOptimalDecision with count-based deviations)
-  // P5: Sacrifice v1.4 (late sacrifice - absorbs last)
-  const isP3Booster = (playerNum === 3);
-  const isP5Sacrifice = (playerNum === 5);
+  // Determine player strategy based on version:
+  // V1 (5-seat): P1-P2 Basic | P3 Booster | P4 Quant EV | P5 Super-Sac
+  // V2 (7-seat): P1-P4 Basic | P5 Booster | P6 Quant EV | P7 Super-Sac
+  const isBooster = (playerNum === boosterPlayer);
+  const isSacrifice = (playerNum === sacrificePlayer);
   const isQuantEvPlayer = (playerNum === quantEvPlayer);
+  const isBasicPlayer = basicPlayers.includes(playerNum);
 
   while (hits < 8 && realtimeSimRunning) {
     const playerCards = AppState.positions[pos];
@@ -9852,39 +10363,51 @@ async function simPlayerPlay(pos, dealerVal, cards) {
 
     let decision;
 
-    if (isP3Booster) {
-      // P3: P4 BOOSTER STRATEGY v1.0
-      // Optimizes card flow specifically to benefit P4's outcomes
-      const p1Cards = AppState.positions.player1 || [];
-      const p2Cards = AppState.positions.player2 || [];
-      decision = getP3BoosterDecision(playerCards, dealerUpcard, p1Cards, p2Cards);
+    if (isBooster) {
+      // BOOSTER STRATEGY v1.0
+      // Optimizes card flow specifically to benefit Quant EV player
+      // Collects cards from players before the booster
+      const priorPlayersCards = [];
+      for (let p = 1; p < boosterPlayer; p++) {
+        const pCards = AppState.positions[`player${p}`];
+        if (pCards && pCards.length > 0) {
+          priorPlayersCards.push(...pCards);
+        }
+      }
+      decision = getP3BoosterDecision(playerCards, dealerUpcard, priorPlayersCards, []);
       decision.strategyType = 'BOOST';
       if (decision.action === 'STAND') decision.action = 'STAY';
-    } else if (isP5Sacrifice) {
-      // P5: Use Sacrifice Strategy v1.4 (late sacrifice)
-      // Sees P1-P4 cards before deciding
-      // P5 SPECIAL: Can hit on hard 17+ to bust dealer
+    } else if (isSacrifice) {
+      // SACRIFICE STRATEGY v1.4 (late sacrifice)
+      // Sees all prior players' cards before deciding
+      // Can hit on hard 17+ to bust dealer
       const otherPlayersCards = [];
-      for (let p = 1; p <= 4; p++) {
+      for (let p = 1; p < sacrificePlayer; p++) {
         const pCards = AppState.positions[`player${p}`];
         if (pCards && pCards.length > 0) {
           otherPlayersCards.push(pCards);
         }
       }
-      decision = getSacrificeDecision(playerCards, dealerUpcard, otherPlayersCards, true);  // true = P5 can hit hard 17+
+      // Check if Super Sacrifice is enabled for this version
+      // V1: P5 is super sacrifice | V2: P7 is super sacrifice
+      const isSuperSacrifice = vConfig.superSacrificeEnabled ||
+        (version === 2 && playerNum === 7 && settings.superSacrificeEnabled);
+      decision = getSacrificeDecision(playerCards, dealerUpcard, otherPlayersCards, true, isSuperSacrifice);
       decision.sacrificePosition = 'LATE';
-      decision.strategyType = 'SAC';
+      decision.strategyType = isSuperSacrifice ? 'SUPER_SAC' : 'SAC';
       if (decision.action === 'STAND') decision.action = 'STAY';
     } else if (isQuantEvPlayer) {
-      // P4: Use Quant EV with Illustrious 18 deviations
+      // QUANT EV: Use Quant EV with Illustrious 18 deviations
       decision = getOptimalDecision(playerCards, dealerUpcard);
+      decision.strategyType = 'QEV';
     } else {
-      // P1-P2: Use Basic Strategy only (no counting deviations)
+      // BASIC PLAYERS: Use Basic Strategy only (no counting deviations)
       decision = getBasicStrategyDecision(playerNum);
       if (!decision) {
         // Fallback to optimal if basic strategy fails
         decision = getOptimalDecision(playerCards, dealerUpcard);
       }
+      decision.strategyType = 'BASIC';
     }
 
     // Show strategy indicator on player box
@@ -9968,9 +10491,13 @@ function showStrategyIndicator(pos, decision) {
                 decision.action === 'SPLIT' ? 'P' :
                 decision.action === 'SURRENDER' ? 'R' : '?';
 
+  // Add special badges
+  const superSacBadge = decision.isSuperSacrifice ? '<span class="deviation-badge super-sac">SS</span>' : '';
+  const deviationBadge = decision.isDeviation ? '<span class="deviation-badge">I18</span>' : '';
+
   indicator.innerHTML = `
     <span class="strategy-action">${label}</span>
-    ${decision.isDeviation ? '<span class="deviation-badge">I18</span>' : ''}
+    ${superSacBadge}${deviationBadge}
   `;
   indicator.title = decision.reason;
 
@@ -10218,12 +10745,30 @@ function updateDealerTableCards() {
   const container = document.getElementById('dealerCards');
   const badge = document.getElementById('dealerBadge');
   const dealerBox = document.getElementById('dealerBox');
+  const settings = AppState.quantEvSettings;
+
+  // V2: Check if hole card should be hidden
+  const isV2 = (settings.strategyVersion || 2) === 2;
+  const holeCardHidden = isV2 && dealerCards.length >= 2 && !AppState.dealerHoleCardRevealed;
 
   if (container && dealerCards.length > 0) {
-    container.innerHTML = dealerCards.map(c => {
-      const isRed = ['A'].includes(c) || Math.random() > 0.5;
-      return `<span class="card-chip ${isRed ? 'red' : ''}">${c}</span>`;
-    }).join('');
+    // V2: Show hole card placeholder when dealer has 1 card
+    if (isV2 && dealerCards.length === 1) {
+      const isRed = ['A'].includes(dealerCards[0]) || Math.random() > 0.5;
+      container.innerHTML = `
+        <span class="card-chip ${isRed ? 'red' : ''}">${dealerCards[0]}</span>
+        <span class="card-chip hole-card" title="Hole card (not dealt yet)">?</span>
+      `;
+    } else {
+      container.innerHTML = dealerCards.map((c, idx) => {
+        // V2: Hide second card if hole card not revealed
+        if (holeCardHidden && idx === 1) {
+          return `<span class="card-chip hole-card" title="Hole card (face down)">?</span>`;
+        }
+        const isRed = ['A'].includes(c) || Math.random() > 0.5;
+        return `<span class="card-chip ${isRed ? 'red' : ''}">${c}</span>`;
+      }).join('');
+    }
   } else if (container) {
     container.innerHTML = '';
   }
@@ -10233,12 +10778,19 @@ function updateDealerTableCards() {
       badge.textContent = '0';
       badge.classList.remove('bust');
     } else {
-      const total = calculateHandTotal(dealerCards);
-      if (total > 21) {
+      // V2: Show only upcard value when hole card hidden
+      let displayTotal;
+      if (holeCardHidden) {
+        displayTotal = calculateHandTotal([dealerCards[0]]);
+      } else {
+        displayTotal = calculateHandTotal(dealerCards);
+      }
+
+      if (displayTotal > 21) {
         badge.textContent = 'BUST';
         badge.classList.add('bust');
       } else {
-        badge.textContent = total;
+        badge.textContent = displayTotal;
         badge.classList.remove('bust');
       }
     }
@@ -11823,6 +12375,11 @@ function autoSettleRound() {
     return;
   }
 
+  // V2: Reveal hole card when settling round
+  if (!AppState.dealerHoleCardRevealed) {
+    revealDealerHoleCard();
+  }
+
   const dealerTotal = calculateHandTotal(dealerCards);
   if (dealerTotal < 17 && dealerTotal <= 21) {
     showToast(`Dealer has ${dealerTotal} - must draw to 17+ first`, 'warning');
@@ -11875,6 +12432,9 @@ function newRound() {
   // Reset round settled flag for new round
   AppState.roundSettled = false;
 
+  // Reset dealer hole card for V2
+  AppState.dealerHoleCardRevealed = false;
+
   // Update UI
   updateAll();
   showToast('New round - positions cleared', 'info');
@@ -11890,6 +12450,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (AppState.bettingHistory.enabled && !AppState.bettingHistory.currentGame) {
       startNewGame(8);
     }
+
+    // Clear all positions on page load to ensure clean state
+    for (const pos in AppState.positions) {
+      AppState.positions[pos] = [];
+    }
+    updatePositionCards();
   }, 1000);
 });
 
@@ -11943,6 +12509,9 @@ async function runLiveQuantEvSim(numRounds = 50) {
       AppState.positions[`player${i}`] = [];
     }
     AppState.positions.dealer = [];
+
+    // V2: Reset hole card for new round
+    AppState.dealerHoleCardRevealed = false;
 
     // Deal cards to all 5 players and dealer
     const ranks = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
@@ -12050,6 +12619,216 @@ function showQuantEvSummary() {
 }
 
 window.runLiveQuantEvSim = runLiveQuantEvSim;
+
+// COMPARISON: V1 vs V2 Strategy Performance
+async function compareV1vsV2(numRounds = 200) {
+  console.log('[COMPARISON] Starting V1 vs V2 comparison with ' + numRounds + ' rounds each');
+
+  showToast('Starting V1 vs V2 comparison - this will take a moment...', 'info');
+
+  const results = {
+    v1: { player: 4, wins: 0, losses: 0, pushes: 0, bankroll: 0, winRate: 0 },
+    v2: { player: 6, wins: 0, losses: 0, pushes: 0, bankroll: 0, winRate: 0 }
+  };
+
+  // ========== RUN V1 SIMULATION ==========
+  console.log('[COMPARISON] Running V1 (5-seat) simulation...');
+  applyStrategyVersion(1);
+  await new Promise(resolve => setTimeout(resolve, 500)); // Wait for version switch
+
+  // Reset and run V1
+  AppState.quantEvTracker.sessionId = Date.now();
+  AppState.quantEvTracker.roundNumber = 0;
+  for (let i = 1; i <= 7; i++) {
+    AppState.quantEvTracker.players[i] = {
+      bankroll: 100000, hands: [], wins: 0, losses: 0, pushes: 0, bjs: 0,
+      correctDecisions: 0, totalDecisions: 0
+    };
+  }
+  AppState.quantEvTracker.history = [];
+  resetShoe();
+
+  for (let round = 1; round <= numRounds; round++) {
+    // Clear positions
+    for (let i = 1; i <= 7; i++) {
+      AppState.positions[`player${i}`] = [];
+    }
+    AppState.positions.dealer = [];
+    AppState.dealerHoleCardRevealed = false;
+
+    // Deal cards
+    const ranks = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+    for (let i = 1; i <= 5; i++) { // V1 uses 5 players
+      const c1 = ranks[Math.floor(Math.random() * 13)];
+      const c2 = ranks[Math.floor(Math.random() * 13)];
+      AppState.positions[`player${i}`] = [c1, c2];
+      trackCard(c1); trackCard(c2);
+    }
+
+    // Dealer
+    const dUp = ranks[Math.floor(Math.random() * 13)];
+    const dHole = ranks[Math.floor(Math.random() * 13)];
+    AppState.positions.dealer = [dUp, dHole];
+    trackCard(dUp); trackCard(dHole);
+
+    let dealerTotal = calculateHandTotal(AppState.positions.dealer);
+    while (dealerTotal < 17) {
+      const card = ranks[Math.floor(Math.random() * 13)];
+      AppState.positions.dealer.push(card);
+      trackCard(card);
+      dealerTotal = calculateHandTotal(AppState.positions.dealer);
+    }
+
+    autoTrackQuantEvRound('auto');
+
+    if (round % 50 === 0) {
+      console.log(`[COMPARISON] V1: ${round}/${numRounds} rounds complete`);
+      await new Promise(resolve => setTimeout(resolve, 1));
+    }
+  }
+
+  // Store V1 results (P4 is Quant EV in V1)
+  const v1Player = AppState.quantEvTracker.players[4];
+  results.v1.wins = v1Player.wins;
+  results.v1.losses = v1Player.losses;
+  results.v1.pushes = v1Player.pushes;
+  results.v1.bankroll = v1Player.bankroll;
+  const v1Decided = v1Player.wins + v1Player.losses;
+  results.v1.winRate = v1Decided > 0 ? ((v1Player.wins / v1Decided) * 100).toFixed(2) : 0;
+
+  console.log('[COMPARISON] V1 complete - P4 win rate:', results.v1.winRate + '%');
+
+  // ========== RUN V2 SIMULATION ==========
+  console.log('[COMPARISON] Running V2 (7-seat) simulation...');
+  applyStrategyVersion(2);
+  await new Promise(resolve => setTimeout(resolve, 500)); // Wait for version switch
+
+  // Reset and run V2
+  AppState.quantEvTracker.sessionId = Date.now();
+  AppState.quantEvTracker.roundNumber = 0;
+  for (let i = 1; i <= 7; i++) {
+    AppState.quantEvTracker.players[i] = {
+      bankroll: 100000, hands: [], wins: 0, losses: 0, pushes: 0, bjs: 0,
+      correctDecisions: 0, totalDecisions: 0
+    };
+  }
+  AppState.quantEvTracker.history = [];
+  resetShoe();
+
+  for (let round = 1; round <= numRounds; round++) {
+    // Clear positions
+    for (let i = 1; i <= 7; i++) {
+      AppState.positions[`player${i}`] = [];
+    }
+    AppState.positions.dealer = [];
+    AppState.dealerHoleCardRevealed = false;
+
+    // Deal cards
+    const ranks = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+    for (let i = 1; i <= 7; i++) { // V2 uses 7 players
+      const c1 = ranks[Math.floor(Math.random() * 13)];
+      const c2 = ranks[Math.floor(Math.random() * 13)];
+      AppState.positions[`player${i}`] = [c1, c2];
+      trackCard(c1); trackCard(c2);
+    }
+
+    // Dealer
+    const dUp = ranks[Math.floor(Math.random() * 13)];
+    const dHole = ranks[Math.floor(Math.random() * 13)];
+    AppState.positions.dealer = [dUp, dHole];
+    trackCard(dUp); trackCard(dHole);
+
+    let dealerTotal = calculateHandTotal(AppState.positions.dealer);
+    while (dealerTotal < 17) {
+      const card = ranks[Math.floor(Math.random() * 13)];
+      AppState.positions.dealer.push(card);
+      trackCard(card);
+      dealerTotal = calculateHandTotal(AppState.positions.dealer);
+    }
+
+    autoTrackQuantEvRound('auto');
+
+    if (round % 50 === 0) {
+      console.log(`[COMPARISON] V2: ${round}/${numRounds} rounds complete`);
+      await new Promise(resolve => setTimeout(resolve, 1));
+    }
+  }
+
+  // Store V2 results (P6 is Quant EV in V2)
+  const v2Player = AppState.quantEvTracker.players[6];
+  results.v2.wins = v2Player.wins;
+  results.v2.losses = v2Player.losses;
+  results.v2.pushes = v2Player.pushes;
+  results.v2.bankroll = v2Player.bankroll;
+  const v2Decided = v2Player.wins + v2Player.losses;
+  results.v2.winRate = v2Decided > 0 ? ((v2Player.wins / v2Decided) * 100).toFixed(2) : 0;
+
+  console.log('[COMPARISON] V2 complete - P6 win rate:', results.v2.winRate + '%');
+
+  // ========== DISPLAY COMPARISON RESULTS ==========
+  const winner = parseFloat(results.v2.winRate) > parseFloat(results.v1.winRate) ? 'V2' :
+                 parseFloat(results.v1.winRate) > parseFloat(results.v2.winRate) ? 'V1' : 'TIE';
+  const diff = Math.abs(parseFloat(results.v2.winRate) - parseFloat(results.v1.winRate)).toFixed(2);
+
+  const v1Profit = results.v1.bankroll - 100000;
+  const v2Profit = results.v2.bankroll - 100000;
+
+  let html = `
+    <div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a1a2e;border:3px solid #f59e0b;border-radius:16px;padding:24px;z-index:10001;min-width:600px;font-family:monospace;">
+      <h2 style="color:#f59e0b;margin:0 0 16px 0;text-align:center;">🏆 V1 vs V2 COMPARISON</h2>
+      <div style="text-align:center;font-size:12px;color:#888;margin-bottom:16px;">${numRounds} rounds per version</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+        <!-- V1 RESULTS -->
+        <div style="background:#252540;padding:16px;border-radius:12px;border:2px solid ${winner === 'V1' ? '#22c55e' : '#333'};">
+          <h3 style="color:#8b5cf6;margin:0 0 12px 0;text-align:center;">VERSION 1 (5-seat)</h3>
+          <div style="font-size:11px;color:#888;margin-bottom:8px;">P1-P2 Basic | P3 Boost | P4 QEV | P5 Sac</div>
+          <div style="background:#1a1a2e;padding:12px;border-radius:8px;margin-bottom:8px;">
+            <div style="color:#888;font-size:11px;">WIN RATE (P4)</div>
+            <div style="color:#60a5fa;font-size:28px;font-weight:bold;">${results.v1.winRate}%</div>
+          </div>
+          <div style="font-size:12px;color:#ccc;">
+            <div>W/L/P: ${results.v1.wins}/${results.v1.losses}/${results.v1.pushes}</div>
+            <div style="color:${v1Profit >= 0 ? '#22c55e' : '#ef4444'};">Profit: ${v1Profit >= 0 ? '+' : ''}$${v1Profit.toLocaleString()}</div>
+            <div>Final: $${results.v1.bankroll.toLocaleString()}</div>
+          </div>
+        </div>
+
+        <!-- V2 RESULTS -->
+        <div style="background:#252540;padding:16px;border-radius:12px;border:2px solid ${winner === 'V2' ? '#22c55e' : '#333'};">
+          <h3 style="color:#8b5cf6;margin:0 0 12px 0;text-align:center;">VERSION 2 (7-seat)</h3>
+          <div style="font-size:11px;color:#888;margin-bottom:8px;">P1-P4 Basic | P5 Boost | P6 QEV | P7 Sac</div>
+          <div style="background:#1a1a2e;padding:12px;border-radius:8px;margin-bottom:8px;">
+            <div style="color:#888;font-size:11px;">WIN RATE (P6)</div>
+            <div style="color:#60a5fa;font-size:28px;font-weight:bold;">${results.v2.winRate}%</div>
+          </div>
+          <div style="font-size:12px;color:#ccc;">
+            <div>W/L/P: ${results.v2.wins}/${results.v2.losses}/${results.v2.pushes}</div>
+            <div style="color:${v2Profit >= 0 ? '#22c55e' : '#ef4444'};">Profit: ${v2Profit >= 0 ? '+' : ''}$${v2Profit.toLocaleString()}</div>
+            <div>Final: $${results.v2.bankroll.toLocaleString()}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:${winner === 'TIE' ? '#252540' : winner === 'V2' ? 'rgba(34,197,94,0.1)' : 'rgba(139,92,246,0.1)'};padding:16px;border-radius:12px;text-align:center;border:2px solid ${winner === 'TIE' ? '#888' : winner === 'V2' ? '#22c55e' : '#8b5cf6'};">
+        <div style="color:#f59e0b;font-size:14px;font-weight:bold;margin-bottom:4px;">🏆 WINNER: ${winner}</div>
+        <div style="color:#888;font-size:12px;">${winner !== 'TIE' ? `+${diff}% better win rate` : 'Equal performance'}</div>
+      </div>
+
+      <button onclick="this.parentElement.remove()" style="width:100%;margin-top:16px;padding:12px;background:#f59e0b;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:bold;">CLOSE</button>
+    </div>`;
+
+  const overlay = document.createElement('div');
+  overlay.innerHTML = html;
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:10000;';
+  overlay.onclick = (e) => { if(e.target === overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+
+  console.log('[COMPARISON] Complete!', results);
+  showToast(`Comparison complete! Winner: ${winner}`, 'success');
+}
+
+window.compareV1vsV2 = compareV1vsV2;
 
 // Expose functions globally
 window.initQuantEvSession = initQuantEvSession;

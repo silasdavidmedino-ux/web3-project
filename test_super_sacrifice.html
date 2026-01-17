@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Super Sacrifice Test</title>
+  <style>
+    body {
+      background: #1a1a2e;
+      color: #fff;
+      font-family: monospace;
+      padding: 20px;
+    }
+    .test-result {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 8px;
+    }
+    .pass { background: #22c55e33; border: 1px solid #22c55e; }
+    .fail { background: #ef444433; border: 1px solid #ef4444; }
+    .info { background: #3b82f633; border: 1px solid #3b82f6; }
+    h2 { color: #fbbf24; }
+    pre { white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Super Sacrifice Mode Test</h1>
+  <div id="results"></div>
+
+  <script src="js/app.js?v=3.9.58"></script>
+  <script>
+    const results = document.getElementById('results');
+
+    function log(msg, type = 'info') {
+      const div = document.createElement('div');
+      div.className = `test-result ${type}`;
+      div.innerHTML = msg;
+      results.appendChild(div);
+    }
+
+    function runTests() {
+      log('<h2>Testing Super Sacrifice Decision Engine</h2>');
+
+      // Verify settings
+      const settings = AppState.quantEvSettings;
+      log(`<b>Settings Check:</b><br>
+        - superSacrificeEnabled: ${settings.superSacrificeEnabled}<br>
+        - splitAllPairs: ${settings.superSacrificeSettings?.splitAllPairs}<br>
+        - hitHard17Always: ${settings.superSacrificeSettings?.hitHard17Always}<br>
+        - hitHard18VsStrong: ${settings.superSacrificeSettings?.hitHard18VsStrong}<br>
+        - doubleOn9to11: ${settings.superSacrificeSettings?.doubleOn9to11}`,
+        settings.superSacrificeEnabled ? 'pass' : 'fail'
+      );
+
+      // Test scenarios
+      const testCases = [
+        { cards: ['8', '8'], dealer: '10', name: 'Split 8s (pair)', expect: 'SPLIT' },
+        { cards: ['K', 'K'], dealer: '7', name: 'Split Ks (pair)', expect: 'SPLIT' },
+        { cards: ['4', '6'], dealer: '9', name: 'Double 10', expect: 'DBL' },
+        { cards: ['6', '5'], dealer: 'A', name: 'Double 11', expect: 'DBL' },
+        { cards: ['10', '7'], dealer: '10', name: 'Hit Hard 17 vs 10', expect: 'HIT' },
+        { cards: ['10', '8'], dealer: 'A', name: 'Hit Hard 18 vs A', expect: 'HIT' },
+        { cards: ['A', '7'], dealer: '9', name: 'Hit Soft 18 vs 9', expect: 'HIT' },
+        { cards: ['A', '5'], dealer: '7', name: 'Hit Soft 16', expect: 'HIT' },
+        { cards: ['4', '5'], dealer: '6', name: 'Double 9 (2 cards)', expect: 'DBL' },
+        { cards: ['8', '5'], dealer: '10', name: 'Hit 13 vs strong', expect: 'HIT' },
+        { cards: ['10', '9'], dealer: '6', name: 'Stand 19 vs weak', expect: 'STAND' },
+      ];
+
+      log('<h2>Test Cases</h2>');
+
+      testCases.forEach(test => {
+        try {
+          const decision = getSacrificeDecision(test.cards, test.dealer, [], false, true);
+          const passed = decision.action === test.expect;
+          log(`<b>${test.name}</b><br>
+            Cards: ${test.cards.join(', ')} vs Dealer ${test.dealer}<br>
+            Expected: ${test.expect} | Got: ${decision.action}<br>
+            Reason: ${decision.reason}<br>
+            Version: ${decision.version}`,
+            passed ? 'pass' : 'fail'
+          );
+        } catch (err) {
+          log(`<b>${test.name}</b> - ERROR: ${err.message}`, 'fail');
+        }
+      });
+
+      // Summary
+      const passCount = document.querySelectorAll('.pass').length;
+      const failCount = document.querySelectorAll('.fail').length;
+      log(`<h2>Summary: ${passCount} passed, ${failCount} failed</h2>`, passCount > failCount ? 'pass' : 'fail');
+    }
+
+    // Wait for app.js to load
+    setTimeout(runTests, 1000);
+  </script>
+</body>
+</html>

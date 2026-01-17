@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>V1 Strategy Backtest</title>
+  <style>
+    body {
+      background: #1a1a2e;
+      color: #fff;
+      font-family: monospace;
+      padding: 20px;
+    }
+    .result { margin: 10px 0; padding: 15px; border-radius: 8px; }
+    .win { background: #22c55e33; border: 1px solid #22c55e; }
+    .loss { background: #ef444433; border: 1px solid #ef4444; }
+    .neutral { background: #3b82f633; border: 1px solid #3b82f6; }
+    h1 { color: #fbbf24; }
+    h2 { color: #60a5fa; margin-top: 30px; }
+    .stat { display: inline-block; margin: 10px 20px; padding: 15px; background: #1e293b; border-radius: 8px; }
+    .stat-value { font-size: 24px; font-weight: bold; color: #fbbf24; }
+    .stat-label { font-size: 12px; color: #94a3b8; }
+    #progress { margin: 20px 0; }
+    .bar { height: 20px; background: #22c55e; border-radius: 4px; transition: width 0.3s; }
+    .bar-bg { background: #334155; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>V1 Strategy Backtest (5 Players)</h1>
+  <p>P1-P2 Basic | P3 Booster | P4 Quant EV | P5 SMART Sacrifice v2.0</p>
+
+  <div id="progress">
+    <div class="bar-bg"><div class="bar" id="progressBar" style="width: 0%"></div></div>
+    <span id="progressText">Starting...</span>
+  </div>
+
+  <div id="stats"></div>
+  <div id="results"></div>
+
+  <script src="js/app.js?v=3.9.64"></script>
+  <script>
+    const results = document.getElementById('results');
+    const stats = document.getElementById('stats');
+
+    // Force V1 strategy
+    AppState.quantEvSettings.strategyVersion = 1;
+    setStrategyVersion(1);
+
+    // Tracking
+    let totalRounds = 0;
+    let p4Wins = 0, p4Losses = 0, p4Pushes = 0;
+    let p5Sacrifices = 0, p5Busts = 0;
+    let dealerBusts = 0;
+    let totalP4Profit = 0;
+    let totalP5Cost = 0;
+
+    async function runBacktest(numShoes = 10) {
+      const roundsPerShoe = 30;
+      const totalGames = numShoes * roundsPerShoe;
+
+      for (let shoe = 1; shoe <= numShoes; shoe++) {
+        // Reset shoe
+        resetShoe();
+
+        for (let round = 1; round <= roundsPerShoe; round++) {
+          totalRounds++;
+
+          // Update progress
+          const pct = ((totalRounds / totalGames) * 100).toFixed(0);
+          document.getElementById('progressBar').style.width = pct + '%';
+          document.getElementById('progressText').textContent = `Shoe ${shoe}/${numShoes} - Round ${round}/${roundsPerShoe} (${pct}%)`;
+
+          // Deal cards to 5 players + dealer
+          const hands = simulateV1Round();
+
+          // Analyze results
+          const dealerTotal = hands.dealer.total;
+          const dealerBusted = dealerTotal > 21;
+
+          if (dealerBusted) dealerBusts++;
+
+          // P4 (Quant EV) results
+          const p4Total = hands.p4.total;
+          const p4Busted = p4Total > 21;
+
+          if (p4Busted) {
+            p4Losses++;
+            totalP4Profit -= 100;
+          } else if (dealerBusted) {
+            p4Wins++;
+            totalP4Profit += 100;
+          } else if (p4Total > dealerTotal) {
+            p4Wins++;
+            totalP4Profit += 100;
+          } else if (p4Total < dealerTotal) {
+            p4Losses++;
+            totalP4Profit -= 100;
+          } else {
+            p4Pushes++;
+          }
+
+          // P5 (Super Sacrifice) tracking
+          if (hands.p5.sacrificed) {
+            p5Sacrifices++;
+            if (hands.p5.total > 21) p5Busts++;
+            totalP5Cost -= 20; // 5X smaller bet
+          }
+
+          // Small delay for UI
+          if (totalRounds % 50 === 0) {
+            await new Promise(r => setTimeout(r, 10));
+            updateStats();
+          }
+        }
+      }
+
+      updateStats();
+      showFinalResults();
+    }
+
+    function simulateV1Round() {
+      // Clear positions
+      for (const pos in AppState.positions) {
+        AppState.positions[pos] = [];
+      }
+
+      // Deal initial cards
+      const dealerUpcard = dealRandomCard();
+      AppState.positions.dealer.push(dealerUpcard);
+
+      const hands = {
+        p1: { cards: [], total: 0 },
+        p2: { cards: [], total: 0 },
+        p3: { cards: [], total: 0 },
+        p4: { cards: [], total: 0 },
+        p5: { cards: [], total: 0, sacrificed: false },
+        dealer: { cards: [dealerUpcard], total: 0 }
+      };
+
+      // Deal 2 cards to each player
+      for (let i = 1; i <= 5; i++) {
+        const c1 = dealRandomCard();
+        const c2 = dealRandomCard();
+        hands[`p${i}`].cards = [c1, c2];
+        AppState.positions[`player${i}`] = [c1, c2];
+      }
+
+      // Play each player
+      for (let i = 1; i <= 5; i++) {
+        const playerCards = hands[`p${i}`].cards;
+        let total = calculateHandTotal(playerCards);
+
+        // Get strategy decision
+        let maxHits = 10;
+        while (total < 21 && maxHits-- > 0) {
+          let decision;
+
+          if (i === 3) {
+            // P3 Booster
+            decision = getP3BoosterDecision(playerCards, dealerUpcard, hands.p1.cards, hands.p2.cards);
+          } else if (i === 5) {
+            // P5 Super Sacrifice
+            const otherCards = [hands.p1.cards, hands.p2.cards, hands.p3.cards, hands.p4.cards];
+            decision = getSacrificeDecision(playerCards, dealerUpcard, otherCards, true, true);
+            if (decision.action === 'HIT' && decision.isSuperSacrifice) {
+              hands.p5.sacrificed = true;
+            }
+          } else if (i === 4) {
+            // P4 Quant EV
+            decision = getOptimalDecision(playerCards, dealerUpcard);
+          } else {
+            // P1-P2 Basic
+            decision = getBasicStrategyDecision(i);
+          }
+
+          if (!decision || decision.action === 'STAND' || decision.action === 'STAY') break;
+
+          if (decision.action === 'HIT') {
+            const card = dealRandomCard();
+            playerCards.push(card);
+            total = calculateHandTotal(playerCards);
+          } else if (decision.action === 'DBL') {
+            const card = dealRandomCard();
+            playerCards.push(card);
+            total = calculateHandTotal(playerCards);
+            break;
+          } else {
+            break;
+          }
+        }
+
+        hands[`p${i}`].total = total;
+      }
+
+      // Dealer plays
+      const dealerCards = hands.dealer.cards;
+      let dealerTotal = calculateHandTotal(dealerCards);
+
+      while (dealerTotal < 17) {
+        const card = dealRandomCard();
+        dealerCards.push(card);
+        dealerTotal = calculateHandTotal(dealerCards);
+      }
+
+      hands.dealer.total = dealerTotal;
+
+      return hands;
+    }
+
+    function updateStats() {
+      const winRate = totalRounds > 0 ? ((p4Wins / totalRounds) * 100).toFixed(1) : '0.0';
+      const lossRate = totalRounds > 0 ? ((p4Losses / totalRounds) * 100).toFixed(1) : '0.0';
+      const pushRate = totalRounds > 0 ? ((p4Pushes / totalRounds) * 100).toFixed(1) : '0.0';
+      const dealerBustRate = totalRounds > 0 ? ((dealerBusts / totalRounds) * 100).toFixed(1) : '0.0';
+      const sacRate = totalRounds > 0 ? ((p5Sacrifices / totalRounds) * 100).toFixed(1) : '0.0';
+
+      stats.innerHTML = `
+        <div class="stat"><div class="stat-value">${totalRounds}</div><div class="stat-label">Total Rounds</div></div>
+        <div class="stat"><div class="stat-value" style="color: #22c55e">${winRate}%</div><div class="stat-label">P4 Win Rate</div></div>
+        <div class="stat"><div class="stat-value" style="color: #ef4444">${lossRate}%</div><div class="stat-label">P4 Loss Rate</div></div>
+        <div class="stat"><div class="stat-value">${pushRate}%</div><div class="stat-label">P4 Push Rate</div></div>
+        <div class="stat"><div class="stat-value" style="color: #f97316">${dealerBustRate}%</div><div class="stat-label">Dealer Bust Rate</div></div>
+        <div class="stat"><div class="stat-value" style="color: #dc2626">${sacRate}%</div><div class="stat-label">P5 Sacrifice Rate</div></div>
+      `;
+    }
+
+    function showFinalResults() {
+      const netProfit = totalP4Profit + totalP5Cost;
+      const profitClass = netProfit >= 0 ? 'win' : 'loss';
+
+      results.innerHTML = `
+        <h2>Final Results</h2>
+        <div class="result ${profitClass}">
+          <h3>P4 (Quant EV) Performance</h3>
+          <p>Wins: ${p4Wins} | Losses: ${p4Losses} | Pushes: ${p4Pushes}</p>
+          <p>Win Rate: ${((p4Wins / totalRounds) * 100).toFixed(2)}%</p>
+          <p>P4 Profit: ${totalP4Profit >= 0 ? '+' : ''}${totalP4Profit} units</p>
+        </div>
+        <div class="result neutral">
+          <h3>P5 (Super Sacrifice) Performance</h3>
+          <p>Sacrifice Actions: ${p5Sacrifices} (${((p5Sacrifices / totalRounds) * 100).toFixed(1)}% of rounds)</p>
+          <p>Busted for Team: ${p5Busts}</p>
+          <p>P5 Cost: ${totalP5Cost} units (5X smaller bets)</p>
+        </div>
+        <div class="result ${profitClass}">
+          <h3>NET RESULT</h3>
+          <p style="font-size: 24px; font-weight: bold;">
+            ${netProfit >= 0 ? '+' : ''}${netProfit} units
+          </p>
+          <p>Dealer Bust Rate: ${((dealerBusts / totalRounds) * 100).toFixed(2)}%</p>
+        </div>
+      `;
+    }
+
+    // Start backtest after page loads
+    setTimeout(() => runBacktest(20), 1000);
+  </script>
+</body>
+</html>
