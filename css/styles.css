@@ -6984,6 +6984,47 @@ main {
   50% { box-shadow: 0 0 12px #06b6d4; }
 }
 
+/* ============================================
+   HISTORICAL BEATER BET BADGES
+   ============================================ */
+.bet-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 4px;
+  margin-left: 3px;
+  letter-spacing: 0.5px;
+}
+
+.bet-badge.bet-max {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  animation: bet-max-pulse 1.5s infinite;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+}
+
+.bet-badge.bet-min {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  opacity: 0.9;
+}
+
+.bet-badge.bet-normal {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+}
+
+@keyframes bet-max-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(34, 197, 94, 0.9);
+    transform: scale(1.05);
+  }
+}
+
 @keyframes strategy-pop {
   0% {
     transform: scale(0);

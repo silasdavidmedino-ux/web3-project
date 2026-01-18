@@ -546,6 +546,27 @@ const AppState = {
       roundTc: 0,
       dealerUpcard: null,
       coordinationMode: 'BALANCED'  // AGGRESSIVE, BALANCED, PRESERVE
+    },
+
+    // ============================================
+    // HISTORICAL BEATER STRATEGY v1.0
+    // ============================================
+    // Optimized bet sizing based on Shoe 301-412 patterns
+    // Key discovery: Dealer 4-6 had 100% bust rate, Dealer 2-3 anomaly
+    historicalBeaterEnabled: true,
+    historicalBeaterSettings: {
+      // Bet multipliers based on dealer upcard patterns
+      dealer456BetMultiplier: 2.0,    // MAX BET - 100% dealer bust in data
+      dealer23BetMultiplier: 0.5,     // MIN BET - anomaly, dealer made hands
+      dealer7BetMultiplier: 1.0,      // NORMAL - 55% win rate
+      dealer8ABetMultiplier: 0.5,     // MIN BET - 0-27% win rate
+
+      // Standing thresholds (more conservative based on data)
+      standOn12VsDealer456: true,     // Stand on 12+ vs dealer 4-6 (they bust)
+      standOn13VsDealer23: true,      // Stand on 13+ vs dealer 2-3 (anomaly)
+
+      // Display bet recommendations
+      showBetRecommendation: true
     }
   },
 
@@ -3012,6 +3033,96 @@ function getSacrificeDecision(playerCards, dealerUpcard, otherPlayersCards = [],
   };
 }
 
+// ============================================
+// HISTORICAL BEATER - Bet Sizing Strategy
+// ============================================
+// Based on Shoe 301-412 pattern analysis
+// Key: Dealer 4-6 = 100% bust, Dealer 2-3 = anomaly
+function getHistoricalBeaterBetRecommendation(dealerUpcard) {
+  const settings = AppState.quantEvSettings;
+  if (!settings.historicalBeaterEnabled) {
+    return { multiplier: 1.0, recommendation: 'NORMAL', reason: 'Historical Beater disabled' };
+  }
+
+  const hbSettings = settings.historicalBeaterSettings;
+  const dealerVal = dealerUpcard === 'A' ? 11 : (parseInt(dealerUpcard) || 10);
+
+  // DEALER 4-6: 100% bust rate in historical data - MAX BET
+  if (dealerVal >= 4 && dealerVal <= 6) {
+    return {
+      multiplier: hbSettings.dealer456BetMultiplier || 2.0,
+      recommendation: 'MAX BET',
+      reason: `BEATER: Dealer ${dealerUpcard} (4-6) = 100% bust in Shoe 301-412`,
+      confidence: 95,
+      standThreshold: 12  // Stand on 12+ vs these dealers
+    };
+  }
+
+  // DEALER 2-3: Anomaly - only 11-25% win rate despite being "weak" - MIN BET
+  if (dealerVal >= 2 && dealerVal <= 3) {
+    return {
+      multiplier: hbSettings.dealer23BetMultiplier || 0.5,
+      recommendation: 'MIN BET',
+      reason: `BEATER: Dealer ${dealerUpcard} (2-3) = anomaly, dealer made hands`,
+      confidence: 80,
+      standThreshold: 13  // Stand on 13+ vs these dealers
+    };
+  }
+
+  // DEALER 7: 55.6% win rate - NORMAL BET
+  if (dealerVal === 7) {
+    return {
+      multiplier: hbSettings.dealer7BetMultiplier || 1.0,
+      recommendation: 'NORMAL',
+      reason: `BEATER: Dealer ${dealerUpcard} = 55.6% win rate`,
+      confidence: 70,
+      standThreshold: 17
+    };
+  }
+
+  // DEALER 8-A: 0-43% win rate - MIN BET
+  return {
+    multiplier: hbSettings.dealer8ABetMultiplier || 0.5,
+    recommendation: 'MIN BET',
+    reason: `BEATER: Dealer ${dealerUpcard} (8-A) = low win rate (0-43%)`,
+    confidence: 75,
+    standThreshold: 17
+  };
+}
+
+// Get Historical Beater standing decision override
+function getHistoricalBeaterStandOverride(playerTotal, dealerUpcard) {
+  const settings = AppState.quantEvSettings;
+  if (!settings.historicalBeaterEnabled) return null;
+
+  const hbSettings = settings.historicalBeaterSettings;
+  const dealerVal = dealerUpcard === 'A' ? 11 : (parseInt(dealerUpcard) || 10);
+
+  // DEALER 4-6: Stand on 12+ (they bust 100% in data)
+  if (dealerVal >= 4 && dealerVal <= 6 && hbSettings.standOn12VsDealer456) {
+    if (playerTotal >= 12 && playerTotal <= 16) {
+      return {
+        action: 'STAND',
+        reason: `BEATER: Stand ${playerTotal} vs ${dealerUpcard} - dealer busts!`,
+        isOverride: true
+      };
+    }
+  }
+
+  // DEALER 2-3: Stand on 13+ (anomaly - they made hands)
+  if (dealerVal >= 2 && dealerVal <= 3 && hbSettings.standOn13VsDealer23) {
+    if (playerTotal >= 13 && playerTotal <= 16) {
+      return {
+        action: 'STAND',
+        reason: `BEATER: Stand ${playerTotal} vs ${dealerUpcard} - anomaly pattern`,
+        isOverride: true
+      };
+    }
+  }
+
+  return null;
+}
+
 // Get optimal decision for a player hand vs dealer upcard
 function getOptimalDecision(playerCards, dealerUpcard) {
   const hand = analyzeHand(playerCards);
@@ -3124,6 +3235,23 @@ function getOptimalDecision(playerCards, dealerUpcard) {
   if (decksRemaining > 4) confidence -= 5;
   if (Math.abs(tc) > 3) confidence += 5;
 
+  // ============================================
+  // HISTORICAL BEATER OVERRIDE
+  // ============================================
+  // Check if Historical Beater recommends standing on stiff hands
+  if (!hand.isSoft && !hand.isPair && action === 'HIT') {
+    const beaterOverride = getHistoricalBeaterStandOverride(hand.total, dealerUpcard);
+    if (beaterOverride) {
+      action = beaterOverride.action;
+      reason = beaterOverride.reason;
+      isDeviation = true;
+      confidence = 88;  // High confidence from historical pattern
+    }
+  }
+
+  // Get Historical Beater bet recommendation
+  const beaterBet = getHistoricalBeaterBetRecommendation(dealerUpcard);
+
   return {
     action,
     reason,
@@ -3132,7 +3260,11 @@ function getOptimalDecision(playerCards, dealerUpcard) {
     handTotal: hand.total,
     isSoft: hand.isSoft,
     isPair: hand.isPair,
-    trueCount: tc
+    trueCount: tc,
+    // Historical Beater bet info
+    betRecommendation: beaterBet.recommendation,
+    betMultiplier: beaterBet.multiplier,
+    betReason: beaterBet.reason
   };
 }
 
@@ -10495,11 +10627,21 @@ function showStrategyIndicator(pos, decision) {
   const superSacBadge = decision.isSuperSacrifice ? '<span class="deviation-badge super-sac">SS</span>' : '';
   const deviationBadge = decision.isDeviation ? '<span class="deviation-badge">I18</span>' : '';
 
+  // Historical Beater bet badge
+  let betBadge = '';
+  if (decision.betRecommendation && AppState.quantEvSettings.historicalBeaterEnabled) {
+    const betClass = decision.betRecommendation === 'MAX BET' ? 'bet-max' :
+                     decision.betRecommendation === 'MIN BET' ? 'bet-min' : 'bet-normal';
+    const betLabel = decision.betRecommendation === 'MAX BET' ? '2X' :
+                     decision.betRecommendation === 'MIN BET' ? '0.5X' : '1X';
+    betBadge = `<span class="bet-badge ${betClass}">${betLabel}</span>`;
+  }
+
   indicator.innerHTML = `
     <span class="strategy-action">${label}</span>
-    ${superSacBadge}${deviationBadge}
+    ${superSacBadge}${deviationBadge}${betBadge}
   `;
-  indicator.title = decision.reason;
+  indicator.title = decision.reason + (decision.betReason ? '\n' + decision.betReason : '');
 
   box.appendChild(indicator);
 }
