@@ -446,9 +446,9 @@ const AppState = {
     // ============================================
     // V1 (5-seat): P1-P2 Basic | P3 Booster | P4 Quant EV | P5 Sacrifice
     // V2 (7-seat): P1-P4 Basic | P5 Booster | P6 Quant EV | P7 Sacrifice
-    strategyVersion: 2,  // 1 or 2
+    strategyVersion: 1,  // 1 or 2 (DEFAULT: V1 - 5 players)
 
-    // VERSION 1 Configuration (5-seat table) - ENHANCED
+    // VERSION 1 Configuration (5-seat table) - ENHANCED - DEFAULT
     v1Config: {
       quantEvPlayerIndex: 4,
       sacrificePlayerIndex: 5,
@@ -469,11 +469,11 @@ const AppState = {
       description: 'P1-P4 Basic | P5 Booster | P6 Quant EV | P7 Sacrifice'
     },
 
-    // Active config (set by version)
-    quantEvPlayerIndex: 6,
-    sacrificePlayerIndex: 7,
-    boosterPlayerIndex: 5,
-    sacrificePlayers: [7],
+    // Active config (set by version) - V1 DEFAULT
+    quantEvPlayerIndex: 4,
+    sacrificePlayerIndex: 5,
+    boosterPlayerIndex: 3,
+    sacrificePlayers: [5],
     quantEvTcThreshold: 0.9,
     quantEvStrategy: 'quantEv',
     boosterStrategy: 'p4_booster_v1.0',
