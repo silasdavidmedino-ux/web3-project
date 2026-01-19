@@ -892,9 +892,12 @@ function handleCardClick(card) {
 
   // Check if active player has already stayed (cannot add more cards)
   const activePos = AppState.activePosition;
-  if (activePos !== 'dealer' && AppState.playerDecisions[activePos] === 'STAY') {
-    showToast(`Player ${activePos} has stayed - cannot add more cards`, 'warning');
-    return;
+  if (activePos !== 'dealer') {
+    const playerNum = parseInt(activePos.replace('player', ''));
+    if (AppState.playerDecisions[playerNum] === 'STAY') {
+      showToast(`Player ${playerNum} has stayed - cannot add more cards`, 'warning');
+      return;
+    }
   }
 
   // Check if dealing to active split hand - validate BEFORE removing card from shoe
@@ -1047,26 +1050,28 @@ function handleCardClick(card) {
       }
     }
 
-    // BLACKJACK RULE: Dealer cannot draw 3rd+ card until all players finish decisions
+    // BLACKJACK RULE: Dealer draws after all players have had their turn
     if (dealerCards.length >= 2) {
-      // Check if any player with cards hasn't made a final decision
+      // Auto-stay all players who have cards but haven't explicitly acted
+      // Player has seen their hand and dealer upcard - if they wanted to hit/double/split, they would have
       for (let i = 1; i <= 8; i++) {
         const playerCards = AppState.positions[`player${i}`];
         if (playerCards && playerCards.length >= 2) {
           const playerDecision = AppState.playerDecisions[i];
           const playerTotal = calculateHandTotal(playerCards);
 
-          // Check if player is still in play (not stayed, not busted, not 21)
-          if (playerDecision !== 'STAY' && playerTotal < 21) {
-            showToast(`Wait for Player ${i} to finish (STAY, BUST, or 21) before dealer draws`, 'warning');
-            return;
-          }
-
-          // Check for active split hands
+          // Check for active split hands - must complete these first
           const split = AppState.splitHands[i];
           if (split && split.active) {
             showToast(`Wait for Player ${i} split hands to complete before dealer draws`, 'warning');
             return;
+          }
+
+          // AUTO-STAY: If player hasn't acted and isn't busted/21, auto-stay them
+          // This allows dealer to draw without requiring manual STAY click
+          if (!playerDecision && playerTotal < 21) {
+            AppState.playerDecisions[i] = 'STAY';
+            console.log(`[AUTO-STAY] P${i} auto-stayed on ${playerTotal} (no action taken)`);
           }
         }
       }
