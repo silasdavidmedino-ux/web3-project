@@ -3288,6 +3288,45 @@ function calculatePlayerDecision(playerNum) {
     return { action: null, reason: 'No dealer upcard', confidence: 0 };
   }
 
+  // Get version-specific config for player roles
+  const settings = AppState.quantEvSettings;
+  const version = settings.strategyVersion || 1;
+  const vConfig = version === 1 ? settings.v1Config : settings.v2Config;
+  const boosterPlayer = vConfig?.boosterPlayerIndex || settings.boosterPlayerIndex || 3;
+  const sacrificePlayer = vConfig?.sacrificePlayerIndex || settings.sacrificePlayerIndex || 5;
+
+  // P3 BOOSTER: Uses Booster strategy
+  if (playerNum === boosterPlayer) {
+    const priorPlayersCards = [];
+    for (let p = 1; p < boosterPlayer; p++) {
+      const pCards = AppState.positions[`player${p}`];
+      if (pCards && pCards.length > 0) {
+        priorPlayersCards.push(...pCards);
+      }
+    }
+    const decision = getP3BoosterDecision(playerCards, dealerUpcard, priorPlayersCards, []);
+    if (decision.action === 'STAND') decision.action = 'STAY';
+    decision.strategyType = 'BOOST';
+    return decision;
+  }
+
+  // P5 SACRIFICE: Uses Sacrifice strategy
+  if (playerNum === sacrificePlayer) {
+    const otherPlayersCards = [];
+    for (let p = 1; p < sacrificePlayer; p++) {
+      const pCards = AppState.positions[`player${p}`];
+      if (pCards && pCards.length > 0) {
+        otherPlayersCards.push(pCards);
+      }
+    }
+    const isSuperSacrifice = vConfig?.superSacrificeEnabled || settings.superSacrificeEnabled;
+    const decision = getSacrificeDecision(playerCards, dealerUpcard, otherPlayersCards, true, isSuperSacrifice);
+    if (decision.action === 'STAND') decision.action = 'STAY';
+    decision.strategyType = isSuperSacrifice ? 'SUPER_SAC' : 'SAC';
+    return decision;
+  }
+
+  // All other players: Use optimal decision (Basic + Illustrious 18)
   return getOptimalDecision(playerCards, dealerUpcard);
 }
 
