@@ -31,6 +31,7 @@ const AppState = {
   runningCount: 0,
   activePosition: 'player1',
   pairsWon: 0,
+  numPlayers: 5,  // V1 DEFAULT: 5 players
 
   // Card counts per rank
   rankCounts: {
@@ -755,7 +756,7 @@ function updateStrategyVersionDisplay() {
       }[stratType] || '';
 
       // Only show badge if player is within active count
-      const numPlayers = AppState.numPlayers || 7;
+      const numPlayers = AppState.numPlayers || 5;
       if (i <= numPlayers) {
         label.textContent = `PLAYER ${i}${stratBadge}`;
       }
@@ -9000,7 +9001,7 @@ let simPlayerCount = 5;
 function updateSimPlayerCount() {
   const select = document.getElementById('simPlayersSelect');
   if (select) {
-    simPlayerCount = parseInt(select.value) || 2;
+    simPlayerCount = parseInt(select.value) || 5;
   }
 }
 
@@ -9009,7 +9010,7 @@ function startSimWithConfig() {
   const playersSelect = document.getElementById('simPlayersSelect');
 
   const totalDecks = parseInt(decksSelect?.value) || 8;
-  simPlayerCount = parseInt(playersSelect?.value) || 2;
+  simPlayerCount = parseInt(playersSelect?.value) || 5;
 
   // Calculate total cards to deal (75% penetration per shoe)
   const cardsPerDeck = 52;
@@ -9263,7 +9264,7 @@ async function simulateOneShoe() {
 async function runSimRound() {
   try {
     const roundCards = [];
-    const playerCount = simPlayerCount || 7;
+    const playerCount = simPlayerCount || 5;
     const settings = AppState.quantEvSettings;
 
     // QUANT EV PLAYER (P5) DYNAMIC ENTRY/EXIT LOGIC:
