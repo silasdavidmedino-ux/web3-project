@@ -453,11 +453,11 @@ const AppState = {
     v1Config: {
       quantEvPlayerIndex: 4,
       sacrificePlayerIndex: 5,
-      boosterPlayerIndex: 3,
+      boosterPlayerIndex: null,       // No booster - removed
       sacrificePlayers: [5],
-      basicPlayers: [1, 2],           // P1-P2 stay basic
+      basicPlayers: [1, 2, 3],        // P1-P3 all basic
       superSacrificeEnabled: true,    // Enable Super Sacrifice for P5
-      description: 'P1-P2 Basic | P3 Booster | P4 Quant EV | P5 Super-Sac'
+      description: 'P1-P3 Basic | P4 Quant EV | P5 Super-Sac'
     },
 
     // VERSION 2 Configuration (7-seat table)
@@ -473,7 +473,7 @@ const AppState = {
     // Active config (set by version) - V1 DEFAULT
     quantEvPlayerIndex: 4,
     sacrificePlayerIndex: 5,
-    boosterPlayerIndex: 3,
+    boosterPlayerIndex: null,  // No booster
     sacrificePlayers: [5],
     quantEvTcThreshold: 0.9,
     quantEvStrategy: 'quantEv',
@@ -1120,6 +1120,9 @@ function handleCardClick(card) {
 
   // Update UI
   updateAll();
+
+  // Live sync to connected clients
+  if (typeof triggerLiveSync === 'function') triggerLiveSync();
 
   // AUTO-SETTLE: Check if round is complete (dealer 17+ or bust with players having cards)
   if (AppState.activePosition === 'dealer' && !AppState.roundSettled) {
@@ -3293,11 +3296,11 @@ function calculatePlayerDecision(playerNum) {
   const settings = AppState.quantEvSettings;
   const version = settings.strategyVersion || 1;
   const vConfig = version === 1 ? settings.v1Config : settings.v2Config;
-  const boosterPlayer = vConfig?.boosterPlayerIndex || settings.boosterPlayerIndex || 3;
+  const boosterPlayer = vConfig?.boosterPlayerIndex || settings.boosterPlayerIndex;
   const sacrificePlayer = vConfig?.sacrificePlayerIndex || settings.sacrificePlayerIndex || 5;
 
-  // P3 BOOSTER: Uses Booster strategy
-  if (playerNum === boosterPlayer) {
+  // P3 BOOSTER: Uses Booster strategy (only if booster is enabled)
+  if (boosterPlayer && playerNum === boosterPlayer) {
     const priorPlayersCards = [];
     for (let p = 1; p < boosterPlayer; p++) {
       const pCards = AppState.positions[`player${p}`];
@@ -10516,18 +10519,18 @@ async function simPlayerPlay(pos, dealerVal, cards) {
   const settings = AppState.quantEvSettings;
 
   // Get version-specific config
-  const version = settings.strategyVersion || 2;
+  const version = settings.strategyVersion || 1;
   const vConfig = version === 1 ? settings.v1Config : settings.v2Config;
   const quantEvPlayer = vConfig?.quantEvPlayerIndex || settings.quantEvPlayerIndex || 4;
-  const boosterPlayer = vConfig?.boosterPlayerIndex || settings.boosterPlayerIndex || 3;
+  const boosterPlayer = vConfig?.boosterPlayerIndex || settings.boosterPlayerIndex;  // Can be null
   const sacrificePlayer = vConfig?.sacrificePlayerIndex || settings.sacrificePlayerIndex || 5;
-  const basicPlayers = vConfig?.basicPlayers || [1, 2];
+  const basicPlayers = vConfig?.basicPlayers || [1, 2, 3];
   let hits = 0;
 
   // Determine player strategy based on version:
-  // V1 (5-seat): P1-P2 Basic | P3 Booster | P4 Quant EV | P5 Super-Sac
+  // V1 (5-seat): P1-P3 Basic | P4 Quant EV | P5 Super-Sac
   // V2 (7-seat): P1-P4 Basic | P5 Booster | P6 Quant EV | P7 Super-Sac
-  const isBooster = (playerNum === boosterPlayer);
+  const isBooster = (boosterPlayer && playerNum === boosterPlayer);
   const isSacrifice = (playerNum === sacrificePlayer);
   const isQuantEvPlayer = (playerNum === quantEvPlayer);
   const isBasicPlayer = basicPlayers.includes(playerNum);
@@ -12624,6 +12627,10 @@ function newRound() {
 
   // Update UI
   updateAll();
+
+  // Live sync to connected clients
+  if (typeof triggerLiveSync === 'function') triggerLiveSync();
+
   showToast('New round - positions cleared', 'info');
 }
 
