@@ -35,3 +35,11 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Output URL
+        run: |
+          echo "## 🎰 App Deployed!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Live URL:** https://silasdavidmedino-ux.github.io/web3-project/" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Open this link from any browser/device/network!" >> $GITHUB_STEP_SUMMARY
