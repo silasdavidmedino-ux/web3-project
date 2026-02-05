@@ -1,0 +1,34 @@
+# Screenshots
+Screenshot*.png
+*.png.tmp
+
+# Temp files
+tmpclaude-*
+nul
+
+# Training data
+training_data/
+
+# Analysis files
+*.h5
+comparison_results.txt
+comprehensive_clump_analysis_report.txt
+dealer_advantage_analysis.txt
+shoe_301-412_clump_analysis.txt
+
+# Python
+*.py
+__pycache__/
+
+# Local settings
+.claude/settings.local.json
+
+# Test files
+test_*.js
+test_*.html
+run_*.html
+
+# Misc
+app_link.md
+Blackjack*/
+*.csv
