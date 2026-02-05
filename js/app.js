@@ -445,7 +445,7 @@ const AppState = {
     // ============================================
     // STRATEGY VERSION SELECTOR
     // ============================================
-    // V1 (5-seat): P1-P2 Basic | P3 Booster | P4 Quant EV | P5 Sacrifice
+    // V1 (5-seat): P1-P3 Basic | P4 Quant EV | P5 Sacrifice
     // V2 (7-seat): P1-P4 Basic | P5 Booster | P6 Quant EV | P7 Sacrifice
     strategyVersion: 1,  // 1 or 2 (DEFAULT: V1 - 5 players)
 
@@ -12175,7 +12175,7 @@ function updateQuantEvPanel() {
   }
 
   if (rolesRow) {
-    rolesRow.textContent = 'P1-P2: BS | P3: BOOST | P4: QEV+MG | P5: SAC';
+    rolesRow.textContent = 'P1-P3: BS | P4: QEV | P5: SAC';
   }
 
   // Update players table
