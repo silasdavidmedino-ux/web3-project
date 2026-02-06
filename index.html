@@ -486,6 +486,28 @@
             <option value="8">8</option>
           </select>
         </div>
+        <div class="control-item" style="display:flex;flex-direction:column;gap:3px;">
+          <label style="font-size:13px;color:#f59e0b;font-weight:bold;">🎲 Dice</label>
+          <div style="display:flex;gap:4px;">
+            <select id="diceRankVisible" style="padding:8px 10px;border-radius:4px;background:#0a0a1a;color:#fff;border:1px solid #f59e0b;font-size:14px;min-width:60px;">
+              <option value="none">-</option>
+              <option value="A">A</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+              <option value="9">9</option>
+              <option value="10">10</option>
+              <option value="J">J</option>
+              <option value="Q">Q</option>
+              <option value="K">K</option>
+            </select>
+            <button onclick="applyDiceBurnVisible()" style="background:#f59e0b;color:#000;border:none;padding:8px 12px;border-radius:4px;font-weight:bold;cursor:pointer;font-size:13px;">BURN</button>
+          </div>
+        </div>
         <button class="btn-new-round" id="btnNewRound" onclick="newRound()" style="background:#22c55e;color:#fff;border:none;padding:10px 20px;border-radius:4px;font-weight:bold;cursor:pointer;font-size:15px;">NEW</button>
         <button class="btn-settle" id="btnSettleRound" onclick="autoSettleRound()" style="background:#3b82f6;color:#fff;border:none;padding:10px 20px;border-radius:4px;font-weight:bold;cursor:pointer;font-size:15px;">SETTLE</button>
         <button class="btn-history" id="btnHistory" onclick="showHistoryPanel()" style="background:#6366f1;color:#fff;border:none;padding:10px 20px;border-radius:4px;font-weight:bold;cursor:pointer;font-size:15px;">HISTORY</button>

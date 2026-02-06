@@ -1689,6 +1689,32 @@ function getDiceMappingValue(card, mapping) {
   return 0;
 }
 
+/**
+ * Apply dice burn from the visible UI control
+ * Called from the BURN button next to dice rank dropdown
+ */
+function applyDiceBurnVisible() {
+  const diceRankEl = document.getElementById('diceRankVisible');
+  const diceRank = diceRankEl?.value || 'none';
+
+  if (diceRank === 'none') {
+    showToast('Select a dice card first', 'warning');
+    return;
+  }
+
+  // Apply the burn using standard mapping
+  applyDiceBurn(diceRank, 'standard');
+  invalidateCache(); // Update cached calculations
+
+  // Reset dropdown after applying
+  if (diceRankEl) diceRankEl.value = 'none';
+
+  updateAll();
+}
+
+// Make function globally accessible
+window.applyDiceBurnVisible = applyDiceBurnVisible;
+
 // ============================================
 // Position Management
 // ============================================
