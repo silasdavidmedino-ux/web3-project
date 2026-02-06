@@ -4521,21 +4521,16 @@ main {
    Real-Time Simulation Controls
    ============================================ */
 .sim-controls {
-  position: fixed;
-  top: 20px;
-  left: 170px;
-  transform: translateX(-50%);
-  background: linear-gradient(135deg, rgba(13, 17, 23, 0.98), rgba(22, 27, 34, 0.98));
-  border: 2px solid var(--accent-cyan);
-  border-radius: var(--radius-lg);
-  padding: 12px 20px;
+  position: relative;
+  background: linear-gradient(135deg, #1e1e3f, #252550);
+  border: 1px solid #8b5cf6;
+  border-radius: 8px;
+  padding: 12px 18px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 20px;
-  z-index: 9999;
-  box-shadow: 0 8px 32px rgba(0, 212, 255, 0.3),
-              0 0 60px rgba(0, 212, 255, 0.1);
-  backdrop-filter: blur(10px);
+  gap: 12px;
+  margin-top: 10px;
 }
 
 .sim-status {
@@ -10282,6 +10277,54 @@ body.touch-mode .input-group select {
   }
   50% {
     box-shadow: 0 0 25px rgba(255, 68, 68, 0.5), inset 0 0 30px rgba(255, 68, 68, 0.2);
+  }
+}
+
+/* P5 Sit Out Indicator - Blinking Alert */
+.p5-sitout-indicator {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.p5-sitout-indicator.active {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white;
+  border: 1px solid #22c55e;
+}
+
+.p5-sitout-indicator.sitout {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  border: 2px solid #ef4444;
+  animation: p5SitoutBlink 0.5s ease-in-out infinite;
+}
+
+.p5-sitout-indicator.danger {
+  background: linear-gradient(135deg, #dc2626, #991b1b);
+  color: white;
+  border: 2px solid #fbbf24;
+  animation: p5DangerBlink 0.3s ease-in-out infinite;
+  box-shadow: 0 0 20px rgba(220, 38, 38, 0.6);
+}
+
+@keyframes p5SitoutBlink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.02); }
+}
+
+@keyframes p5DangerBlink {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.6);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+    box-shadow: 0 0 35px rgba(251, 191, 36, 0.8);
   }
 }
 

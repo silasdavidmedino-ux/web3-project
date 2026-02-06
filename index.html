@@ -62,13 +62,15 @@
   <main class="game-area">
     <!-- Left Stats Panel -->
     <div class="stats-left">
-      <div class="count-box running-count">
-        <span id="runningCount" class="count-value">0</span>
-        <span class="count-label">RUNNING<br>COUNT</span>
-      </div>
-      <div class="count-box true-count">
-        <span id="trueCount" class="count-value">0.00</span>
-        <span class="count-label">TRUE<br>COUNT</span>
+      <div style="display:flex;gap:8px;">
+        <div class="count-box true-count">
+          <span id="trueCount" class="count-value">0.00</span>
+          <span class="count-label">TRUE<br>COUNT</span>
+        </div>
+        <div class="count-box running-count">
+          <span id="runningCount" class="count-value">0</span>
+          <span class="count-label">RUNNING<br>COUNT</span>
+        </div>
       </div>
 
       <!-- Sit-Out Signal Panel -->
@@ -78,43 +80,7 @@
         <div class="sitout-signal-reason" id="sitoutReason">TC 0.0 (wait)</div>
       </div>
 
-      <!-- Combined Signal Panel (Double Danger Detection) -->
-      <div class="combined-signal-panel safe" id="combinedSignalPanel">
-        <div class="combined-signal-header">
-          <span class="combined-signal-title">COMBINED SIGNAL</span>
-        </div>
-        <div class="combined-signal-level">
-          <span class="signal-icon">●</span>
-          <span class="signal-label">NORMAL</span>
-        </div>
-        <div class="combined-signal-text">Normal conditions</div>
-        <div class="combined-signal-reasons"></div>
-        <div class="combined-signal-bet">
-          <span class="bet-label">Bet:</span>
-          <span class="combined-bet-mult">x1.00</span>
-        </div>
-      </div>
-
-      <!-- Auto-Clump Indicator Panel -->
-      <div class="clump-auto-indicator" id="clumpAutoIndicator">
-        AUTO-CLUMP: OFF
-      </div>
-
-      <!-- Formula Info Button -->
-      <button class="btn-formula-info" id="btnFormulaInfo">
-        <span>?</span>
-        Formulas & Strategy
-      </button>
-
-      <!-- Dealer's Cards This Round -->
-      <div class="dealer-cards-panel">
-        <div class="dealer-cards-header">DEALER</div>
-        <div class="dealer-cards-display" id="dealerCardsLeft">
-          <span class="no-cards">—</span>
-        </div>
-        <div class="dealer-total" id="dealerTotal">0</div>
-      </div>
-
+      
       <!-- Dealer Cards History -->
       <div class="dealer-history-panel">
         <div class="dealer-history-header">
@@ -260,99 +226,29 @@
         </div>
       </div>
 
-      <!-- Shoe Composition Panel (Normal Probability) -->
-      <div class="shoe-comp-section" id="shoeCompPanel">
-        <div class="shoe-comp-header">
-          <span class="shoe-comp-title">Shoe Composition</span>
-          <label class="shoe-comp-toggle" title="Standard probability analysis">
-            <input type="checkbox" id="shoeCompToggle" checked onchange="toggleShoeComp()">
-            <span class="toggle-slider"></span>
-          </label>
+      <!-- P3 Game History Tracker (QEV Player) -->
+      <div class="p5-history-panel" id="p5HistoryPanel" style="background:#1a1a2e;border:1px solid #8b5cf6;border-radius:8px;padding:10px;margin-top:8px;">
+        <div class="p5-history-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="color:#8b5cf6;font-weight:bold;font-size:12px;">P3 HISTORY (QEV)</span>
+          <button onclick="clearP5History()" style="background:#374151;color:#fff;border:none;border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer;">Clear</button>
         </div>
-        <div class="shoe-comp-content" id="shoeCompContent">
-          <div class="shoe-comp-row">
-            <span class="shoe-comp-label">High (10-A)</span>
-            <span class="shoe-comp-value" id="shoeCompHigh">38.5%</span>
-          </div>
-          <div class="shoe-comp-row">
-            <span class="shoe-comp-label">Low (2-6)</span>
-            <span class="shoe-comp-value" id="shoeCompLow">38.5%</span>
-          </div>
-          <div class="shoe-comp-row">
-            <span class="shoe-comp-label">Neutral (7-9)</span>
-            <span class="shoe-comp-value" id="shoeCompNeutral">23.1%</span>
-          </div>
-          <div class="shoe-comp-divider"></div>
-          <div class="shoe-comp-row">
-            <span class="shoe-comp-label">Penetration</span>
-            <span class="shoe-comp-value" id="shoeCompPen">0%</span>
-          </div>
-          <div class="shoe-comp-row">
-            <span class="shoe-comp-label">Decks Left</span>
-            <span class="shoe-comp-value" id="shoeCompDecks">8.0</span>
-          </div>
-          <div class="shoe-comp-status" id="shoeCompStatus">
-            <span class="status-dot normal"></span>
-            <span>Normal Distribution</span>
-          </div>
+        <div class="p5-history-stats" style="display:flex;gap:10px;margin-bottom:8px;font-size:11px;">
+          <span style="color:#22c55e;">W: <span id="p5Wins">0</span></span>
+          <span style="color:#f87171;">L: <span id="p5Losses">0</span></span>
+          <span style="color:#f59e0b;">P: <span id="p5Pushes">0</span></span>
+          <span style="color:#fff;">WR: <span id="p5WinRate">0%</span></span>
+        </div>
+        <!-- P3 Entry/Exit Status Indicator -->
+        <div class="p5-sitout-indicator active" id="p5StatusIndicator">
+          <div id="p5StatusText">P3: ACTIVE</div>
+          <div id="p5StatusReason" style="font-size:10px;font-weight:normal;opacity:0.9;"></div>
+        </div>
+        <div class="p5-history-list" id="p5HistoryList" style="max-height:150px;overflow-y:auto;font-size:10px;color:#aaa;margin-top:8px;">
+          <div style="color:#666;text-align:center;padding:10px;">No rounds yet</div>
         </div>
       </div>
 
-      <!-- Anti-Clump Panel -->
-      <div class="anti-clump-section" id="antiClumpPanel">
-        <div class="anti-clump-header">
-          <span class="anti-clump-title">Shuffle Quality</span>
-          <label class="anti-clump-toggle" title="Enable when you suspect card clumping">
-            <input type="checkbox" id="antiClumpToggle" onchange="toggleAntiClump()">
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-        <div class="anti-clump-content" id="antiClumpContent">
-          <div class="anti-clump-score-row">
-            <span class="anti-clump-score neutral">50%</span>
-          </div>
-          <div class="anti-clump-bar neutral">█████░░░░░</div>
-          <div class="anti-clump-details">
-            <div class="anti-clump-rec neutral">NEUTRAL</div>
-            <div class="anti-clump-strategy">Standard</div>
-          </div>
-          <div class="anti-clump-signals"></div>
-        </div>
       </div>
-
-      <!-- Clumping Probability Engine Panel -->
-      <div class="clump-prob-section" id="clumpProbPanel">
-        <div class="clump-prob-header">
-          <span class="clump-prob-title">Clump Strategy</span>
-          <label class="clump-prob-toggle" title="Enable clump-adjusted probability engine">
-            <input type="checkbox" id="clumpProbToggle" onchange="toggleClumpProb()">
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-        <div class="clump-prob-content" id="clumpProbContent">
-          <div class="clump-prob-momentum">
-            <span class="momentum-label">Momentum</span>
-            <span class="momentum-value neutral" id="clumpMomentum">NEUTRAL</span>
-          </div>
-          <div class="clump-prob-streak">
-            <span class="streak-label">Streak</span>
-            <span class="streak-value" id="clumpStreak">0</span>
-          </div>
-          <div class="clump-prob-divider"></div>
-          <div class="clump-prob-action">
-            <span class="action-label">Action</span>
-            <span class="action-value" id="clumpAction">—</span>
-          </div>
-          <div class="clump-prob-reason" id="clumpReason">
-            Enable to see clump-adjusted recommendations
-          </div>
-          <div class="clump-prob-ev">
-            <span class="ev-label">Adj. EV</span>
-            <span class="ev-value" id="clumpEV">—</span>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- Table Layout -->
     <div class="table-layout">
@@ -575,11 +471,11 @@
         </button>
       </div>
 
-      <!-- Game Controls -->
-      <div class="game-controls">
-        <div class="control-item">
-          <label>Players</label>
-          <select id="numPlayers" onchange="setNumPlayers(parseInt(this.value))">
+      <!-- Game Controls - Row 1 -->
+      <div class="game-controls" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:12px 18px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:8px;margin-bottom:8px;">
+        <div class="control-item" style="display:flex;flex-direction:column;gap:3px;">
+          <label style="font-size:13px;color:#aaa;font-weight:bold;">Players</label>
+          <select id="numPlayers" onchange="setNumPlayers(parseInt(this.value))" style="padding:8px 12px;border-radius:4px;background:#0a0a1a;color:#fff;border:1px solid #333;font-size:15px;">
             <option value="1">1</option>
             <option value="2">2</option>
             <option value="3">3</option>
@@ -590,79 +486,20 @@
             <option value="8">8</option>
           </select>
         </div>
-        <div class="control-item">
-          <label>Strategy</label>
-          <select id="strategyVersionSelect" onchange="applyStrategyVersion(parseInt(this.value))">
-            <option value="1" selected>V1 (5-seat)</option>
-          </select>
-        </div>
-        <div class="control-item">
-          <label>Dice rank</label>
-          <select id="diceRank">
-            <option value="none">(none)</option>
-            <option value="A">A</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-            <option value="7">7</option>
-            <option value="8">8</option>
-            <option value="9">9</option>
-            <option value="10">10</option>
-            <option value="J">J</option>
-            <option value="Q">Q</option>
-            <option value="K">K</option>
-          </select>
-        </div>
-        <div class="control-item dice-mapping">
-          <label>Dice mapping</label>
-          <select id="diceMapping">
-            <option value="standard">A=1, 2-10=pip, J/Q/K=10</option>
-            <option value="hilo">A=-1, 2-6=+1, 7-9=0, 10-K=-1</option>
-            <option value="custom">Custom mapping</option>
-          </select>
-        </div>
-        <button class="btn-apply" id="btnApplySettings">Apply</button>
-        <button class="btn-history" id="btnHistory" onclick="showHistoryPanel()">HISTORY</button>
-        <button class="btn-settle" id="btnSettleRound" onclick="autoSettleRound()">SETTLE</button>
-        <button class="btn-new-round" id="btnNewRound" onclick="newRound()">NEW</button>
-        <div class="sim-config-selector">
-          <div class="sim-config-item">
-            <label for="simDecksSelect">Decks:</label>
-            <select id="simDecksSelect">
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="4">4</option>
-              <option value="8">8</option>
-              <option value="16">16</option>
-              <option value="32" selected>32</option>
-              <option value="64">64</option>
-              <option value="100">100</option>
-              <option value="200">200</option>
-              <option value="300">300</option>
-              <option value="400">400</option>
-              <option value="500">500</option>
-              <option value="600">600</option>
-              <option value="700">700</option>
-              <option value="800">800</option>
-              <option value="900">900</option>
-              <option value="1000">1000</option>
-            </select>
-          </div>
-          <div class="sim-config-item">
-            <label for="simPlayersSelect">Players:</label>
-            <select id="simPlayersSelect" onchange="updateSimPlayerCount()">
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5" selected>5</option>
-              <option value="6">6</option>
-              <option value="7">7</option>
-            </select>
-          </div>
-        </div>
+        <button class="btn-new-round" id="btnNewRound" onclick="newRound()" style="background:#22c55e;color:#fff;border:none;padding:10px 20px;border-radius:4px;font-weight:bold;cursor:pointer;font-size:15px;">NEW</button>
+        <button class="btn-settle" id="btnSettleRound" onclick="autoSettleRound()" style="background:#3b82f6;color:#fff;border:none;padding:10px 20px;border-radius:4px;font-weight:bold;cursor:pointer;font-size:15px;">SETTLE</button>
+        <button class="btn-history" id="btnHistory" onclick="showHistoryPanel()" style="background:#6366f1;color:#fff;border:none;padding:10px 20px;border-radius:4px;font-weight:bold;cursor:pointer;font-size:15px;">HISTORY</button>
+        <button class="btn-end-game" id="btnEndGame" style="background:#f97316;color:#fff;border:none;padding:10px 20px;border-radius:4px;font-weight:bold;cursor:pointer;font-size:15px;">END GAME</button>
+      </div>
+
+      <!-- Hidden elements for compatibility -->
+      <div style="display:none;">
+        <select id="strategyVersionSelect"><option value="1" selected>V1</option></select>
+        <select id="diceRank"><option value="none" selected>(none)</option></select>
+        <select id="diceMapping"><option value="standard" selected>standard</option></select>
+        <select id="simPlayersSelect"><option value="5" selected>5</option></select>
+        <button id="btnApplySettings"></button>
+      </div>
 
         <!-- Simulation Settings Panel -->
         <div class="sim-settings-panel" id="simSettingsPanel" style="background:linear-gradient(135deg,#1a1a2e,#252545);border:2px solid #8b5cf6;border-radius:10px;padding:12px;margin:10px 0;">
@@ -722,23 +559,23 @@
               </div>
             </div>
 
-            <!-- SECTION 2: P1 Settings (Quant EV) -->
+            <!-- SECTION 2: P5 Settings (Quant EV) -->
             <div style="background:#1a1a2e;border:1px solid #f59e0b;border-radius:6px;padding:10px;margin-bottom:10px;">
-              <div style="color:#f59e0b;font-size:12px;font-weight:bold;margin-bottom:8px;">🎯 PLAYER 1 (QUANT EV)</div>
+              <div style="color:#f59e0b;font-size:12px;font-weight:bold;margin-bottom:8px;">🎯 PLAYER 5 (QUANT EV)</div>
 
               <!-- P1 Strategy -->
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
                 <div style="display:flex;flex-direction:column;gap:4px;">
                   <label style="color:#888;font-size:10px;">Strategy:</label>
                   <select id="settingsP1Strategy" onchange="applySimSettings()" style="background:#252545;color:#fff;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;">
-                    <option value="quantEv" selected>Quant EV + I18</option>
-                    <option value="quantEvT25">QEV + Top 2-5 Override</option>
+                    <option value="quantEv">Quant EV + I18</option>
+                    <option value="quantEvT25" selected>QEV + Top 2-5 Override</option>
                     <option value="basic">Basic Strategy</option>
                   </select>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:4px;">
                   <label style="color:#888;font-size:10px;">TC Entry Threshold:</label>
-                  <input type="number" id="settingsP1TcThreshold" value="0.9" step="0.1" min="-5" max="10" onchange="applySimSettings()" style="background:#252545;color:#22c55e;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;text-align:center;">
+                  <input type="number" id="settingsP1TcThreshold" value="2" step="0.1" min="-5" max="10" onchange="applySimSettings()" style="background:#252545;color:#22c55e;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;text-align:center;">
                 </div>
               </div>
 
@@ -763,8 +600,8 @@
                 <div style="display:flex;flex-direction:column;gap:4px;">
                   <label style="color:#888;font-size:10px;">Bet Method:</label>
                   <select id="settingsP1BetMethod" onchange="applySimSettings()" style="background:#252545;color:#fff;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;">
-                    <option value="flat">Flat Betting</option>
-                    <option value="martingale" selected>Martingale</option>
+                    <option value="flat" selected>Flat Betting</option>
+                    <option value="martingale">Martingale</option>
                     <option value="kelly">Kelly Criterion</option>
                     <option value="spread">1-12 Spread</option>
                   </select>
@@ -772,8 +609,8 @@
                 <div style="display:flex;flex-direction:column;gap:4px;">
                   <label style="color:#888;font-size:10px;">Martingale Max:</label>
                   <select id="settingsP1MartingaleMax" onchange="applySimSettings()" style="background:#252545;color:#fff;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;">
-                    <option value="2">2x</option>
-                    <option value="3" selected>3x</option>
+                    <option value="2" selected>2x</option>
+                    <option value="3">3x</option>
                     <option value="4">4x</option>
                     <option value="5">5x</option>
                     <option value="8">8x</option>
@@ -782,14 +619,14 @@
                 </div>
                 <div style="display:flex;flex-direction:column;gap:4px;">
                   <label style="color:#888;font-size:10px;">Max Bet ($):</label>
-                  <input type="number" id="settingsP1MaxBet" value="15000" readonly style="background:#1a1a2e;color:#ef4444;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;text-align:center;">
+                  <input type="number" id="settingsP1MaxBet" value="10000" readonly style="background:#1a1a2e;color:#ef4444;border:1px solid #444;border-radius:4px;padding:4px;font-size:11px;text-align:center;">
                 </div>
               </div>
             </div>
 
-            <!-- SECTION 3: P2-P5 Settings (Basic Strategy) -->
+            <!-- SECTION 3: P1-P4 Settings (Basic Strategy) -->
             <div style="background:#1a1a2e;border:1px solid #a78bfa;border-radius:6px;padding:10px;margin-bottom:10px;">
-              <div style="color:#a78bfa;font-size:12px;font-weight:bold;margin-bottom:8px;">👥 PLAYERS 2-5 (BASIC STRATEGY)</div>
+              <div style="color:#a78bfa;font-size:12px;font-weight:bold;margin-bottom:8px;">👥 PLAYERS 1-4 (BASIC STRATEGY)</div>
               <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
                 <div style="display:flex;flex-direction:column;gap:4px;">
                   <label style="color:#888;font-size:10px;">Strategy:</label>
@@ -844,8 +681,8 @@
             <div id="settingsSummary" style="background:#252545;border-radius:6px;padding:8px;margin-bottom:10px;">
               <div style="color:#22c55e;font-size:11px;font-weight:bold;">📊 CURRENT CONFIG:</div>
               <div id="settingsSummaryText" style="color:#aaa;font-size:10px;margin-top:4px;line-height:1.5;">
-                P1: QEV+MG+T25 | $100k | 5% ($5,000) | MG 3x max<br>
-                P2-P5: Basic Strategy | $100k | Flat $5,000
+                P1-P4: Basic Strategy | Flat $5,000<br>
+                P5: QEV+MG+T25 | $100k | $5,000 base | Flat
               </div>
             </div>
 
@@ -857,11 +694,24 @@
             </div>
           </div>
         </div>
-        <button class="btn-simulate-rt" id="btnSimulateRT" onclick="startSimWithConfig()">LIVE SIM</button>
-        <button class="btn-simulate-shoe" id="btnSimulateShoe" onclick="simulateOneShoe()">1 SHOE</button>
-        <button class="btn-full-sim" id="btnFullSim" onclick="runFullEngineSimulation()">FULL SIM</button>
-        <button class="btn-end-game" id="btnEndGame">END GAME</button>
-        <button class="btn-history" id="btnGameHistory" onclick="showGameHistoryPanel()">📊 HISTORY</button>
+
+      <!-- Simulation Controls -->
+      <div class="sim-controls" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:12px 18px;background:linear-gradient(135deg,#1e1e3f,#252550);border-radius:8px;border:1px solid #8b5cf6;margin-top:10px;">
+        <span style="color:#8b5cf6;font-weight:bold;font-size:15px;">SIMULATION:</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <label style="font-size:13px;color:#aaa;font-weight:bold;">Decks</label>
+          <select id="simDecksSelect" style="padding:8px 12px;border-radius:4px;background:#0a0a1a;color:#fff;border:1px solid #333;font-size:15px;">
+            <option value="8" selected>8</option>
+            <option value="32">32</option>
+            <option value="100">100</option>
+            <option value="500">500</option>
+            <option value="1000">1000</option>
+          </select>
+        </div>
+        <button class="btn-simulate-rt" id="btnSimulateRT" onclick="startSimWithConfig()" style="background:#22c55e;color:#fff;border:none;padding:8px 16px;border-radius:4px;font-weight:bold;cursor:pointer;font-size:14px;">LIVE SIM</button>
+        <button class="btn-simulate-shoe" id="btnSimulateShoe" onclick="simulateOneShoe()" style="background:#f59e0b;color:#fff;border:none;padding:8px 16px;border-radius:4px;font-weight:bold;cursor:pointer;font-size:14px;">1 SHOE</button>
+        <button class="btn-full-sim" id="btnFullSim" onclick="runFullEngineSimulation()" style="background:#8b5cf6;color:#fff;border:none;padding:8px 16px;border-radius:4px;font-weight:bold;cursor:pointer;font-size:14px;">FULL SIM</button>
+        <button class="btn-history" id="btnGameHistory" onclick="showGameHistoryPanel()" style="background:#6366f1;color:#fff;border:none;padding:8px 16px;border-radius:4px;font-weight:bold;cursor:pointer;font-size:14px;">📊 HISTORY</button>
       </div>
 
     </div>
@@ -1106,7 +956,7 @@
             <span class="qev-round-title" id="qevRoundTitle">TEAMPLAY | Round 0</span>
             <span class="qev-streak" id="qevStreak">Streak: 0</span>
           </div>
-          <div class="qev-roles-row" id="qevRolesRow">P1-P3: BS | P4: QEV | P5: SAC</div>
+          <div class="qev-roles-row" id="qevRolesRow">P1-P4: BS | P5: QEV</div>
         </div>
         <div class="qev-players-table">
           <table class="qev-table" id="qevPlayersTable">
@@ -1124,9 +974,9 @@
             <tbody id="qevTableBody">
               <tr><td>P1</td><td>$100k</td><td>0</td><td>0</td><td>0</td><td>0%</td><td class="role-bs">BS</td></tr>
               <tr><td>P2</td><td>$100k</td><td>0</td><td>0</td><td>0</td><td>0%</td><td class="role-bs">BS</td></tr>
-              <tr><td>P3</td><td>$100k</td><td>0</td><td>0</td><td>0</td><td>0%</td><td class="role-bs">BS</td></tr>
-              <tr><td>P4</td><td>$100k</td><td>0</td><td>0</td><td>0</td><td>0%</td><td class="role-qev">QEV</td></tr>
-              <tr><td>P5</td><td>$100k</td><td>0</td><td>0</td><td>0</td><td>0%</td><td class="role-sac">SAC</td></tr>
+              <tr><td>P3</td><td>$100k</td><td>0</td><td>0</td><td>0</td><td>0%</td><td class="role-qev">QEV</td></tr>
+              <tr><td>P4</td><td>$100k</td><td>0</td><td>0</td><td>0</td><td>0%</td><td class="role-bs">BS</td></tr>
+              <tr><td>P5</td><td>$100k</td><td>0</td><td>0</td><td>0</td><td>0%</td><td class="role-bs">BS</td></tr>
             </tbody>
           </table>
         </div>

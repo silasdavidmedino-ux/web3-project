@@ -437,30 +437,29 @@ const AppState = {
   quantEvSettings: {
     enabled: true,
     version: '1.4_FULL',
-    betMethod: 'martingale',
+    betMethod: 'flat',
     baseUnit: 5000,
-    maxBetUnits: 3,
-    tcThreshold: 1,
+    maxBetUnits: 2,
+    tcThreshold: 2,
 
     // ============================================
     // STRATEGY VERSION SELECTOR
     // ============================================
-    // V1 (5-seat): P1-P3 Basic | P4 Quant EV | P5 Sacrifice
-    // V2 (7-seat): P1-P4 Basic | P5 Booster | P6 Quant EV | P7 Sacrifice
-    strategyVersion: 1,  // 1 or 2 (DEFAULT: V1 - 5 players)
+    // V1 (5-seat): P1-P4 Basic | P5 Quant EV
+    strategyVersion: 1,  // DEFAULT: V1 - 5 players
 
-    // VERSION 1 Configuration (5-seat table) - ENHANCED - DEFAULT
+    // VERSION 1 Configuration (5-seat table) - P3 Quant EV, others Basic
     v1Config: {
-      quantEvPlayerIndex: 4,
-      sacrificePlayerIndex: 5,
-      boosterPlayerIndex: null,       // No booster - removed
-      sacrificePlayers: [5],
-      basicPlayers: [1, 2, 3],        // P1-P3 all basic
-      superSacrificeEnabled: true,    // Enable Super Sacrifice for P5
-      description: 'P1-P3 Basic | P4 Quant EV | P5 Super-Sac'
+      quantEvPlayerIndex: 3,          // P3 is QEV player
+      sacrificePlayerIndex: null,     // No sacrifice player
+      boosterPlayerIndex: null,       // No booster
+      sacrificePlayers: [],
+      basicPlayers: [1, 2, 4, 5],     // P1,P2,P4,P5 all basic
+      superSacrificeEnabled: false,
+      description: 'P1,P2,P4,P5 Basic | P3 Quant EV'
     },
 
-    // VERSION 2 Configuration (7-seat table)
+    // VERSION 2 Configuration (7-seat table) - legacy
     v2Config: {
       quantEvPlayerIndex: 6,
       sacrificePlayerIndex: 7,
@@ -471,20 +470,20 @@ const AppState = {
     },
 
     // Active config (set by version) - V1 DEFAULT
-    quantEvPlayerIndex: 4,
-    sacrificePlayerIndex: 5,
-    boosterPlayerIndex: null,  // No booster
-    sacrificePlayers: [5],
-    quantEvTcThreshold: 0.9,
-    quantEvStrategy: 'quantEv',
+    quantEvPlayerIndex: 3,           // P3 is QEV player
+    sacrificePlayerIndex: null,
+    boosterPlayerIndex: null,
+    sacrificePlayers: [],
+    quantEvTcThreshold: 2,
+    quantEvStrategy: 'quantEvT25',
     boosterStrategy: 'p4_booster_v1.0',
     sacrificeStrategy: 'sacrifice_v1.4',
     basicPlayersStrategy: 'basicOnly',
 
-    // Martingale Configuration
-    martingaleCurrentBet: 5000,
-    martingaleLossStreak: 0,
-    martingaleMaxBet: 15000,
+    // Betting Configuration (Flat betting - no Martingale)
+    betMethod: 'flat',
+    currentBet: 5000,
+    maxBet: 15000,
 
     // ENHC Rules (European No Hole Card)
     enhcEnabled: true,
@@ -501,7 +500,10 @@ const AppState = {
 
     // Quant EV Dynamic Entry/Exit
     quantEvSittingOut: false,
-    quantEvReentryThreshold: 0.9,
+    quantEvExitThreshold: -1,      // P5 sits out if TC <= -1
+    quantEvReentryThreshold: 2,    // P5 re-enters if TC >= +2
+    quantEvReentryBustRate: 25,    // AND dealer bust % >= 25%
+    quantEvDangerBustRate: 15,     // P5 sits out if dealer bust % < 15% (dealer HOT)
 
     // Sacrifice v1.4 Parameters
     sacrificeAggressionBase: 50,
@@ -687,8 +689,7 @@ function init() {
 
 /**
  * Apply strategy version configuration
- * V1 (5-seat): P1-P2 Basic | P3 Booster | P4 Quant EV | P5 Sacrifice
- * V2 (7-seat): P1-P4 Basic | P5 Booster | P6 Quant EV | P7 Sacrifice
+ * V1 (5-seat): P1-P4 Basic | P5 Quant EV
  */
 function applyStrategyVersion(version) {
   const settings = AppState.quantEvSettings;
@@ -1468,9 +1469,8 @@ function resetShoe() {
   AppState.dealHistory = [];
   AppState.pairsWon = 0;
 
-  // Reset Martingale state on new shoe
-  AppState.quantEvSettings.martingaleCurrentBet = AppState.quantEvSettings.baseUnit;
-  AppState.quantEvSettings.martingaleLossStreak = 0;
+  // Reset bet to base unit on new shoe
+  AppState.quantEvSettings.currentBet = AppState.quantEvSettings.baseUnit;
 
   // Clear dealer history on shoe reset
   AppState.dealerHistory = [];
@@ -1496,6 +1496,11 @@ function resetShoe() {
   // Reset dealer counter engine on new shoe
   if (typeof resetDealerCounter === 'function') {
     resetDealerCounter();
+  }
+
+  // Reset P5 History on new shoe (silent mode)
+  if (typeof clearP5History === 'function') {
+    clearP5History(true);
   }
 
   updateAll();
@@ -3297,7 +3302,7 @@ function calculatePlayerDecision(playerNum) {
   const version = settings.strategyVersion || 1;
   const vConfig = version === 1 ? settings.v1Config : settings.v2Config;
   const boosterPlayer = vConfig?.boosterPlayerIndex || settings.boosterPlayerIndex;
-  const sacrificePlayer = vConfig?.sacrificePlayerIndex || settings.sacrificePlayerIndex || 5;
+  const sacrificePlayer = vConfig?.sacrificePlayerIndex || settings.sacrificePlayerIndex || null;
 
   // P3 BOOSTER: Uses Booster strategy (only if booster is enabled)
   if (boosterPlayer && playerNum === boosterPlayer) {
@@ -3900,6 +3905,91 @@ function removeLastBead() {
     grid.removeChild(grid.lastChild);
   }
 }
+
+// ============================================
+// P5 History Tracker Functions
+// ============================================
+
+// P5 History State
+const P5History = {
+  rounds: [],
+  wins: 0,
+  losses: 0,
+  pushes: 0
+};
+
+// Add P5 round to history
+function addP5Round(roundData) {
+  // roundData: { round, cards, total, dealerTotal, action, result, tc, override }
+  P5History.rounds.push(roundData);
+
+  // Update stats
+  if (roundData.result === 'WIN' || roundData.result === 'BJ') {
+    P5History.wins++;
+  } else if (roundData.result === 'LOSE') {
+    P5History.losses++;
+  } else if (roundData.result === 'PUSH') {
+    P5History.pushes++;
+  }
+
+  updateP5HistoryPanel();
+}
+
+// Update P5 history panel display
+function updateP5HistoryPanel() {
+  const winsEl = document.getElementById('p5Wins');
+  const lossesEl = document.getElementById('p5Losses');
+  const pushesEl = document.getElementById('p5Pushes');
+  const winRateEl = document.getElementById('p5WinRate');
+  const listEl = document.getElementById('p5HistoryList');
+
+  if (winsEl) winsEl.textContent = P5History.wins;
+  if (lossesEl) lossesEl.textContent = P5History.losses;
+  if (pushesEl) pushesEl.textContent = P5History.pushes;
+
+  const total = P5History.wins + P5History.losses + P5History.pushes;
+  const winRate = total > 0 ? Math.round((P5History.wins / total) * 100) : 0;
+  if (winRateEl) winRateEl.textContent = winRate + '%';
+
+  if (listEl) {
+    if (P5History.rounds.length === 0) {
+      listEl.innerHTML = '<div style="color:#666;text-align:center;padding:10px;">No rounds yet</div>';
+    } else {
+      // Show last 10 rounds (newest first)
+      const recentRounds = P5History.rounds.slice(-10).reverse();
+      listEl.innerHTML = recentRounds.map(r => {
+        const resultColor = r.result === 'WIN' || r.result === 'BJ' ? '#22c55e' :
+                           r.result === 'LOSE' ? '#f87171' : '#f59e0b';
+        const overrideTag = r.override ? '<span style="color:#8b5cf6;margin-left:4px;">[OVR]</span>' : '';
+        return `<div style="padding:4px 0;border-bottom:1px solid #333;">
+          <span style="color:#888;">R${r.round}</span>
+          <span style="color:#fff;margin-left:6px;">[${r.cards}]=${r.total}</span>
+          <span style="margin-left:6px;">vs D:${r.dealerTotal}</span>
+          <span style="margin-left:6px;color:#6366f1;">${r.action}</span>${overrideTag}
+          <span style="margin-left:6px;color:${resultColor};font-weight:bold;">${r.result}</span>
+          <span style="color:#666;margin-left:4px;">TC:${r.tc}</span>
+        </div>`;
+      }).join('');
+    }
+  }
+}
+
+// Clear P5 history (silent=true for shuffle resets)
+function clearP5History(silent = false) {
+  P5History.rounds = [];
+  P5History.wins = 0;
+  P5History.losses = 0;
+  P5History.pushes = 0;
+  updateP5HistoryPanel();
+  if (!silent) {
+    showToast('P5 History cleared', 'info');
+  }
+}
+
+// Make functions globally accessible
+window.addP5Round = addP5Round;
+window.updateP5HistoryPanel = updateP5HistoryPanel;
+window.clearP5History = clearP5History;
 
 // ============================================
 // Anti-Clump Engine Functions
@@ -5639,6 +5729,9 @@ function updateAllImmediate() {
     updateClumpAutoToggleIndicator();
     updateDealerCounterDisplay();
     updateCombinedSignalDisplay();
+    if (typeof updateP5StatusIndicator === 'function') {
+      updateP5StatusIndicator();
+    }
   } catch (err) {
     console.error('updateAll error:', err);
   }
@@ -9272,28 +9365,48 @@ async function runSimRound() {
 
     // QUANT EV PLAYER (P5) DYNAMIC ENTRY/EXIT LOGIC:
     // Round 1: P5 always enters
-    // If sitting out: Re-enter when TC >= 0.9
-    // After round: Exit if TC < 0
+    // If sitting out: Re-enter when TC >= +2 AND dealer bust % >= 25%
+    // After round: Exit if TC <= -1
     const tcBeforeDeal = getTrueCount();
     const isFirstRound = simRoundCount === 1;
-    const quantEvPlayer = settings.quantEvPlayerIndex || 4;  // P4 is Quant EV player, P5 is Sacrifice player
+    const quantEvPlayer = settings.quantEvPlayerIndex || 3;  // P3 is Quant EV player
+    const dealerBustRate = parseFloat(AppState.dealerBustHistory.bustRate) || 0;
 
     // Determine if Quant EV player (P5) plays this round
     let quantEvSitsOut = false;
+
+    // Danger bust rate threshold (dealer too hot)
+    const dangerBustRate = settings.quantEvDangerBustRate || 15;
 
     if (isFirstRound) {
       // Round 1: P5 always enters
       settings.quantEvSittingOut = false;
       quantEvSitsOut = false;
+    } else if (dealerBustRate > 0 && dealerBustRate < dangerBustRate && AppState.dealerBustHistory.totalRounds >= 5) {
+      // DANGER: Dealer bust rate below 15% - dealer is HOT, sit out!
+      if (!settings.quantEvSittingOut) {
+        settings.quantEvSittingOut = true;
+        console.log(`[SIM] P${quantEvPlayer} DANGER EXIT: Dealer Bust ${dealerBustRate}% < ${dangerBustRate}% - DEALER HOT!`);
+      }
+      quantEvSitsOut = true;
     } else if (settings.quantEvSittingOut) {
-      // P5 is sitting out - check if TC >= 0.9 to re-enter
-      if (tcBeforeDeal >= settings.quantEvReentryThreshold) {
+      // P5 is sitting out - check re-entry conditions:
+      // TC >= +2 AND dealer bust % >= 25%
+      const tcThreshold = settings.quantEvReentryThreshold || 2;
+      const bustThreshold = settings.quantEvReentryBustRate || 25;
+      const meetsTC = tcBeforeDeal >= tcThreshold;
+      const meetsBust = dealerBustRate >= bustThreshold;
+
+      if (meetsTC && meetsBust) {
         settings.quantEvSittingOut = false;
         quantEvSitsOut = false;
-        console.log(`[SIM] P${quantEvPlayer} RE-ENTERS: TC ${tcBeforeDeal.toFixed(2)} >= ${settings.quantEvReentryThreshold}`);
+        console.log(`[SIM] P${quantEvPlayer} RE-ENTERS: TC ${tcBeforeDeal.toFixed(2)} >= ${tcThreshold} AND Dealer Bust ${dealerBustRate}% >= ${bustThreshold}%`);
       } else {
         quantEvSitsOut = true;
-        console.log(`[SIM] P${quantEvPlayer} SITS OUT: TC ${tcBeforeDeal.toFixed(2)} < ${settings.quantEvReentryThreshold}`);
+        const reasons = [];
+        if (!meetsTC) reasons.push(`TC ${tcBeforeDeal.toFixed(2)} < ${tcThreshold}`);
+        if (!meetsBust) reasons.push(`Bust ${dealerBustRate}% < ${bustThreshold}%`);
+        console.log(`[SIM] P${quantEvPlayer} SITS OUT: ${reasons.join(', ')}`);
       }
     } else {
       // P5 is active, continue playing
@@ -9378,11 +9491,12 @@ async function runSimRound() {
     // LIVE TRACKER - Update tracker after each round (pass quantEvSitsOut and TC before deal)
     trackLiveSimRound(playerCount, dTotal, quantEvSitsOut, tcBeforeDeal, quantEvPlayer);
 
-    // P5 EXIT CHECK: If TC is negative after round, P5 sits out next round
+    // P5 EXIT CHECK: If TC <= -1 after round, P5 sits out next round
     const tcAfterRound = getTrueCount();
-    if (tcAfterRound < 0 && !quantEvSitsOut) {
+    const exitThreshold = settings.quantEvExitThreshold || -1;
+    if (tcAfterRound <= exitThreshold && !quantEvSitsOut) {
       settings.quantEvSittingOut = true;
-      console.log(`[SIM] P${quantEvPlayer} EXITS: TC ${tcAfterRound.toFixed(2)} < 0 (will re-enter at TC >= ${settings.quantEvReentryThreshold})`);
+      console.log(`[SIM] P${quantEvPlayer} EXITS: TC ${tcAfterRound.toFixed(2)} <= ${exitThreshold} (will re-enter at TC >= ${settings.quantEvReentryThreshold} AND bust >= ${settings.quantEvReentryBustRate}%)`);
     }
   } catch (error) {
     console.error('Round error:', error);
@@ -9391,7 +9505,7 @@ async function runSimRound() {
 }
 
 // Track live simulation round for Quant EV panel
-// TEAMPLAY: P1-P3 Basic, P4 Quant EV, P5 Sacrifice
+// TEAMPLAY: P1-P4 Basic, P5 Quant EV
 function trackLiveSimRound(playerCount, dealerTotal, quantEvSitsOut = false, tcBeforeDeal = null, quantEvPlayer = 4) {
   const tracker = AppState.quantEvTracker;
   if (!tracker.enabled) return;
@@ -9401,7 +9515,7 @@ function trackLiveSimRound(playerCount, dealerTotal, quantEvSitsOut = false, tcB
   const tc = tcBeforeDeal !== null ? tcBeforeDeal : getTrueCount();
   const settings = AppState.quantEvSettings;
   const baseUnit = settings.baseUnit;
-  const sacrificePlayer = settings.sacrificePlayerIndex || 5;
+  const sacrificePlayer = settings.sacrificePlayerIndex || null;
 
   const roundData = {
     round: tracker.roundNumber,
@@ -9419,15 +9533,14 @@ function trackLiveSimRound(playerCount, dealerTotal, quantEvSitsOut = false, tcB
     const playerEnters = (i === quantEvPlayer) ? !quantEvSitsOut : true;
 
     // Determine bet amount and strategy based on player role
-    // P1-P3: Basic Strategy with flat betting
-    // P4: Quant EV + Martingale betting
-    // P5: Sacrifice Strategy with flat betting (sacrifices for team)
+    // P1-P4: Basic Strategy with flat betting
+    // P5: Quant EV with flat betting
     let betAmount = baseUnit;
     let strategyUsed = 'BASIC';
 
     if (i === quantEvPlayer && playerEnters) {
-      // P4: Quant EV + Martingale betting
-      betAmount = settings.martingaleCurrentBet;
+      // P5: Quant EV with flat betting (no Martingale)
+      betAmount = baseUnit;
       strategyUsed = 'QUANT EV';
     } else if (i === sacrificePlayer) {
       // P5: Sacrifice Strategy (flat betting, plays for team)
@@ -9477,6 +9590,7 @@ function trackLiveSimRound(playerCount, dealerTotal, quantEvSitsOut = false, tcB
         isBJ: isBJ,
         quantEvAction: decision ? decision.action : 'N/A',
         isDeviation: (i === quantEvPlayer) ? (decision ? decision.strategy?.isDeviation : false) : false,
+        isOverride: (i === quantEvPlayer) ? (decision ? decision.strategy?.isOverride : false) : false,
         isSacrifice: (i === sacrificePlayer),
         sacrificeIntent: (i === sacrificePlayer && decision) ? decision.sacrificeIntent : null,
         result: playerResult,
@@ -9492,37 +9606,17 @@ function trackLiveSimRound(playerCount, dealerTotal, quantEvSitsOut = false, tcB
         player.wins++;
         player.bankroll += betAmount;
         player.correctDecisions++;
-        // P4 Martingale: Reset to base bet after win
-        if (i === quantEvPlayer) {
-          settings.martingaleCurrentBet = baseUnit;
-          settings.martingaleLossStreak = 0;
-        }
       } else if (playerResult === 'LOSS' || playerResult === 'BUST') {
         player.losses++;
         player.bankroll -= betAmount;
-        // P4 Martingale: Double bet after loss
-        if (i === quantEvPlayer) {
-          settings.martingaleLossStreak++;
-          settings.martingaleCurrentBet = Math.min(betAmount * 2, settings.martingaleMaxBet);
-        }
-        // P5 Sacrifice: Bust may be intentional (mission accomplished)
-        if (i === sacrificePlayer && playerResult === 'BUST') {
-          player.correctDecisions++; // Sacrifice bust is a success for team
-        }
       } else if (playerResult === 'PUSH') {
         player.pushes++;
         player.correctDecisions++;
-        // Martingale: Keep same bet on push
       } else if (playerResult === 'BLACKJACK') {
         player.wins++;
         player.bjs++;
         player.bankroll += Math.round(betAmount * 1.5);
         player.correctDecisions++;
-        // P4 Martingale: Reset to base bet after BJ win
-        if (i === quantEvPlayer) {
-          settings.martingaleCurrentBet = baseUnit;
-          settings.martingaleLossStreak = 0;
-        }
       }
     } else if (i === quantEvPlayer && !playerEnters) {
       // Quant EV player (P4) sat out this round
@@ -9544,6 +9638,25 @@ function trackLiveSimRound(playerCount, dealerTotal, quantEvSitsOut = false, tcB
   // Update panel live
   updateQuantEvPanel();
   logQuantEvRound(roundData);
+
+  // Track P5 History (for P5 History Panel)
+  const p5Data = roundData.players[quantEvPlayer];
+  if (p5Data && p5Data.cards && p5Data.cards.length >= 2) {
+    const hasOverride = p5Data.isOverride || false;
+    const p5Result = p5Data.result === 'WIN' || p5Data.result === 'BLACKJACK' ? (p5Data.result === 'BLACKJACK' ? 'BJ' : 'WIN') :
+                     p5Data.result === 'LOSS' || p5Data.result === 'BUST' ? 'LOSE' : 'PUSH';
+
+    addP5Round({
+      round: tracker.roundNumber,
+      cards: p5Data.cards.join(' '),
+      total: p5Data.total,
+      dealerTotal: dealerTotal,
+      action: p5Data.quantEvAction,
+      result: p5Result,
+      tc: tc.toFixed(1),
+      override: hasOverride
+    });
+  }
 
   // Record to betting history
   if (AppState.bettingHistory.enabled && AppState.bettingHistory.currentGame) {
@@ -9671,7 +9784,7 @@ function updateDealerBustHistoryPanel() {
 
   const history = AppState.dealerBustHistory;
   const settings = AppState.quantEvSettings;
-  const sacrificePlayer = settings.sacrificePlayerIndex || 5;
+  const sacrificePlayer = settings.sacrificePlayerIndex || null;
 
   // Calculate sacrifice effectiveness
   const sacCorr = history.sacrificeCorrelation;
@@ -9819,9 +9932,9 @@ const QEVTracker = {
   players: [
     { id: 1, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'BS' },
     { id: 2, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'BS' },
-    { id: 3, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'BOOST' },
-    { id: 4, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'QEV' },
-    { id: 5, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'SAC' }
+    { id: 3, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'QEV' },  // P3 is QEV
+    { id: 4, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'BS' },
+    { id: 5, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'BS' }
   ],
   roundHistory: []
 };
@@ -9959,9 +10072,9 @@ function resetQEVTracker() {
   QEVTracker.players = [
     { id: 1, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'BS' },
     { id: 2, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'BS' },
-    { id: 3, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'BOOST' },
-    { id: 4, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'QEV' },
-    { id: 5, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'SAC' }
+    { id: 3, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'QEV' },  // P3 is QEV
+    { id: 4, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'BS' },
+    { id: 5, bank: 100000, wins: 0, losses: 0, pushes: 0, role: 'BS' }
   ];
   QEVTracker.roundHistory = [];
   updateQEVTracker();
@@ -10418,7 +10531,7 @@ function getBasicStrategyDecision(playerNum) {
 // Show unified decision during simulation
 function showUnifiedDecisionSim(playerNum) {
   // P5 uses Quant EV (with overrides/surrender), P1-P4 use Basic Strategy only
-  const quantEvPlayer = AppState.quantEvSettings.quantEvPlayerIndex || 4;
+  const quantEvPlayer = AppState.quantEvSettings.quantEvPlayerIndex || 3;
   const decision = (playerNum === quantEvPlayer) ? getUnifiedDecision(playerNum) : getBasicStrategyDecision(playerNum);
   if (!decision) return;
 
@@ -10521,15 +10634,14 @@ async function simPlayerPlay(pos, dealerVal, cards) {
   // Get version-specific config
   const version = settings.strategyVersion || 1;
   const vConfig = version === 1 ? settings.v1Config : settings.v2Config;
-  const quantEvPlayer = vConfig?.quantEvPlayerIndex || settings.quantEvPlayerIndex || 4;
+  const quantEvPlayer = vConfig?.quantEvPlayerIndex || settings.quantEvPlayerIndex || 3;
   const boosterPlayer = vConfig?.boosterPlayerIndex || settings.boosterPlayerIndex;  // Can be null
-  const sacrificePlayer = vConfig?.sacrificePlayerIndex || settings.sacrificePlayerIndex || 5;
-  const basicPlayers = vConfig?.basicPlayers || [1, 2, 3];
+  const sacrificePlayer = vConfig?.sacrificePlayerIndex || settings.sacrificePlayerIndex;  // Can be null
+  const basicPlayers = vConfig?.basicPlayers || [1, 2, 3, 4];
   let hits = 0;
 
   // Determine player strategy based on version:
-  // V1 (5-seat): P1-P3 Basic | P4 Quant EV | P5 Super-Sac
-  // V2 (7-seat): P1-P4 Basic | P5 Booster | P6 Quant EV | P7 Super-Sac
+  // V1 (5-seat): P1-P4 Basic | P5 Quant EV
   const isBooster = (boosterPlayer && playerNum === boosterPlayer);
   const isSacrifice = (playerNum === sacrificePlayer);
   const isQuantEvPlayer = (playerNum === quantEvPlayer);
@@ -10850,6 +10962,130 @@ function updateSimCounts() {
 
   // Update stat boxes
   updateStatBoxes();
+
+  // Update P5 status indicator in real-time
+  updateP5StatusIndicatorDirect();
+
+  // Update Dealer Bust History panel in real-time
+  if (typeof updateDealerBustHistoryPanel === 'function') {
+    updateDealerBustHistoryPanel();
+  }
+
+  // Update Dealer Counter (Hot/Cold) display in real-time
+  if (typeof updateDealerCounterDisplay === 'function') {
+    updateDealerCounterDisplay();
+  }
+
+  // Direct update of key dealer indicators
+  updateDealerIndicatorsDirect();
+}
+
+// Direct update of dealer indicators (no function checks)
+function updateDealerIndicatorsDirect() {
+  const history = AppState.dealerBustHistory;
+  const bustRate = parseFloat(history.bustRate) || 0;
+  const totalRounds = history.totalRounds || 0;
+  const totalBusts = history.totalBusts || 0;
+
+  // Update bust rate value element
+  const bustRateEl = document.getElementById('bustRateValue');
+  if (bustRateEl) {
+    bustRateEl.textContent = bustRate.toFixed(1) + '%';
+    // Color based on rate
+    if (bustRate < 15) {
+      bustRateEl.style.color = '#ef4444'; // Red - dealer hot
+    } else if (bustRate > 35) {
+      bustRateEl.style.color = '#22c55e'; // Green - dealer cold
+    } else {
+      bustRateEl.style.color = '#fbbf24'; // Yellow - normal
+    }
+  }
+
+  // Update bust count
+  const bustCountEl = document.getElementById('bustRateCount');
+  if (bustCountEl) {
+    bustCountEl.textContent = `(${totalBusts}/${totalRounds})`;
+  }
+
+  // Update dealer hot level indicator if exists
+  const hotLevelEl = document.getElementById('dealerHotLevel');
+  if (hotLevelEl && AppState.dealerCounter) {
+    const dc = AppState.dealerCounter;
+    hotLevelEl.textContent = dc.hotLevel ? dc.hotLevel.replace('_', ' ') : 'NEUTRAL';
+  }
+}
+
+// Direct P5 status update (no function check needed - defined inline)
+function updateP5StatusIndicatorDirect() {
+  const indicator = document.getElementById('p5StatusIndicator');
+  const statusText = document.getElementById('p5StatusText');
+  const statusReason = document.getElementById('p5StatusReason');
+
+  if (!indicator || !statusText) return;
+
+  const settings = AppState.quantEvSettings;
+  const tc = getTrueCount();
+  const bustRate = parseFloat(AppState.dealerBustHistory.bustRate) || 0;
+  const totalRounds = AppState.dealerBustHistory.totalRounds || 0;
+
+  const exitThreshold = settings.quantEvExitThreshold ?? -1;
+  const reentryTC = settings.quantEvReentryThreshold ?? 2;
+  const reentryBust = settings.quantEvReentryBustRate ?? 25;
+  const dangerBustRate = settings.quantEvDangerBustRate ?? 15;
+
+  let shouldPlay = true;
+  let reason = 'Active';
+  let isDanger = false;
+
+  // Check DANGER: Dealer bust rate < 15%
+  if (totalRounds >= 5 && bustRate > 0 && bustRate < dangerBustRate) {
+    shouldPlay = false;
+    isDanger = true;
+    reason = `Bust ${bustRate}% < ${dangerBustRate}%`;
+    settings.quantEvSittingOut = true;
+  }
+  // Check EXIT: TC <= -1
+  else if (tc <= exitThreshold) {
+    shouldPlay = false;
+    reason = `TC ${tc.toFixed(1)} ≤ ${exitThreshold}`;
+    settings.quantEvSittingOut = true;
+  }
+  // Check RE-ENTRY conditions if sitting out
+  else if (settings.quantEvSittingOut) {
+    const meetsTC = tc >= reentryTC;
+    const meetsBust = bustRate >= reentryBust || totalRounds < 5;
+
+    if (meetsTC && meetsBust) {
+      shouldPlay = true;
+      reason = `Re-enter: TC ${tc.toFixed(1)} ≥ ${reentryTC}`;
+      settings.quantEvSittingOut = false;
+    } else {
+      shouldPlay = false;
+      const reasons = [];
+      if (!meetsTC) reasons.push(`TC ${tc.toFixed(1)} < ${reentryTC}`);
+      if (!meetsBust && totalRounds >= 5) reasons.push(`Bust ${bustRate}% < ${reentryBust}%`);
+      reason = reasons.join(' & ');
+    }
+  }
+
+  // Update UI
+  indicator.className = 'p5-sitout-indicator';
+
+  if (isDanger) {
+    indicator.classList.add('danger');
+    indicator.style.cssText = 'padding:8px 12px;border-radius:6px;font-weight:bold;text-align:center;margin-top:8px;background:linear-gradient(135deg,#dc2626,#991b1b);color:white;border:2px solid #fbbf24;animation:p5DangerBlink 0.3s ease-in-out infinite;box-shadow:0 0 20px rgba(220,38,38,0.6);';
+    statusText.innerHTML = '⚠️ <b>P3: DANGER - SIT OUT!</b>';
+  } else if (!shouldPlay) {
+    indicator.classList.add('sitout');
+    indicator.style.cssText = 'padding:8px 12px;border-radius:6px;font-weight:bold;text-align:center;margin-top:8px;background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:2px solid #ef4444;animation:p5SitoutBlink 0.5s ease-in-out infinite;';
+    statusText.innerHTML = '🚫 <b>P3: SIT OUT</b>';
+  } else {
+    indicator.classList.add('active');
+    indicator.style.cssText = 'padding:8px 12px;border-radius:6px;font-weight:bold;text-align:center;margin-top:8px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;border:1px solid #22c55e;';
+    statusText.innerHTML = '✅ <b>P3: ACTIVE</b>';
+  }
+
+  if (statusReason) statusReason.textContent = reason;
 }
 
 function delay(ms) {
@@ -10872,12 +11108,16 @@ function reshuffleShoeOnly() {
   // TRUE COUNT RESETS TO 0 ON SHUFFLE (Running Count also resets)
   AppState.runningCount = 0;
 
-  // Reset Martingale state on new shoe
-  AppState.quantEvSettings.martingaleCurrentBet = AppState.quantEvSettings.baseUnit;
-  AppState.quantEvSettings.martingaleLossStreak = 0;
+  // Reset bet to base unit on new shoe
+  AppState.quantEvSettings.currentBet = AppState.quantEvSettings.baseUnit;
 
   // Reset Quant EV player sitting out - new shoe means fresh start
   AppState.quantEvSettings.quantEvSittingOut = false;
+
+  // Reset P5 History on new shoe (silent mode)
+  if (typeof clearP5History === 'function') {
+    clearP5History(true);
+  }
 
   // Note: dealer history is NOT cleared here - only on end game
   updateSimCounts();
@@ -12030,6 +12270,125 @@ window.runQuantEv5PlayerSimulation = runQuantEv5PlayerSimulation;
 // QUANT EV LIVE TRACKER - Automatic Game History & Analytics
 // ============================================================================
 
+// Check P5 entry/exit status for live game and simulation
+// Returns: { shouldPlay: boolean, reason: string, tc: number, bustRate: number }
+function checkP5EntryStatus() {
+  const settings = AppState.quantEvSettings;
+  const tc = getTrueCount();
+  const bustRate = parseFloat(AppState.dealerBustHistory.bustRate) || 0;
+  const totalRounds = AppState.dealerBustHistory.totalRounds || 0;
+
+  const exitThreshold = settings.quantEvExitThreshold ?? -1;
+  const reentryTC = settings.quantEvReentryThreshold ?? 2;
+  const reentryBust = settings.quantEvReentryBustRate ?? 25;
+  const dangerBustRate = settings.quantEvDangerBustRate ?? 15;
+
+  // CONDITION 1: DANGER - Dealer bust rate below 15% (dealer HOT!)
+  // Only check after 5+ rounds of data
+  if (totalRounds >= 5 && bustRate > 0 && bustRate < dangerBustRate) {
+    settings.quantEvSittingOut = true;
+    return {
+      shouldPlay: false,
+      reason: `DANGER: Bust ${bustRate}% < ${dangerBustRate}%`,
+      tc,
+      bustRate,
+      isDanger: true
+    };
+  }
+
+  // CONDITION 2: TC <= -1 means sit out
+  if (tc <= exitThreshold) {
+    settings.quantEvSittingOut = true;
+    return {
+      shouldPlay: false,
+      reason: `TC ${tc.toFixed(1)} ≤ ${exitThreshold}`,
+      tc,
+      bustRate,
+      triggerExit: true
+    };
+  }
+
+  // CONDITION 3: If sitting out, check re-entry conditions
+  // Need BOTH: TC >= +2 AND Bust >= 25%
+  if (settings.quantEvSittingOut) {
+    const meetsTC = tc >= reentryTC;
+    const meetsBust = bustRate >= reentryBust || totalRounds < 5; // Allow if not enough data
+
+    if (meetsTC && meetsBust) {
+      settings.quantEvSittingOut = false;
+      return {
+        shouldPlay: true,
+        reason: `Re-enter: TC ${tc.toFixed(1)} ≥ ${reentryTC}`,
+        tc,
+        bustRate
+      };
+    } else {
+      const reasons = [];
+      if (!meetsTC) reasons.push(`TC ${tc.toFixed(1)} < ${reentryTC}`);
+      if (!meetsBust && totalRounds >= 5) reasons.push(`Bust ${bustRate}% < ${reentryBust}%`);
+      return {
+        shouldPlay: false,
+        reason: reasons.join(' & '),
+        tc,
+        bustRate
+      };
+    }
+  }
+
+  // All conditions OK - P5 can play
+  return { shouldPlay: true, reason: 'Active', tc, bustRate };
+}
+
+// Make globally accessible
+window.checkP5EntryStatus = checkP5EntryStatus;
+
+// Update P5 status indicator in UI
+function updateP5StatusIndicator() {
+  try {
+    const indicator = document.getElementById('p5StatusIndicator');
+    const statusText = document.getElementById('p5StatusText');
+    const statusReason = document.getElementById('p5StatusReason');
+
+    if (!indicator || !statusText) return;
+
+    const status = checkP5EntryStatus();
+
+    // Reset all classes and set base class
+    indicator.className = 'p5-sitout-indicator';
+
+    if (status.isDanger) {
+      // DANGER: Dealer bust rate too low - fast blinking red/orange
+      indicator.classList.add('danger');
+      indicator.style.background = 'linear-gradient(135deg, #dc2626, #991b1b)';
+      indicator.style.border = '2px solid #fbbf24';
+      indicator.style.animation = 'p5DangerBlink 0.3s ease-in-out infinite';
+      statusText.innerHTML = '⚠️ <b>P3: SIT OUT - DANGER!</b>';
+      if (statusReason) statusReason.textContent = status.reason;
+    } else if (!status.shouldPlay) {
+      // Regular sit out (TC too low or re-entry conditions not met) - blinking red
+      indicator.classList.add('sitout');
+      indicator.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+      indicator.style.border = '2px solid #ef4444';
+      indicator.style.animation = 'p5SitoutBlink 0.5s ease-in-out infinite';
+      statusText.innerHTML = '🚫 <b>P3: SIT OUT</b>';
+      if (statusReason) statusReason.textContent = status.reason;
+    } else {
+      // Active - OK to play - solid green
+      indicator.classList.add('active');
+      indicator.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
+      indicator.style.border = '1px solid #22c55e';
+      indicator.style.animation = 'none';
+      statusText.innerHTML = '✅ <b>P3: ACTIVE</b>';
+      if (statusReason) statusReason.textContent = `TC: ${status.tc.toFixed(1)} | Bust: ${status.bustRate}%`;
+    }
+  } catch (err) {
+    console.error('[P5 Status] Error:', err);
+  }
+}
+
+// Make globally accessible
+window.updateP5StatusIndicator = updateP5StatusIndicator;
+
 function initQuantEvSession() {
   AppState.quantEvTracker.sessionId = Date.now();
   AppState.quantEvTracker.roundNumber = 0;
@@ -12126,6 +12485,30 @@ function resolveQuantEvRound(playerResults) {
   if (tracker.history.length > 100) tracker.history.shift();
   updateQuantEvPanel();
   logQuantEvRound(round);
+
+  // Track P5 History (for P5 History Panel) - Live Game
+  const quantEvPlayer = AppState.quantEvSettings?.quantEvPlayerIndex || 3;
+  const p5Data = round.players[quantEvPlayer];
+  if (p5Data && p5Data.cards && p5Data.cards.length >= 2) {
+    const hasOverride = p5Data.quantEvAction && (
+      p5Data.quantEvAction.includes('OVERRIDE') ||
+      (p5Data.isDeviation && p5Data.quantEvAction === 'STAY')
+    );
+    const p5Result = playerResults[quantEvPlayer] === 'WIN' ? 'WIN' :
+                     playerResults[quantEvPlayer] === 'BLACKJACK' ? 'BJ' :
+                     playerResults[quantEvPlayer] === 'LOSS' ? 'LOSE' : 'PUSH';
+
+    addP5Round({
+      round: tracker.roundNumber,
+      cards: p5Data.cards.join(' '),
+      total: p5Data.total || 0,
+      dealerTotal: round.dealerTotal || 0,
+      action: p5Data.quantEvAction || 'N/A',
+      result: p5Result,
+      tc: (round.tc || 0).toFixed(1),
+      override: hasOverride
+    });
+  }
 }
 
 function showQuantEvPanel() {
@@ -12161,8 +12544,7 @@ function updateQuantEvPanel() {
 
   const playerCount = simPlayerCount || AppState.config?.playersSeated || 5;
   const settings = AppState.quantEvSettings || {};
-  const lossStreak = settings.martingaleLossStreak || 0;
-  const quantEvPlayer = settings.quantEvPlayerIndex || 4;
+  const quantEvPlayer = settings.quantEvPlayerIndex || 3;
 
   // Update header info
   if (roundTitle) {
@@ -12170,12 +12552,16 @@ function updateQuantEvPanel() {
   }
 
   if (streakEl) {
-    streakEl.textContent = `Streak: ${lossStreak}`;
-    streakEl.style.color = lossStreak > 0 ? '#f87171' : lossStreak < 0 ? 'var(--accent-green)' : 'var(--accent-orange)';
+    // Show P3 (QEV player) win rate
+    const p3 = tracker.players[quantEvPlayer];
+    const p3Decided = p3 ? (p3.wins + p3.losses) : 0;
+    const p3WinRate = p3Decided > 0 ? Math.round((p3.wins / p3Decided) * 100) : 0;
+    streakEl.textContent = `P3 WR: ${p3WinRate}%`;
+    streakEl.style.color = p3WinRate >= 50 ? 'var(--accent-green)' : p3WinRate >= 40 ? 'var(--accent-orange)' : '#f87171';
   }
 
   if (rolesRow) {
-    rolesRow.textContent = 'P1-P3: BS | P4: QEV | P5: SAC';
+    rolesRow.textContent = 'P1,P2,P4,P5: BS | P3: QEV';
   }
 
   // Update players table
@@ -12193,12 +12579,6 @@ function updateQuantEvPanel() {
       if (i === quantEvPlayer) {
         roleClass = 'role-qev';
         roleLabel = 'QEV';
-      } else if (i === 3) {
-        roleClass = 'role-boost';
-        roleLabel = 'BOOST';
-      } else if (i === 5) {
-        roleClass = 'role-sac';
-        roleLabel = 'SAC';
       }
 
       html += `<tr>
@@ -12227,7 +12607,7 @@ function logQuantEvRound(round) {
 
   const playerCount = simPlayerCount || AppState.config?.playersSeated || 5;
   const settings = AppState.quantEvSettings || {};
-  const quantEvPlayer = settings.quantEvPlayerIndex || 4;
+  const quantEvPlayer = settings.quantEvPlayerIndex || 3;
 
   let html = `<div class="qev-round-entry">`;
   html += `<div class="qev-round-header">R${round.round} | TC:${round.tc.toFixed(2)} | D:[${round.dealerCards.join(' ')}]=${round.dealerTotal}</div>`;
@@ -12236,7 +12616,7 @@ function logQuantEvRound(round) {
     const p = round.players[i];
     if (p) {
       if (p.result === 'SAT OUT') {
-        html += `<div class="qev-round-line">P${quantEvPlayer}: <span class="push">SAT OUT</span> (TC ≤ ${settings.quantEvReentryThreshold || 0.9}) [QEV+MG+T25]</div>`;
+        html += `<div class="qev-round-line">P${quantEvPlayer}: <span class="push">SAT OUT</span> (TC &lt; ${settings.quantEvReentryThreshold || 2} or Bust &lt; ${settings.quantEvReentryBustRate || 25}%) [QEV]</div>`;
       } else {
         const resultClass = (p.result === 'WIN' || p.result === 'BLACKJACK') ? 'win' :
                            (p.result === 'LOSS' || p.result === 'BUST') ? 'loss' : 'push';
@@ -12246,13 +12626,7 @@ function logQuantEvRound(round) {
 
         let stratBadge;
         if (i === quantEvPlayer) {
-          stratBadge = '[QEV+MG+T25]';
-        } else if (i === 3) {
-          const boostIntent = p.boosterIntent ? ` ${p.boosterIntent.replace(/_/g, ' ')}` : '';
-          stratBadge = `[BOOST${boostIntent}]`;
-        } else if (i === 5) {
-          const sacIntent = p.sacrificeIntent ? ` ${p.sacrificeIntent.replace(/_/g, ' ')}` : '';
-          stratBadge = `[SAC${sacIntent}]`;
+          stratBadge = '[QEV]';
         } else {
           stratBadge = '[BS]';
         }
@@ -13060,7 +13434,7 @@ function updateQuantEvSettings() {
   if (baseUnit) AppState.quantEvSettings.baseUnit = parseInt(baseUnit.value) || 100;
   if (maxBet) AppState.quantEvSettings.maxBetUnits = parseInt(maxBet.value) || 12;
   if (tcThreshold) AppState.quantEvSettings.tcThreshold = parseInt(tcThreshold.value) || 1;
-  if (player1Tc) AppState.quantEvSettings.player1TcThreshold = parseFloat(player1Tc.value) || 0.9;
+  if (player1Tc) AppState.quantEvSettings.player1TcThreshold = parseFloat(player1Tc.value) || 2;
 
   updateQuantEvPreview();
   console.log('[Quant EV] Settings updated:', AppState.quantEvSettings);
@@ -13106,7 +13480,7 @@ function updateQuantEvPreview() {
 // Check if a player should enter the round based on TC
 function shouldPlayerEnter(playerNum, tc) {
   const settings = AppState.quantEvSettings;
-  const quantEvPlayer = settings.quantEvPlayerIndex || 4;
+  const quantEvPlayer = settings.quantEvPlayerIndex || 3;
 
   if (playerNum === quantEvPlayer) {
     // Quant EV player (P5) only enters when TC > threshold
@@ -13310,7 +13684,7 @@ function applySimSettings() {
   settings.maxBetUnits = martingaleMax;
   settings.martingaleMaxBet = maxBet;
   settings.martingaleCurrentBet = baseBet;
-  settings.betMethod = p1BetMethod ? p1BetMethod.value : 'martingale';
+  settings.betMethod = p1BetMethod ? p1BetMethod.value : 'flat';
   settings.player1TcThreshold = p1TcThreshold ? parseFloat(p1TcThreshold.value) || 0.9 : 0.9;
   settings.player1Strategy = p1Strategy ? p1Strategy.value : 'quantEv';
   settings.player2to5Strategy = p2Strategy ? p2Strategy.value : 'basic';
@@ -13351,21 +13725,19 @@ function updateSettingsSummary() {
 
   const settings = AppState.quantEvSettings;
   const tracker = AppState.quantEvTracker;
-  const quantEvPlayer = settings.quantEvPlayerIndex || 4;
-  const sacrificePlayer = settings.sacrificePlayerIndex || 5;
+  const quantEvPlayer = settings.quantEvPlayerIndex || 3;
+  const sacrificePlayer = settings.sacrificePlayerIndex || null;
   const p4Bank = tracker.players[quantEvPlayer]?.bankroll || 100000;
   const p5Bank = tracker.players[sacrificePlayer]?.bankroll || 100000;
   const p1Bank = tracker.players[1]?.bankroll || 100000;
 
-  const betMethodLabel = settings.betMethod === 'martingale' ? `MG ${settings.maxBetUnits}x max` :
-                         settings.betMethod === 'kelly' ? 'Kelly' :
+  const betMethodLabel = settings.betMethod === 'kelly' ? 'Kelly' :
                          settings.betMethod === 'spread' ? '1-12 Spread' : 'Flat';
 
   summaryText.innerHTML = `
     <strong>TEAMPLAY ALWAYS WINS</strong> | ${AppState.numDecks} decks | ${simPlayerCount} players<br>
-    <strong>P1-P3:</strong> Basic Strategy | Flat $${(settings.p2FlatBet || settings.baseUnit).toLocaleString()}<br>
-    <strong>P${quantEvPlayer}:</strong> QEV+MG+T25 | $${(p4Bank/1000).toFixed(0)}k | $${settings.baseUnit.toLocaleString()} base | ${betMethodLabel}<br>
-    <strong>P${sacrificePlayer}:</strong> SACRIFICE | $${(p5Bank/1000).toFixed(0)}k | Plays to bust dealer
+    <strong>P1,P2,P4,P5:</strong> Basic Strategy | Flat $${(settings.p2FlatBet || settings.baseUnit).toLocaleString()}<br>
+    <strong>P3:</strong> QEV | $${(p4Bank/1000).toFixed(0)}k | $${settings.baseUnit.toLocaleString()} base | ${betMethodLabel}
   `;
 }
 
@@ -13457,9 +13829,9 @@ function resetSimSettings() {
     penetration: 75,
     p1Bankroll: 100000,
     p1BetPercent: 5,
-    p1TcThreshold: 0.9,
+    p1TcThreshold: 2,
     p1Strategy: 'quantEvT25',
-    p1BetMethod: 'martingale',
+    p1BetMethod: 'flat',
     p1MartingaleMax: 3,
     p2Strategy: 'basic',
     p2Bankroll: 100000,
