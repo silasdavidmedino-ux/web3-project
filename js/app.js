@@ -9775,6 +9775,11 @@ function trackLiveSimRound(playerCount, dealerTotal, quantEvSitsOut = false, tcB
   if (AppState.dealerBustHistory.enabled) {
     recordDealerBustHistory(roundData, dealerTotal, sacrificePlayer);
   }
+
+  // DEALER COUNTER ENGINE - Record dealer outcome for hot/cold tracking
+  if (typeof recordDealerOutcomeForCounter === 'function') {
+    recordDealerOutcomeForCounter();
+  }
 }
 
 // ============================================
@@ -13022,6 +13027,11 @@ function autoTrackQuantEvRound(result) {
   // DEALER BUST HISTORY - Record dealer bust
   if (AppState.dealerBustHistory.enabled) {
     recordDealerBustHistory(roundData, roundData.dealerTotal, 5);
+  }
+
+  // DEALER COUNTER ENGINE - Record dealer outcome for hot/cold tracking
+  if (typeof recordDealerOutcomeForCounter === 'function') {
+    recordDealerOutcomeForCounter();
   }
 
   // Clear split data after recording
