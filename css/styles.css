@@ -813,6 +813,33 @@ main {
   font-family: var(--font-mono);
 }
 
+/* Rank highlighting for top cards (performance optimized - use classes not inline styles) */
+.rank-row.rank-top-one .rank-label,
+.rank-row.rank-top-one .rank-left {
+  font-size: 16px;
+  font-weight: bold;
+  color: #f59e0b;
+}
+
+.rank-row.rank-top-one .rank-seen,
+.rank-row.rank-top-one .rank-pct {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.rank-row.rank-top-2-5 .rank-label,
+.rank-row.rank-top-2-5 .rank-left {
+  font-size: 14px;
+  font-weight: bold;
+  color: #22d3ee;
+}
+
+.rank-row.rank-top-2-5 .rank-seen,
+.rank-row.rank-top-2-5 .rank-pct {
+  font-size: 14px;
+  font-weight: bold;
+}
+
 /* Bead Road Section */
 .bead-road-section {
   margin-top: 8px;

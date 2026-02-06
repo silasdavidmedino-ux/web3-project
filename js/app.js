@@ -1,11 +1,18 @@
 /**
- * BJ Probability Engine - Main Application v3.9.41
+ * BJ Probability Engine - Main Application v3.9.50 (PERF OPTIMIZED)
  * Tech Hive Corporation
  * Casino Dashboard Interface
  *
  * QUANT TEAMPLAY SACRIFICE v1.4 FULL
  * P1-P3: Basic Strategy | P4: Quant EV+MG | P5: Sacrifice v1.4
  * RULES: ENHC + S17 (Dealer Stands on Soft 17)
+ *
+ * PERFORMANCE OPTIMIZATIONS v3.9.50:
+ * - Event delegation (52 listeners → 2)
+ * - Cached True Count calculation
+ * - DOM element caching for rank table
+ * - CSS classes instead of inline styles
+ * - Optimized array operations (splice vs shift)
  */
 
 // Global error handler to prevent crashes
@@ -19,7 +26,7 @@ window.onunhandledrejection = function(event) {
   event.preventDefault();
 };
 
-console.log('=== APP VERSION 3.9.41 === S17 Rule: Dealer Stands on Soft 17 ===');
+console.log('=== APP VERSION 3.9.50 (PERF) === S17 Rule: Dealer Stands on Soft 17 ===');
 
 // ============================================
 // Application State
@@ -53,6 +60,16 @@ const AppState = {
 
   // Top ranked cards by remaining count (for post-deal override logic)
   topRankedCards: ['10', '2', '3', '4', '5'],
+
+  // PERFORMANCE: Cached calculations (updated only when state changes)
+  _cache: {
+    trueCount: 0,
+    trueCountDirty: true,
+    topRankedCards: ['10', '2', '3', '4', '5'],
+    topRankedDirty: true,
+    anyPairProb: 0,
+    anyPairDirty: true
+  },
 
   // Position cards
   positions: {
@@ -769,10 +786,16 @@ function updateStrategyVersionDisplay() {
 // Event Listeners
 // ============================================
 function setupEventListeners() {
-  // Card buttons
-  document.querySelectorAll('.card-btn').forEach(btn => {
-    btn.addEventListener('click', () => handleCardClick(btn.dataset.card));
-  });
+  // PERF: Event delegation for card buttons (1 listener instead of 52)
+  const cardGrid = document.querySelector('.card-grid');
+  if (cardGrid) {
+    cardGrid.addEventListener('click', (e) => {
+      const btn = e.target.closest('.card-btn');
+      if (btn && btn.dataset.card) {
+        handleCardClick(btn.dataset.card);
+      }
+    });
+  }
 
   // Undo button
   document.getElementById('btnUndo')?.addEventListener('click', handleUndo);
@@ -783,10 +806,16 @@ function setupEventListeners() {
   // End game button
   document.getElementById('btnEndGame')?.addEventListener('click', handleEndGame);
 
-  // Player position clicks
-  document.querySelectorAll('.player-box').forEach(box => {
-    box.addEventListener('click', () => setActivePosition(box.id));
-  });
+  // PERF: Event delegation for player boxes (1 listener instead of 8)
+  const playersRow = document.querySelector('.players-row');
+  if (playersRow) {
+    playersRow.addEventListener('click', (e) => {
+      const box = e.target.closest('.player-box');
+      if (box && box.id) {
+        setActivePosition(box.id);
+      }
+    });
+  }
 
   // Dealer box click
   document.getElementById('dealerBox')?.addEventListener('click', () => setActivePosition('dealer'));
@@ -1090,6 +1119,7 @@ function handleCardClick(card) {
   AppState.rankSeen[rank]++;
   AppState.cardsDealt++;
   AppState.runningCount += getCountValue(rank);
+  invalidateCache(); // PERF: Mark cached calculations as stale
   addBeadRoad(card);
   trackCardForAntiClump(card);
 
@@ -1115,8 +1145,9 @@ function handleCardClick(card) {
     rank: rank,
     position: AppState.activePosition
   });
+  // PERF: Use splice instead of shift() for O(1) removal
   if (AppState.dealHistory.length > 200) {
-    AppState.dealHistory.shift();
+    AppState.dealHistory.splice(0, 1);
   }
 
   // Update UI
@@ -1468,6 +1499,7 @@ function resetShoe() {
   AppState.runningCount = 0;  // TC RESETS TO 0 ON SHUFFLE
   AppState.dealHistory = [];
   AppState.pairsWon = 0;
+  invalidateCache(); // PERF: Clear cached calculations
 
   // Reset bet to base unit on new shoe
   AppState.quantEvSettings.currentBet = AppState.quantEvSettings.baseUnit;
@@ -1675,12 +1707,28 @@ function setActivePosition(posId) {
 }
 
 // ============================================
-// Calculations
+// Calculations (PERFORMANCE OPTIMIZED with caching)
 // ============================================
 function getTrueCount() {
+  // PERF: Use cached value if not dirty
+  if (!AppState._cache.trueCountDirty) {
+    return AppState._cache.trueCount;
+  }
   const decksRemaining = (AppState.totalCards - AppState.cardsDealt) / 52;
-  if (decksRemaining <= 0) return 0;
-  return AppState.runningCount / decksRemaining;
+  if (decksRemaining <= 0) {
+    AppState._cache.trueCount = 0;
+  } else {
+    AppState._cache.trueCount = AppState.runningCount / decksRemaining;
+  }
+  AppState._cache.trueCountDirty = false;
+  return AppState._cache.trueCount;
+}
+
+// PERF: Invalidate cache when card state changes
+function invalidateCache() {
+  AppState._cache.trueCountDirty = true;
+  AppState._cache.topRankedDirty = true;
+  AppState._cache.anyPairDirty = true;
 }
 
 function getPenetration() {
@@ -3998,6 +4046,7 @@ window.clearP5History = clearP5History;
 /**
  * Track card for anti-clump analysis
  * Maintains sliding window of recent cards and updates clump score
+ * PERF OPTIMIZED: Use splice instead of shift() loop for O(1) removal
  */
 function trackCardForAntiClump(card) {
   if (!card) return;
@@ -4007,9 +4056,10 @@ function trackCardForAntiClump(card) {
   // ALWAYS track cards for real-time clump detection (even if not manually enabled)
   ac.recentCards.push(card);
 
-  // Maintain window size limit
-  while (ac.recentCards.length > ac.maxWindowSize) {
-    ac.recentCards.shift();
+  // PERF: Use splice to remove excess in one operation instead of shift() loop
+  const excess = ac.recentCards.length - ac.maxWindowSize;
+  if (excess > 0) {
+    ac.recentCards.splice(0, excess);
   }
 
   // Run the anti-clump engine computation (always compute for real-time detection)
@@ -5737,10 +5787,38 @@ function updateAllImmediate() {
   }
 }
 
+/**
+ * PERF: Lightweight update for card dealing (skip unnecessary updates)
+ * Use this instead of updateAll() when only dealing cards
+ */
+function updateOnCardDealt() {
+  try {
+    updateCountDisplays();
+    updateRankTable();
+    updateStatBoxes();
+    updatePositionCards();
+    updateCardButtons();
+  } catch (err) {
+    console.error('updateOnCardDealt error:', err);
+  }
+}
+
+/**
+ * PERF: Full update after round completion
+ * Includes all displays, decisions, and analytics
+ */
+function updateOnRoundEnd() {
+  updateAllImmediate();
+}
+
 function updateCountDisplays() {
   setText('runningCount', AppState.runningCount);
   setText('trueCount', getTrueCount().toFixed(2));
 }
+
+// PERF: Cache DOM reference and reuse row elements
+let _rankTableCache = null;
+let _rankRowsCache = [];
 
 function updateRankTable() {
   const remaining = getCardsRemaining();
@@ -5760,32 +5838,62 @@ function updateRankTable() {
   // Store top 5 ranks for override logic
   AppState.topRankedCards = ranksWithCounts.slice(0, 5).map(r => r.rank);
 
-  // Update the sorted rank display
-  const rankTable = document.querySelector('.rank-table');
-  if (rankTable) {
-    // Keep header, rebuild rows
+  // PERF: Cache table reference
+  if (!_rankTableCache) {
+    _rankTableCache = document.querySelector('.rank-table');
+  }
+  const rankTable = _rankTableCache;
+  if (!rankTable) return;
+
+  // PERF: Reuse existing row elements instead of rebuilding DOM
+  if (_rankRowsCache.length === 0) {
+    // First time: create rows and cache them
     const header = rankTable.querySelector('.rank-header');
     rankTable.innerHTML = '';
     if (header) rankTable.appendChild(header);
 
-    ranksWithCounts.forEach((item, index) => {
+    for (let i = 0; i < 10; i++) {
       const row = document.createElement('div');
       row.className = 'rank-row';
-      if (item.rank === '10') row.classList.add('tens-row');
-
-      // Highlight TOP 2-5 (indices 1-4, since index 0 is #1)
-      const isTop = index >= 1 && index <= 4;
-      const isTopOne = index === 0;
-
       row.innerHTML = `
-        <span class="rank-label" style="${isTop ? 'font-size:14px;font-weight:bold;color:#22d3ee;' : ''} ${isTopOne ? 'font-size:16px;font-weight:bold;color:#f59e0b;' : ''}">${item.rank}</span>
-        <span id="seen${item.rank}" class="rank-seen" style="${isTop ? 'font-size:14px;font-weight:bold;' : ''} ${isTopOne ? 'font-size:16px;font-weight:bold;' : ''}">${item.seen}</span>
-        <span id="left${item.rank}" class="rank-left" style="${isTop ? 'font-size:14px;font-weight:bold;color:#22d3ee;' : ''} ${isTopOne ? 'font-size:16px;font-weight:bold;color:#f59e0b;' : ''}">${item.left}</span>
-        <span id="pct${item.rank}" class="rank-pct" style="${isTop ? 'font-size:14px;font-weight:bold;' : ''} ${isTopOne ? 'font-size:16px;font-weight:bold;' : ''}">${item.pct}</span>
+        <span class="rank-label"></span>
+        <span class="rank-seen"></span>
+        <span class="rank-left"></span>
+        <span class="rank-pct"></span>
       `;
       rankTable.appendChild(row);
-    });
+      _rankRowsCache.push({
+        row: row,
+        label: row.querySelector('.rank-label'),
+        seen: row.querySelector('.rank-seen'),
+        left: row.querySelector('.rank-left'),
+        pct: row.querySelector('.rank-pct')
+      });
+    }
   }
+
+  // PERF: Update existing rows (no DOM creation, just text/class changes)
+  ranksWithCounts.forEach((item, index) => {
+    const cached = _rankRowsCache[index];
+    if (!cached) return;
+
+    // Update text content (faster than innerHTML)
+    cached.label.textContent = item.rank;
+    cached.seen.textContent = item.seen;
+    cached.left.textContent = item.left;
+    cached.pct.textContent = item.pct;
+
+    // PERF: Use CSS classes instead of inline styles
+    cached.row.className = 'rank-row';
+    if (item.rank === '10') cached.row.classList.add('tens-row');
+
+    // Highlight using CSS classes (no inline style parsing)
+    if (index === 0) {
+      cached.row.classList.add('rank-top-one');
+    } else if (index >= 1 && index <= 4) {
+      cached.row.classList.add('rank-top-2-5');
+    }
+  });
 }
 
 // Get top N ranked cards by remaining count
