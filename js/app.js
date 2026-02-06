@@ -1647,6 +1647,11 @@ function applyDiceBurn(diceRank, mapping) {
     AppState.rankSeen[normalizedRank]++;
     AppState.cardsDealt++;
     AppState.runningCount += getCountValue(normalizedRank);
+
+    // Add to bead road
+    const suits = ['♠', '♥', '♦', '♣'];
+    const suit = suits[Math.floor(Math.random() * 4)];
+    addBeadRoad(diceRank + suit);
   }
 
   // Then burn additional random cards based on pip value
@@ -1668,9 +1673,18 @@ function applyDiceBurn(diceRank, mapping) {
     burned++;
   }
 
+  // Invalidate cache after modifying counts
+  if (typeof invalidateCache === 'function') {
+    invalidateCache();
+  }
+
   const totalSeen = 1 + burned;
-  showToast(`Dice ${diceRank}: 1 card seen + ${burned} burned = ${totalSeen} total cards`, 'success');
+  showToast(`🎲 Dice ${diceRank}: 1 seen + ${burned} burned = ${totalSeen} total`, 'success');
+  console.log(`[DICE BURN] ${diceRank}: 1 card seen, ${burned} cards burned, RC: ${AppState.runningCount}`);
 }
+
+// Make applyDiceBurn globally accessible
+window.applyDiceBurn = applyDiceBurn;
 
 function getDiceMappingValue(card, mapping) {
   const rank = normalizeRank(card);
